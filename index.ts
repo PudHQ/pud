@@ -1,1 +1,1 @@
-console.log("Start of 🍮");
+console.log("Start of pud 🍮");
