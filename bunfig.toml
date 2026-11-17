@@ -1,0 +1,3 @@
+[test]
+# The standalone walkthroughs have their own runners and dependencies.
+pathIgnorePatterns = ["examples/**"]

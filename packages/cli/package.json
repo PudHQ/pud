@@ -1,0 +1,16 @@
+{
+  "name": "@pud/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pud": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@babel/parser": "8.1.2",
+    "chalk": "6.0.1"
+  },
+  "devDependencies": {
+    "@babel/types": "8.1.2"
+  }
+}
