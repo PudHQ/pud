@@ -1,56 +1,71 @@
 # pud
 
-`pud` translates TypeScript functions to Rocq and checks agreement with a specification for **every input of the declared types**. Each [`*.proof.ts` file](packages/cli/demo/bounds.proof.ts) groups the proof definitions for its TypeScript module.
+`pud` checks a property of a TypeScript function for every input of its declared types. A developer reviews the property in TypeScript, an agent can write the Rocq proof, and CI replays it without an LLM.
 
-## Try it
+## Try the demo
 
-Install [Bun](https://bun.com/docs/installation) and [Rocq 9 with its standard library](https://rocq-prover.org/install). Put `rocq` on your PATH, or set `ROCQ` to its executable. From the repository root:
+Install [Bun](https://bun.com/docs/installation) and [Rocq 9 with its standard library](https://rocq-prover.org/install). Put `rocq` on your PATH or set `ROCQ` to its executable. From the repository root run
 
 ```sh
 bun install --frozen-lockfile
+bun run demo
+```
+
+The [demo](packages/cli/demo/replay.ts) works in a temporary directory. It holds [the reviewed property](packages/cli/demo/bounds.proof.ts) fixed throughout.
+
+| Change to `max` | Result |
+| --- | --- |
+| Original implementation, `a < b ? b : a` | `PASS`. Rocq checks the proof. |
+| Equivalent implementation, `b < a ? a : b` | `UNPROVED`. The original proof splits on the old comparison. |
+| Same implementation, [agent’s repaired proof](packages/cli/demo/repair/Maximum.v) | `PASS`. The same repair also checks against the original implementation. |
+| Wrong implementation, `a < b ? a : b` | `DISPROVED`. Calling `max(0n, 1n)` returns `0n`, which violates the reviewed property. |
+
+The repair was written by an agent given the failing proof and the generated theorem. The demo replays the saved repair locally. To check just the current files, use the same command on a laptop or in CI.
+
+```sh
 bun run --silent verify packages/cli/demo/bounds.proof.ts
 ```
 
-Both checks pass. The [maximum proof](packages/cli/demo/Maximum.v) uses `Z.max`, and the [minimum proof](packages/cli/demo/Minimum.v) uses `Z.min`. To see a failure, swap the two return branches of `min` in [bounds.ts](packages/cli/demo/bounds.ts) and rerun. Only the minimum check fails.
+## Write the property
 
-Add `--verbose` before the manifest to see Rocq’s full diagnostic.
-
-## Write a proof
+Use a named value import in a `*.proof.ts` file. The predicate takes the function’s arguments in order and its result last. Here the final clause rules out returning a number larger than both inputs.
 
 ```ts
-// bounds.proof.ts
-import { max, min } from "./bounds.ts";
+import { max } from "./bounds.ts";
 
-export default [
-  { subject: max, proof: "./Maximum.v", spec: "maximum", theorem: "max_correct" },
-  { subject: min, proof: "./Minimum.v", spec: "minimum", theorem: "min_correct" },
-];
+export default {
+  subject: max,
+  property: (a: bigint, b: bigint, r: bigint) => r >= a && r >= b && (r === a || r === b),
+  proof: "./Maximum.v",
+  theorem: "max_correct",
+};
 ```
 
-Paths are relative to the manifest. Use named value imports and export an array of proof definitions, or a single object for one proof. The CLI reads these declarations without executing them. To inspect a generated model, select its local import name:
+A manifest can contain one definition or an array. Paths are relative to the manifest. The CLI parses it statically. To give a coding agent the generated model and exact theorem, run
 
 ```sh
 bun run pud --emit packages/cli/demo/bounds.proof.ts max
 ```
 
-This prints the generated `Subject.v`, even before the proof exists. The name is optional for a file with one subject. The model defines `Subject.impl` from the function body and `Subject.agrees` from its signature. For `max`, the obligation is:
+Ask the agent to edit only `Maximum.v`, prove `Theorem max_correct : Subject.claim.`, and rerun verification. Emitting the claim works before the proof exists. If several properties target the same function, pass `max.max_correct` to select a theorem.
 
-```coq
-forall (a b : Z), Subject.impl a b = maximum a b
-```
+At verification time, Rocq compiles the generated model and the proof in a fresh directory. A separate module checks the named theorem against the generated claim and [audits its axioms](https://rocq-prover.org/doc/master/refman/proof-engine/vernacular-commands.html#print-assumptions). An admitted lemma or an unrelated theorem leaves the claim unproved. Native Rocq reference specs also work. The [minimum check](packages/cli/demo/Minimum.v) uses `spec: "minimum"` in place of `property` and proves agreement with `Z.min`.
 
-In your `.v` file, `From Pud Require Import Subject.`, define the reference function, and prove `Theorem max_correct : Subject.agrees maximum.` See [Maximum.v](packages/cli/demo/Maximum.v) for the complete proof. Keep the specification independent of `Subject.impl`: it defines what “correct” means.
+## What the results mean
 
-On each check, the CLI compiles the model and the linked proof in a fresh temporary directory. It then asks Rocq to check the named theorem against the exact generated obligation and [report its assumptions](https://rocq-prover.org/doc/master/refman/proof-engine/vernacular-commands.html#print-assumptions). A theorem that relies on an axiom or `Admitted`, even indirectly, fails. A proof file may use the installed Rocq libraries; local multi-file Rocq projects are outside this PoC.
+| Result | Meaning |
+| --- | --- |
+| `PASS` | Rocq checked the exact claim for all declared inputs with no additional global axioms. |
+| `DISPROVED` | For a reviewed TS predicate, executing the validated function body and predicate on the JS runtime produced the displayed counterexample. |
+| `UNPROVED` | The submitted proof did not establish the claim, or a reviewed property has no proof yet. |
+| `ERROR` | Unsupported TypeScript, invalid input, or a tool error prevented verification. |
 
-## Scope and results
+Witness search tries up to 256 argument combinations using small signed bigints and both booleans. It can miss bugs. If it finds no witness, verification continues to Rocq. Native Rocq reference specs have no JS predicate to replay. Exit `0` means every check passed, `1` means a claim was unproved or disproved, and `2` means an error occurred and takes precedence. Pass `--verbose` before the manifest for full Rocq diagnostics.
 
-The translator accepts named exported function declarations with required `bigint` or `boolean` parameters and an explicit return type. Bodies may use parameters, literals, `return`, `if/else`, ternaries, integer `+`, `-`, `*`, comparisons, and boolean `!`, `&&`, `||`. Equality uses `===` or `!==` on like types. Source modules may contain other named function declarations. Calls, mutation, loops, imports, `number` and other unsupported syntax are rejected.
+## Supported TypeScript
 
-The guarantee relies on the translator modeling this fragment correctly. It models `bigint` as mathematical integers and assumes callers supply the declared types and execution has sufficient resources. Use trusted local Rocq scripts.
+The verified function must be a named export with required `bigint` or `boolean` parameters and an explicit return type. It may use literals, `return`, `if/else`, ternaries, integer `+`, `-`, `*`, comparisons, boolean `!`, `&&`, `||`, and strict equality on like types. Reviewed predicates use the same expressions and must return a boolean.
 
-Pass several manifests to check them in one run. Exit `0` means all passed; `1` means a proof was rejected (the claim may still be true); `2` means invalid input or a tool error and takes precedence. Diagnostics identify the manifest and the failing proof or source location.
+The enclosing module may include literal constants, type-only declarations or imports, and unrelated named functions. Runtime imports, executable module initialization, calls or mutation in the verified function, loops and JS `number` are outside this fragment. Witness replay executes only the validated bodies. The proof relies on the translator faithfully modelling this fragment, callers supplying the stated types, and sufficient execution resources. Use trusted local Rocq scripts.
 
-The [CLI](packages/cli) lives in the Bun workspace under `packages/*`; `apps/*` is available for applications. Run `bun run typecheck` and `bun run test` from the root. The tests use the real Rocq compiler.
-
-The existing local [Fibonacci walkthrough](examples/fibonacci/README.md) has its own Vitest, LemmaScript, Dafny, and Rocq examples.
+Run `bun run typecheck` and `bun run test` from the root. The [proof-replay workflow](.github/workflows/proofs.yml) runs the tests and demo without an agent. The [paired Rocq/Dafny experiment](experiments/prover-comparison/README.md) records what a behavior-preserving edit required from each prover.

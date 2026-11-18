@@ -1,3 +1,5 @@
+export const label = "bounds";
+
 export function max(a: bigint, b: bigint): bigint {
   return a < b ? b : a;
 }

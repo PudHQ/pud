@@ -2,10 +2,11 @@ import { parse } from "@babel/parser";
 import type { Node } from "@babel/types";
 import { readFileSync } from "node:fs";
 
-export function readModule(file: string) {
+export function readSourceModule(file: string) {
   const source = readFileSync(file, "utf8");
   try {
-    return parse(source, { sourceType: "module", plugins: ["typescript"] }).program;
+    const { program } = parse(source, { sourceType: "module", plugins: ["typescript"] });
+    return { source, program };
   } catch (error) {
     throw new Error(`${file}: ${error instanceof Error ? error.message : error}`);
   }

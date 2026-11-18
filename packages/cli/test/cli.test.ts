@@ -47,7 +47,7 @@ test("bounds proves both functions and reports which one breaks after either imp
   const pass = run([file], env);
   expect(pass.err).toBe("");
   expect(pass.status).toBe(0);
-  const maxPass = `🍮 PASS  max vs maximum  ${file}\n`;
+  const maxPass = `🍮 PASS  max  ${file}:6\n`;
   const minPass = `🍮 PASS  min vs minimum  ${file}\n`;
   expect(pass.out).toBe(maxPass + minPass);
 
@@ -55,17 +55,53 @@ test("bounds proves both functions and reports which one breaks after either imp
   const fail = run([file], env);
   expect(fail.status).toBe(1);
   expect(fail.out).toBe(minPass);
-  expect(fail.err).toContain(`🦠 FAIL  max vs maximum  ${file}\n`);
-  expect(fail.err).toContain("Maximum.v:");
-  expect(fail.err).not.toContain("In environment");
+  expect(fail.err).toContain(`🦠 DISPROVED  max  ${file}:6\n`);
+  expect(fail.err).toContain("maximum(0n, 1n) returned 0n. The property evaluated to false.");
   writeFileSync(source, original.replace("a < b ? a : b", "a < b ? b : a"));
   const verbose = run(["--verbose", file], env);
   expect(verbose.status).toBe(1);
   expect(verbose.out).toBe(maxPass);
-  expect(verbose.err).toContain(`🦠 FAIL  min vs minimum  ${file}\n`);
+  expect(verbose.err).toContain(`🦠 UNPROVED  min vs minimum  ${file}\n`);
   expect(verbose.err).toContain("Minimum.v");
   expect(verbose.err).toContain("The linked proof did not compile.");
   expect(readdirSync(dir)).toEqual(originalFiles);
+}, 30_000);
+
+test("an agent's proof repair replays against both equivalent bodies with the property unchanged", () => {
+  const dir = fixture(), file = join(dir, "bounds.proof.ts");
+  const source = join(dir, "bounds.ts");
+  const reviewed = readFileSync(file, "utf8");
+  const original = readFileSync(source, "utf8");
+  edit(source, "a < b ? b : a", "b < a ? a : b");
+  const stale = run([file]);
+  expect(stale.status).toBe(1);
+  expect(stale.err).toContain("UNPROVED  max");
+  expect(stale.err).toContain("Maximum.v:");
+  cpSync(join(dir, "repair", "Maximum.v"), join(dir, "Maximum.v"));
+  expect(run([file]).status).toBe(0);
+  writeFileSync(source, original);
+  expect(run([file]).status).toBe(0);
+  expect(readFileSync(file, "utf8")).toBe(reviewed);
+}, 30_000);
+
+test("only the generated TS claim can certify a reviewed property", () => {
+  const dir = fixture(), file = join(dir, "bounds.proof.ts");
+  writeFileSync(join(dir, "Maximum.v"), "Theorem max_correct : True. Proof. exact I. Qed.");
+  const swapped = run([file]);
+  expect(swapped.status).toBe(1);
+  expect(swapped.err).toContain("UNPROVED  max");
+  expect(swapped.err).toContain("the reviewed TypeScript property");
+}, 30_000);
+
+test("finite witness search never certifies an unproved claim", () => {
+  const dir = fixture(), file = join(dir, "single.proof.ts");
+  writeFileSync(file, `import { max } from "./bounds.ts";
+    export default {subject: max, property: (a, b, r) => a !== 100n, proof: "./Absent.v", theorem: "claim"};`);
+  const unknown = run([file]);
+  expect(unknown.status).toBe(1);
+  expect(unknown.err).toContain("UNPROVED  max");
+  expect(unknown.err).toContain("No proof yet");
+  expect(unknown.out).toBe("");
 }, 30_000);
 
 test("a valid but unrelated theorem does not certify the function", () => {
@@ -165,6 +201,20 @@ test("grouped --emit selects the imported binding and reports ambiguous or unkno
     expect(r.out).toBe("");
     expect(r.err).toContain("Available subjects: max, smallest");
   }
+});
+
+test("--emit distinguishes different reviewed properties of the same function", () => {
+  const dir = fixture(), file = join(dir, "two.proof.ts");
+  writeFileSync(file, `import { max } from "./bounds.ts";
+    export default [
+      {subject: max, property: (a,b,r) => r >= a, theorem: "lowerBound", proof: "./A.v"},
+      {subject: max, property: (a,b,r) => r === b || r === a, theorem: "member", proof: "./B.v"}
+    ];`);
+  expect(run(["--emit", file, "max"]).err).toContain("max.lowerBound, max.member");
+  const selected = run(["--emit", file, "max.member"]);
+  expect(selected.status).toBe(0);
+  expect(selected.out).toContain("orb (Z.eqb result p1) (Z.eqb result p0)");
+  expect(selected.out).not.toContain("Z.geb");
 });
 
 test.each(["[]", "[,]", "[...checks]", "[makeProof()]"])("rejects an empty or dynamic proof list: %s", value => {

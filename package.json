@@ -5,6 +5,7 @@
   "type": "module",
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
+    "demo": "bun packages/cli/demo/replay.ts",
     "verify": "pud",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

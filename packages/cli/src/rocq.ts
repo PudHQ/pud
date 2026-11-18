@@ -30,20 +30,29 @@ export function checkProof(manifest: ProofDefinition, model: Model) {
   }
 
   try {
-    copyFileSync(manifest.proof, join(dir, "Linked.v"));
     writeFileSync(join(dir, "Subject.v"), subjectModule(model));
     compile("Subject.v", "Rocq could not compile the generated model. Check that Rocq 9 and its Stdlib are installed.");
+    try {
+      copyFileSync(manifest.proof, join(dir, "Linked.v"));
+    } catch (error) {
+      if (manifest.property && (error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ProofFailure(`No proof yet. Write ${manifest.theorem} in ${manifest.proof}.`);
+      }
+      throw error;
+    }
     compile("Linked.v", "The linked proof did not compile.", ProofFailure);
 
     // Check the exact type in a fresh module. Only this invocation's output
     // counts: diagnostics printed by the linked script cannot attest to closure.
+    const expected = manifest.property ? "Pud.Subject.claim" : `Pud.Subject.agrees Pud.Linked.${manifest.spec}`;
     writeFileSync(join(dir, "Audit.v"), [
       "From Pud Require Subject Linked.",
-      `Definition certificate : Pud.Subject.agrees Pud.Linked.${manifest.spec} := Pud.Linked.${manifest.theorem}.`,
+      `Definition certificate : ${expected} := Pud.Linked.${manifest.theorem}.`,
       "Print Assumptions certificate.",
       "",
     ].join("\n"));
-    const assumptions = compile("Audit.v", `Expected ${manifest.theorem} to prove Subject.agrees ${manifest.spec}.`, ProofFailure);
+    const claim = manifest.property ? "the reviewed TypeScript property (Subject.claim)" : `Subject.agrees ${manifest.spec}`;
+    const assumptions = compile("Audit.v", `Expected ${manifest.theorem} to prove ${claim}.`, ProofFailure);
     if (assumptions !== "Closed under the global context") {
       throw new ProofFailure(`Rocq did not certify an assumption-free theorem:\n${assumptions || "(no assumptions report)"}`);
     }
