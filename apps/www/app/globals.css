@@ -1,0 +1,471 @@
+:root {
+  --paper: #f4f0e6;
+  --ink: #17171c;
+  --vermilion: #ff462d;
+  --cyan: #00bbd5;
+  --registration: clamp(3px, 0.5vw, 8px);
+  --gutter: clamp(1.5rem, 4.5vw, 5rem);
+  color: var(--ink);
+  background: var(--paper);
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.splash {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.masthead {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.header-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: clamp(4rem, 6.8vw, 6rem);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  position: relative;
+  isolation: isolate;
+  padding: 0.65rem clamp(1.6rem, 4.4vw, 5rem) 0.75rem var(--gutter);
+  color: #340800;
+  font-size: clamp(1.7rem, 1.1rem + 2.9vw, 3.625rem);
+  font-weight: 758;
+  line-height: 1;
+  letter-spacing: 0.012em;
+  text-decoration: none;
+  white-space: nowrap;
+  font-variation-settings: "opsz" 144, "slnt" 0, "wdth" 120, "GRAD" 66, "ROND" 65;
+}
+
+.wordmark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 1.15rem) 100%, 0 100%);
+}
+
+.dot {
+  color: #ff1641;
+}
+
+.domain {
+  color: #881d00;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 3rem);
+  margin-inline-start: auto;
+  font: 650 clamp(0.85rem, 1.1vw, 1.05rem) / 1.2 system-ui, sans-serif;
+}
+
+.about-tab {
+  anchor-name: --about-tab;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.alpha-link {
+  box-sizing: border-box;
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.9rem var(--gutter) 0.9rem clamp(1.35rem, 2.5vw, 3rem);
+  background: var(--cyan);
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+  clip-path: polygon(0.6rem 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.alpha-link:hover,
+.alpha-link:focus-visible {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.tab-symbol {
+  position: relative;
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+  color: var(--cyan);
+}
+
+.tab-symbol::before,
+.tab-symbol::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  height: 2px;
+  margin: auto;
+  background: currentColor;
+}
+
+.tab-symbol::after {
+  transform: rotate(90deg);
+}
+
+.masthead:has(:popover-open) .tab-symbol::after {
+  transform: rotate(0);
+}
+
+.about-tab:hover .tab-symbol {
+  color: var(--paper);
+}
+
+.project-note {
+  position: fixed;
+  position-anchor: --about-tab;
+  inset: 5.5rem var(--gutter) auto auto;
+  top: calc(anchor(--about-tab bottom, 4.8rem) + 0.7rem);
+  box-sizing: border-box;
+  width: min(22rem, 100% - 2 * var(--gutter));
+  margin: 0;
+  padding: 1.1rem 1.35rem;
+  border: 0;
+  box-shadow: 3px 3px var(--cyan);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: clamp(1rem, 1.2vw, 1.125rem);
+  line-height: 1.5;
+}
+
+.project-note p {
+  margin: 0;
+}
+
+.wordmark:focus-visible,
+.alpha-link:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -5px;
+}
+
+.about-tab:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 3px;
+}
+
+.poster {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.composition {
+  flex: 1;
+  display: grid;
+  grid-template-areas: "art statement";
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(1.5rem, 3.5vw, 4rem);
+  min-height: clamp(22rem, 54svh, 48rem);
+  margin-inline: var(--gutter);
+}
+
+.statement {
+  grid-area: statement;
+  align-self: center;
+  container-type: inline-size;
+  padding-block: clamp(2rem, 4vw, 4.5rem);
+}
+
+.tagline {
+  margin: 0;
+  font-size: min(12.1cqi, 8.25rem);
+  line-height: 0.98;
+}
+
+.tagline > span {
+  display: block;
+  width: fit-content;
+}
+
+.tagline .knockout {
+  position: relative;
+  isolation: isolate;
+  margin: 0.16em 0 0.08em;
+  padding-block: 0.04em 0.11em;
+  color: var(--paper);
+}
+
+.knockout::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 -0.23em 0 -0.22em;
+  background: var(--ink);
+  box-shadow: var(--registration) var(--registration) var(--cyan);
+  transform: skewX(-9deg);
+}
+
+.intro {
+  max-width: 43ch;
+  margin: clamp(1.25rem, 2.35vw, 2.6rem) 0 0;
+  font-size: clamp(1.3rem, 1.48vw, 1.48rem);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.print {
+  grid-area: art;
+  position: relative;
+  margin-inline-start: calc(-1 * var(--gutter));
+  background: var(--vermilion);
+  clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
+}
+
+.print img {
+  position: absolute;
+  top: 50%;
+  left: 46%;
+  display: block;
+  width: min(62%, 22rem);
+  height: 70%;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(var(--registration) var(--registration) 0 var(--cyan));
+}
+
+.alpha-section {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(1.5rem, 3.5vw, 4rem);
+  padding: clamp(1.75rem, 3.2vw, 3.5rem) var(--gutter);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.signup {
+  width: 100%;
+  max-width: 44rem;
+}
+
+.alpha-heading h2 {
+  margin: 0;
+  font-size: clamp(2.1rem, 3.7vw, 4rem);
+  line-height: 1;
+}
+
+.alpha-heading p {
+  margin: 0.6rem 0 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.alpha-section:has(.signup-success) .alpha-heading p {
+  display: none;
+}
+
+.signup form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.signup-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.signup-field label {
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1rem;
+}
+
+.signup-field input,
+.signup-submit {
+  box-sizing: border-box;
+  min-height: 48px;
+  border: 2px solid transparent;
+  border-radius: 2px;
+  font: inherit;
+}
+
+.signup-field input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#alpha-entry {
+  scroll-margin-block: 4rem;
+}
+
+.signup-field input[aria-invalid="true"] {
+  border-color: #ff907f;
+}
+
+.signup-field small {
+  color: #ffb4a5;
+  line-height: 1.4;
+}
+
+.signup-submit {
+  margin-top: 1.4rem;
+  padding-inline: 1.2rem;
+  background: var(--cyan);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.signup-submit:hover:enabled {
+  background: var(--paper);
+}
+
+.signup-submit:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.signup :is(input, button):focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.signup-feedback p {
+  margin: 0.75rem 0 0;
+  line-height: 1.4;
+}
+
+.signup-feedback .signup-success {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.75rem);
+  font-weight: 650;
+}
+
+.signup-success span {
+  color: var(--cyan);
+}
+
+.imprint {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-inline: var(--gutter);
+  background: var(--paper);
+}
+
+.credit {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: var(--ink);
+  font: 600 0.78rem / 1.3 ui-monospace, monospace;
+  text-underline-offset: 3px;
+}
+
+.credit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab-symbol::after {
+    transition: transform 160ms ease-out;
+  }
+}
+
+@media (max-width: 52rem) {
+  .alpha-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 52rem) and (orientation: portrait) {
+  .composition {
+    grid-template-areas: "statement" "art";
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .statement {
+    padding-block: clamp(1.5rem, 5.5svh, 3.5rem);
+  }
+
+  .print {
+    margin-inline: calc(-1 * var(--gutter));
+    height: clamp(12rem, 59vw, 23rem);
+    clip-path: polygon(0 12%, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .print img {
+    top: 54%;
+    left: 50%;
+  }
+}
+
+@media (max-width: 37rem) {
+  .nav-actions {
+    gap: 0.75rem;
+  }
+
+  .wordmark {
+    font-size: clamp(1.3rem, 5.5vw, 1.7rem);
+    padding-inline-end: 1.5rem;
+  }
+
+  .alpha-link {
+    padding-inline: 1.15rem 1rem;
+  }
+
+  .signup form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .signup-submit {
+    margin-top: 0.35rem;
+  }
+}
+
+@media (max-width: 23rem) {
+  .wordmark {
+    font-size: 1.25rem;
+    padding-inline-end: 0.95rem;
+  }
+
+  .nav-actions {
+    gap: 0.375rem;
+  }
+
+  .about-tab {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  .tab-symbol {
+    display: none;
+  }
+
+  .alpha-link {
+    padding-inline: 0.95rem 0.75rem;
+  }
+}
