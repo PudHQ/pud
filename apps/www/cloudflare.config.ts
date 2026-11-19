@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => ({
       notFoundHandling: "none",
       runWorkerFirst: ["/*", "!/_next/static/*", "!/*/_next/static/*"],
     },
+    domains: [
+      "pud.dev",
+      "www.pud.dev"
+    ],
     env: {
       ASSETS: bindings.assets(),
       // cf addresses local D1 migrations by UUID. Production resolves the database by name.
