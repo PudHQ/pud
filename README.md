@@ -69,3 +69,7 @@ The verified function must be a named export with required `bigint` or `boolean`
 The enclosing module may include literal constants, type-only declarations or imports, and unrelated named functions. Runtime imports, executable module initialization, calls or mutation in the verified function, loops and JS `number` are outside this fragment. Witness replay executes only the validated bodies. The proof relies on the translator faithfully modelling this fragment, callers supplying the stated types, and sufficient execution resources. Use trusted local Rocq scripts.
 
 Run `bun run typecheck` and `bun run test` from the root. The [proof-replay workflow](.github/workflows/proofs.yml) runs the tests and demo without an agent. The [paired Rocq/Dafny experiment](experiments/prover-comparison/README.md) records what a behavior-preserving edit required from each prover.
+
+## License
+
+Pud is licensed under the [MIT License](LICENSE). The bundled Google Sans Flex fonts are licensed under the [SIL Open Font License 1.1](apps/www/app/fonts/OFL.txt).
