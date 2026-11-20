@@ -1,230 +1,276 @@
 import { parse } from "@babel/parser";
-import type { ArrayExpression } from "@babel/types";
+import type { Node, Statement } from "@babel/types";
+import { checkSchema, lowerSql, type SqlOperation, type SqlParameter } from "./sql.ts";
 
-/*
- * The verifier models one transaction protocol. SQL and its bound expressions are
- * extracted independently from these holes. A control-flow edit must be modelled
- * before it can use the same proof.
- */
-const protocol = `
-  export interface Session { query(sql: string, params?: string[]): Promise<{ rows: unknown[] }>; }
-  export interface Auth { tenantId: string; }
-  export interface DebitInput { accountId: string; requestId: string; amountCents: bigint; }
-  export const CLAIM = "";
-  export const DEBIT = "";
-  export async function debit(db: Session, auth: Auth, input: DebitInput): Promise<"applied" | "duplicate" | "declined"> {
-    const { tenantId } = auth;
-    const { accountId, requestId, amountCents } = input;
-    if (typeof amountCents !== "bigint" || amountCents <= 0n || amountCents > 9223372036854775807n) {
-      throw new RangeError("amountCents must be a positive PostgreSQL bigint");
-    }
-    await db.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
-    try {
-      const claim = await db.query(CLAIM, []);
-      if (claim.rows.length === 0) { await db.query("COMMIT"); return "duplicate"; }
-      const debit = await db.query(DEBIT, []);
-      if (debit.rows.length === 0) { await db.query("ROLLBACK"); return "declined"; }
-      await db.query("COMMIT");
-      return "applied";
-    } catch (error) { await db.query("ROLLBACK"); throw error; }
+type Value =
+  | { kind: "db" | "auth" | "input" | "undefined" | "null" }
+  | { kind: "text" | "bigint" | "number" | "bool" | "decimal" | "query" | "rows"; code: string; literal?: string };
+
+type Scope = Map<string, Value>;
+
+function unsupported(node: Node, detail: string): never {
+  throw new Error(`line ${node.loc?.start.line ?? "?"}: ${detail}`);
+}
+
+function field(node: Node, object: Value, name: string): Value {
+  if (object.kind === "auth" && name === "tenantId") return { kind: "text", code: "q.tenant" };
+  if (object.kind === "input") {
+    if (name === "accountId") return { kind: "text", code: "q.account" };
+    if (name === "requestId") return { kind: "text", code: "q.requestId" };
+    if (name === "amountCents") return { kind: "bigint", code: "q.amount" };
   }
-`;
-
-const supportedSchema = `
-  CREATE TABLE accounts (
-    tenant_id text NOT NULL, account_id text NOT NULL,
-    balance bigint NOT NULL CHECK (balance >= 0), PRIMARY KEY (tenant_id, account_id)
-  );
-  CREATE TABLE debit_requests (
-    tenant_id text NOT NULL, request_id text NOT NULL, PRIMARY KEY (tenant_id, request_id)
-  );
-`;
-
-function program(source: string) {
-  return parse(source, { sourceType: "module", plugins: ["typescript"] }).program;
+  if (object.kind === "query" && name === "rows") return { kind: "rows", code: object.code };
+  if (object.kind === "rows" && name === "length") return { kind: "number", code: object.code };
+  return unsupported(node, `Unsupported property '${name}' on ${object.kind}`);
 }
 
-const trivia = new Set(["start", "end", "loc", "extra", "leadingComments", "innerComments", "trailingComments"]);
-function syntax(node: unknown): string {
-  return JSON.stringify(node, (key, value) => {
-    if (trivia.has(key)) return undefined;
-    return typeof value === "bigint" ? value.toString() : value;
-  });
+// Only the data visible at the HTTP/SQL boundary enter the transaction model.
+// Keep primitive expressions in TypeScript. LemmaScript translates their semantics.
+function value(node: Node, env: Scope): Value {
+  switch (node.type) {
+    case "Identifier": {
+      const found = env.get(node.name);
+      if (found) return found;
+      if (node.name === "undefined") return { kind: "undefined" };
+      return unsupported(node, `Unknown binding '${node.name}'`);
+    }
+    case "TemplateLiteral":
+      if (node.expressions.length === 0 && typeof node.quasis[0]?.value.cooked === "string") {
+        const literal = node.quasis[0].value.cooked;
+        return { kind: "text", code: JSON.stringify(literal), literal };
+      }
+      break;
+    case "StringLiteral": return { kind: "text", code: JSON.stringify(node.value), literal: node.value };
+    case "NullLiteral": return { kind: "null" };
+    case "BooleanLiteral": return { kind: "bool", code: String(node.value) };
+    case "BigIntLiteral": return { kind: "bigint", code: `${node.value}n` };
+    case "NumericLiteral":
+      if (Number.isSafeInteger(node.value)) return { kind: "number", code: String(node.value) };
+      break;
+    case "MemberExpression":
+      if (!node.computed && node.property.type === "Identifier") return field(node, value(node.object, env), node.property.name);
+      break;
+    case "CallExpression": {
+      const callee = node.callee;
+      if (callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier"
+          && callee.property.name === "toString" && node.arguments.length === 0) {
+        const receiver = value(callee.object, env);
+        if (receiver.kind === "bigint" && receiver.code === "q.amount") return { kind: "decimal", code: receiver.code };
+      }
+      break;
+    }
+    case "TSAsExpression":
+    case "TSNonNullExpression":
+    case "TSSatisfiesExpression": return value(node.expression, env);
+    case "UnaryExpression": {
+      const operand = value(node.argument, env);
+      if (node.operator === "!") return { kind: "bool", code: `!(${truth(node, operand)})` };
+      if (node.operator === "-" && (operand.kind === "number" || operand.kind === "bigint")) {
+        return { kind: operand.kind, code: `(-${operand.code})` };
+      }
+      if (node.operator === "typeof") {
+        const names = { text: "string", decimal: "string", bool: "boolean", null: "object", bigint: "bigint", number: "number", undefined: "undefined" } as const;
+        if (Object.hasOwn(names, operand.kind)) {
+          const literal = names[operand.kind as keyof typeof names];
+          return { kind: "text", code: JSON.stringify(literal), literal };
+        }
+      }
+      break;
+    }
+    case "LogicalExpression": {
+      const left = value(node.left, env), right = value(node.right, env);
+      if (["&&", "||"].includes(node.operator) && left.kind === "bool" && right.kind === "bool") {
+        return { kind: "bool", code: `(${left.code} ${node.operator} ${right.code})` };
+      }
+      break;
+    }
+    case "BinaryExpression": {
+      const left = value(node.left, env), right = value(node.right, env);
+      if (left.kind !== right.kind || !("code" in left) || !("code" in right)) break;
+      const numeric = left.kind === "number" || left.kind === "bigint";
+      if ((numeric && ["<", "<=", ">", ">="].includes(node.operator)) ||
+          ((numeric || left.kind === "bool" || left.kind === "text") && ["===", "!=="].includes(node.operator))) {
+        return { kind: "bool", code: `(${left.code} ${node.operator} ${right.code})` };
+      }
+      break;
+    }
+  }
+  return unsupported(node, `Unsupported transaction expression '${node.type}'`);
 }
-const expectedProgram = syntax(program(protocol));
 
-type Value = { term: string; sort: "text" | "int" };
-const requestFields: Record<string, string> = { tenantId: "q.tenant", accountId: "q.account", requestId: "q.requestId" };
-
-function parameters(array: ArrayExpression): Value[] {
-  return array.elements.map(node => {
-    if (node?.type === "Identifier" && Object.hasOwn(requestFields, node.name)) {
-      return { term: requestFields[node.name]!, sort: "text" };
-    }
-    if (node?.type === "CallExpression" && node.arguments.length === 0 && !node.typeArguments &&
-        node.callee.type === "MemberExpression" && !node.callee.computed &&
-        node.callee.object.type === "Identifier" && node.callee.object.name === "amountCents" &&
-        node.callee.property.type === "Identifier" && node.callee.property.name === "toString") {
-      return { term: "q.amount", sort: "int" };
-    }
-    throw new Error("Unsupported SQL parameter expression");
-  });
+function truth(node: Node, v: Value): string {
+  if (v.kind === "bool") return v.code;
+  if (v.kind === "number" || v.kind === "bigint") return `(${v.code} !== ${v.kind === "bigint" ? "0n" : "0"})`;
+  return unsupported(node, `Unsupported condition of type ${v.kind}`);
 }
 
-function readHandler(source: string) {
-  const ast = program(source);
-  const statements = new Map<string, string>();
-  const bindings = new Map<string, Value[]>();
-  for (const statement of ast.body) {
-    if (statement.type !== "ExportNamedDeclaration") continue;
-    const decl = statement.declaration;
-    if (decl?.type === "VariableDeclaration" && decl.declarations.length === 1) {
-      const variable = decl.declarations[0]!;
-      if (variable.id.type !== "Identifier" || !["CLAIM", "DEBIT"].includes(variable.id.name)) continue;
-      const init = variable.init;
-      const sql = init?.type === "TemplateLiteral" && !init.expressions.length ? init.quasis[0]?.value.cooked
-        : init?.type === "StringLiteral" ? init.value : undefined;
-      if (typeof sql !== "string") throw new Error("SQL must be a static string");
-      statements.set(variable.id.name, sql);
-      variable.init = { type: "StringLiteral", value: "" };
+function bind(node: Node, env: Scope, v: Value): void {
+  if (node.type === "Identifier") {
+    if (env.has(node.name) || ["undefined", "RangeError", "Error"].includes(node.name)) {
+      unsupported(node, `Shadowed binding '${node.name}' is unsupported`);
     }
-    if (decl?.type !== "FunctionDeclaration" || decl.id?.name !== "debit") continue;
-    for (const step of decl.body.body) {
-      if (step.type !== "TryStatement") continue;
-      for (const row of step.block.body) {
-        if (row.type !== "VariableDeclaration" || row.declarations.length !== 1) continue;
-        const init = row.declarations[0]!.init;
-        if (init?.type !== "AwaitExpression" || init.argument.type !== "CallExpression") continue;
-        const [query, args] = init.argument.arguments;
-        if (query?.type !== "Identifier" || args?.type !== "ArrayExpression") continue;
-        bindings.set(query.name, parameters(args));
-        args.elements = [];
+    env.set(node.name, v);
+    return;
+  }
+  if (node.type === "ObjectPattern") {
+    for (const p of node.properties) {
+      if (p.type !== "ObjectProperty" || p.computed || p.key.type !== "Identifier") unsupported(p, "Unsupported destructuring");
+      bind(p.value, env, field(p, v, p.key.name));
+    }
+    return;
+  }
+  unsupported(node, "Expected a name or object destructuring");
+}
+
+export interface Transaction {
+  source: string;
+  sql: string;
+  operations: string[];
+}
+
+export function lower(source: string, schema: string): Transaction {
+  checkSchema(schema);
+  const module = parse(source, { sourceType: "module", plugins: ["typescript"] }).program;
+  const env: Scope = new Map();
+  let entry;
+  for (const stmt of module.body) {
+    if (stmt.type === "ImportDeclaration" && stmt.importKind === "type") continue;
+    const decl = stmt.type === "ExportNamedDeclaration" ? stmt.declaration : stmt;
+    if (decl?.type === "TSInterfaceDeclaration" || decl?.type === "TSTypeAliasDeclaration") continue;
+    if (stmt.type === "ExportNamedDeclaration" && decl?.type === "FunctionDeclaration" && decl.id?.name === "debit") {
+      entry = decl;
+      continue;
+    }
+    if (decl?.type === "VariableDeclaration" && decl.kind === "const" && !decl.declare) {
+      for (const d of decl.declarations) {
+        if (d.id.type !== "Identifier" || !d.init) unsupported(d, "Expected a constant initializer");
+        bind(d.id, env, value(d.init, env));
+      }
+      continue;
+    }
+    unsupported(stmt, "Unsupported runtime declaration in the transaction module");
+  }
+  if (!entry?.body || !entry.async || entry.generator || entry.params.length !== 3) {
+    throw new Error("Expected an exported async debit(session, auth, input) handler");
+  }
+  for (const [i, role] of (["db", "auth", "input"] as const).entries()) bind(entry.params[i]!, env, { kind: role });
+
+  const definitions: string[] = [], operations: string[] = [];
+  let nextQuery = 0;
+
+  // SQL operations return a fresh state and a row count. Transaction boundaries
+  // choose whether that pending state is published or discarded.
+  function readQuery(node: Node, scope: Scope, id: number): SqlOperation {
+    if (node.type !== "AwaitExpression" || node.argument.type !== "CallExpression") unsupported(node, "Expected an awaited session query");
+    const call = node.argument, target = call.callee;
+    if (target.type !== "MemberExpression" || target.computed || target.property.type !== "Identifier" ||
+        target.property.name !== "query" || value(target.object, scope).kind !== "db") unsupported(node, "Unsupported awaited operation");
+    const [command, args] = call.arguments;
+    if (!command || call.arguments.length > 2 || (args && args.type !== "ArrayExpression")) unsupported(node, "Expected static SQL and a parameter array");
+    const sql = value(command, scope);
+    if (sql.kind !== "text" || sql.literal === undefined) unsupported(command, "Expected static SQL text");
+    const params: SqlParameter[] = (args?.elements ?? []).map(arg => {
+      if (!arg) return unsupported(node, "Missing SQL parameter");
+      const v = value(arg, scope);
+      if (v.kind === "decimal") return { term: v.code, sort: "int" };
+      if (v.kind === "text" && v.literal === undefined) return { term: v.code, sort: "text" };
+      return unsupported(arg, "Unsupported SQL parameter expression");
+    });
+    try { return lowerSql(sql.literal, params, id); }
+    catch (e) { return unsupported(node, (e as Error).message); }
+  }
+
+  function query(node: Node, scope: Scope, code: string[]): Value {
+    const id = nextQuery++;
+    const op = readQuery(node, scope, id);
+    if (op.kind === "write") {
+      const name = `pudQuery${id}`, result = `pudRows${id}`;
+      operations.push(name);
+      if (op.definition) definitions.push(op.definition);
+      definitions.push(`function ${name}(working: State, q: Request): QueryResult { ${op.expression} }`);
+      code.push("valid = valid && active;", `const ${result} = ${name}(working, q);`, `working = ${result}.after;`);
+      return { kind: "query", code: `${result}.rowCount` };
+    }
+    if (op.kind === "begin") code.push("valid = valid && !started;", "started = true;", "active = true;", "working = committed;");
+    else {
+      code.push("valid = valid && active;", "active = false;", op.kind === "commit" ? "committed = working;" : "working = committed;");
+    }
+    return { kind: "query", code: "0" };
+  }
+
+  function returned(node: Node | null | undefined, scope: Scope): string {
+    if (node?.type === "ConditionalExpression") {
+      return `(${truth(node.test, value(node.test, scope))} ? ${returned(node.consequent, scope)} : ${returned(node.alternate, scope)})`;
+    }
+    const v = node && value(node, scope);
+    // The contracts can distinguish three string results. All non-string
+    // primitives compare unequal to them under JS strict equality.
+    if (v?.kind === "text") return v.code;
+    if (!v || ["bool", "number", "null", "undefined", "decimal"].includes(v.kind)) return '"<other>"';
+    return unsupported(node!, "Unsupported HTTP return value");
+  }
+
+  function block(stmts: Statement[], parent: Scope): string[] {
+    const scope = new Map(parent), code: string[] = [];
+    for (const s of stmts) {
+      switch (s.type) {
+        case "VariableDeclaration":
+          if (s.kind !== "const") unsupported(s, "Only immutable handler bindings are supported");
+          for (const d of s.declarations) {
+            if (!d.init) unsupported(d, "Expected an initializer");
+            bind(d.id, scope, d.init.type === "AwaitExpression" ? query(d.init, scope, code) : value(d.init, scope));
+          }
+          break;
+        case "ExpressionStatement": query(s.expression, scope, code); break;
+        case "BlockStatement": code.push(...block(s.body, scope)); break;
+        case "IfStatement":
+          code.push(`if (${truth(s.test, value(s.test, scope))}) {`, ...block([s.consequent], scope), "}");
+          if (s.alternate) code.push("else {", ...block([s.alternate], scope), "}");
+          break;
+        case "TryStatement": {
+          // Business outcomes cover successful database operations. An error
+          // handler may clean up and rethrow, but may not turn an error into a return.
+          const c = s.handler, body = c?.body.body;
+          const last = body?.at(-1);
+          if (s.finalizer || !body || !c || c.param?.type !== "Identifier" || last?.type !== "ThrowStatement" ||
+              last.argument?.type !== "Identifier" || last.argument.name !== c.param.name || body.length > 2) {
+            unsupported(s, "The transaction catch must propagate database errors");
+          }
+          if (body.length === 2) {
+            const first = body[0]!;
+            if (first.type !== "ExpressionStatement" || scope.has(c.param.name)) unsupported(first, "Unsupported transaction cleanup");
+            if (readQuery(first.expression, scope, nextQuery).kind !== "rollback") unsupported(first, "Expected ROLLBACK before rethrow");
+          }
+          code.push(...block(s.block.body, scope));
+          break;
+        }
+        case "ThrowStatement":
+          if (s.argument?.type !== "NewExpression" || s.argument.callee.type !== "Identifier" ||
+              !["RangeError", "Error"].includes(s.argument.callee.name) || !s.argument.arguments.every(a => a.type === "StringLiteral")) {
+            unsupported(s, "Unsupported throw expression");
+          }
+          code.push('return {status: "<threw>", after: committed, closed: false};');
+          break;
+        case "ReturnStatement": code.push(`return {status: ${returned(s.argument, scope)}, after: committed, closed: valid && !active};`); break;
+        case "EmptyStatement": break;
+        default: unsupported(s, `Unsupported transaction statement '${s.type}'`);
       }
     }
+    return code;
   }
-  if (syntax(ast) !== expectedProgram) throw new Error("Unsupported debit handler or transaction control flow");
-  return { statements, bindings };
-}
 
-// Unquoted, ASCII SQL only. Keep token boundaries, including those on either side of a comment.
-function tokens(source: string): string[] {
-  const items: string[] = [];
-  const lex = /[ \t\r\n\f\v]+|--[^\r\n]*|\/\*|\$[1-9]\d*|[A-Za-z_][A-Za-z_0-9]*|\d+|::|>=|<=|<>|[=><.(),;+-]/gy;
-  let pos = 0;
-  while (pos < source.length) {
-    lex.lastIndex = pos;
-    const match = lex.exec(source);
-    if (!match) throw new Error(`Unsupported SQL token at character ${pos + 1}`);
-    const token = match[0];
-    pos = lex.lastIndex;
-    if (token === "/*") {
-      let depth = 1;
-      while (depth && pos < source.length) {
-        if (source.startsWith("/*", pos)) { depth++; pos += 2; }
-        else if (source.startsWith("*/", pos)) { depth--; pos += 2; }
-        else pos++;
-      }
-      if (depth) throw new Error("Unterminated SQL comment");
-    } else if (!/^\s/.test(token) && !token.startsWith("--")) {
-      items.push(token.toLowerCase());
-    }
-  }
-  return items;
-}
-
-class Sql {
-  private readonly items: string[];
-  private pos = 0;
-  private readonly used = new Set<number>();
-  constructor(source: string, private readonly bound: Value[]) {
-    this.items = tokens(source);
-  }
-  take() { return this.items[this.pos++]; }
-  at(word: string) { return this.items[this.pos] === word; }
-  expect(fragment: string) {
-    for (const wanted of tokens(fragment)) {
-      if (this.take() !== wanted) throw new Error(`Unsupported SQL, expected '${fragment}'`);
-    }
-  }
-  param(sort: Value["sort"]): Value {
-    const placeholder = this.take() ?? "";
-    if (!/^\$[1-9]\d*$/.test(placeholder)) throw new Error("Expected a positional SQL parameter");
-    const index = Number(placeholder.slice(1)) - 1;
-    const value = this.bound[index];
-    if (value?.sort !== sort) throw new Error(`Missing or incorrectly typed SQL parameter ${placeholder}`);
-    this.used.add(index);
-    return value;
-  }
-  finish() {
-    if (this.at(";")) this.take();
-    if (this.pos !== this.items.length) throw new Error("Unsupported trailing SQL");
-    if (this.used.size !== this.bound.length) throw new Error("Unused SQL bind parameter");
-  }
-}
-
-function claimKey(sql: Sql): string {
-  sql.expect("INSERT INTO debit_requests (tenant_id, request_id) VALUES (");
-  const tenant = sql.param("text");
-  sql.expect(",");
-  const id = sql.param("text");
-  sql.expect(") ON CONFLICT (tenant_id, request_id) DO NOTHING RETURNING request_id");
-  sql.finish();
-  return `ReceiptKey(${tenant.term}, ${id.term})`;
-}
-
-function update(sql: Sql) {
-  sql.expect("UPDATE accounts AS a SET balance = a.balance");
-  const subtract = sql.at("-");
-  if (subtract) sql.expect("- r.amount");
-  sql.expect("FROM (VALUES (");
-  const tenant = sql.param("text");
-  sql.expect("::text,");
-  const account = sql.param("text");
-  sql.expect("::text,");
-  const amount = sql.param("int");
-  sql.expect("::bigint)) AS r(tenant_id, account_id, amount) WHERE");
-  const columns: Record<string, Value> = {
-    "a.tenant_id": { term: "k.tenant", sort: "text" },
-    "a.account_id": { term: "k.account", sort: "text" },
-    "a.balance": { term: "balance", sort: "int" },
-    "r.tenant_id": tenant, "r.account_id": account, "r.amount": amount,
-  };
-  function column() {
-    const table = sql.take();
-    sql.expect(".");
-    const value = columns[`${table}.${sql.take()}`];
-    if (!value) throw new Error("Unsupported SQL column");
-    return value;
-  }
-  const conditions: string[] = [];
-  let fundsGuard = false;
-  for (;;) {
-    const left = column(), operator = sql.take(), right = column();
-    if (left.sort !== right.sort || (operator !== "=" && !(operator === ">=" && left.sort === "int"))) {
-      throw new Error("Unsupported SQL comparison");
-    }
-    conditions.push(`(${left.term} ${operator === "=" ? "==" : operator} ${right.term})`);
-    if (left.term === "balance" && right.term === amount.term && (operator === ">=" || operator === "=")) fundsGuard = true;
-    if (!sql.at("and")) break;
-    sql.take();
-  }
-  sql.expect("RETURNING a.account_id");
-  sql.finish();
-  // On the admitted fragment, subtraction stays inside PostgreSQL's nonnegative bigint domain.
-  if (subtract && !fundsGuard) throw new Error("UPDATE subtraction requires a sufficient-funds guard");
-  return { matches: conditions.join(" && "), balance: subtract ? `balance - ${amount.term}` : "balance" };
-}
-
-export function lower(handlerSource: string, schemaSql: string): string {
-  if (tokens(schemaSql).join(" ") !== tokens(supportedSchema).join(" ")) {
-    throw new Error("Unsupported PostgreSQL schema");
-  }
-  const { statements, bindings } = readHandler(handlerSource);
-  const key = claimKey(new Sql(statements.get("CLAIM")!, bindings.get("CLAIM")!));
-  const row = update(new Sql(statements.get("DEBIT")!, bindings.get("DEBIT")!));
-  return [
-    `function ClaimKey(q: Request): ReceiptKey { ${key} }`,
-    `predicate Matches(k: AccountKey, balance: int, q: Request) { ${row.matches} }`,
-    `function UpdatedBalance(k: AccountKey, balance: int, q: Request): int { ${row.balance} }`,
-  ].join("\n");
+  const body = block(entry.body.body, env);
+  const projection = [
+    "interface State { opaqueId: bigint }",
+    "interface Request { tenant: string; account: string; requestId: string; amount: bigint }",
+    "interface QueryResult { after: State; rowCount: number }",
+    "interface Outcome { status: string; after: State; closed: boolean }",
+    ...operations.map(name => `//@ extern\nfunction ${name}(working: State, q: Request): QueryResult { throw new Error(); }`),
+    "export function pudTransaction(s: State, q: Request): Outcome {",
+    "let committed = s; let working = s; let active = false; let started = false; let valid = true;",
+    ...body,
+    'return {status: "<other>", after: committed, closed: valid && !active};',
+    "}",
+  ];
+  return { source: projection.join("\n"), sql: definitions.join("\n"), operations };
 }

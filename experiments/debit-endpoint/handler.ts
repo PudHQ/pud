@@ -26,13 +26,21 @@ export const DEBIT = `
   RETURNING a.account_id
 `;
 
-//@ ensures debit: !seen(request) && funded(account, amount) ==> result === "applied" && debitedOnly(account, amount) && recordedOnly(request)
-//@ ensures decline: !seen(request) && !funded(account, amount) ==> result === "declined" && unchanged()
-//@ ensures retry: seen(request) ==> result === "duplicate" && unchanged()
-export async function debit(db: Session, auth: Auth, input: DebitInput): Promise<"applied" | "duplicate" | "declined"> {
+//@ ensures debit "Charge only the requested account": !seen(request) && funded(account, amount) ==> result === "applied" && debitedOnly(account, amount) && recordedOnly(request)
+//@ ensures decline "Decline unfunded requests without a write": !seen(request) && !funded(account, amount) ==> result === "declined" && unchanged()
+//@ ensures retry "Recognize a retry without charging twice": seen(request) ==> result === "duplicate" && unchanged()
+export async function debit(
+  db: Session,
+  auth: Auth,
+  input: DebitInput,
+): Promise<"applied" | "duplicate" | "declined"> {
   const { tenantId } = auth;
   const { accountId, requestId, amountCents } = input;
-  if (typeof amountCents !== "bigint" || amountCents <= 0n || amountCents > 9_223_372_036_854_775_807n) {
+  if (
+    typeof amountCents !== "bigint" ||
+    amountCents <= 0n ||
+    amountCents > 9_223_372_036_854_775_807n
+  ) {
     throw new RangeError("amountCents must be a positive PostgreSQL bigint");
   }
 
@@ -44,7 +52,11 @@ export async function debit(db: Session, auth: Auth, input: DebitInput): Promise
       return "duplicate";
     }
 
-    const debit = await db.query(DEBIT, [tenantId, accountId, amountCents.toString()]);
+    const debit = await db.query(DEBIT, [
+      tenantId,
+      accountId,
+      amountCents.toString(),
+    ]);
     if (debit.rows.length === 0) {
       await db.query("ROLLBACK");
       return "declined";

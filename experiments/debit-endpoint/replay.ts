@@ -1,5 +1,6 @@
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import type { debit } from "./handler.ts";
+import { withPostgres } from "./postgres.ts";
 import { makeDebitRoute } from "./route.ts";
 
 interface State {
@@ -7,8 +8,7 @@ interface State {
   receipts: string[];
 }
 
-type Status = Awaited<ReturnType<typeof debit>>;
-type Outcome = State & { status: Status };
+type Outcome = State & { status: string };
 type DebitRequest = Parameters<typeof debit>[2] & { tenantId: string };
 
 export interface ReplayWitness {
@@ -19,6 +19,13 @@ export interface ReplayWitness {
   amountCents: string;
   before: State;
   observed: Outcome;
+  http?: {
+    method: string;
+    path: string;
+    input: Record<string, string>;
+    status: number;
+    result: string;
+  };
 }
 
 export interface DebitReplay {
@@ -27,11 +34,12 @@ export interface DebitReplay {
   witness?: ReplayWitness;
 }
 
-async function readStatus(response: Response): Promise<Status> {
+async function readStatus(response: Response): Promise<string> {
   const body: unknown = await response.json();
   const status = body && typeof body === "object" && "status" in body ? body.status : undefined;
-  if (response.status === 200 && (status === "applied" || status === "duplicate")) return status;
-  if (response.status === 409 && status === "declined") return status;
+  if (response.status === (status === "declined" ? 409 : 200)) {
+    return typeof status === "string" ? status : JSON.stringify(status) ?? "undefined";
+  }
   throw new Error(`Unexpected debit HTTP response: ${response.status} ${JSON.stringify(body)}`);
 }
 
@@ -54,9 +62,7 @@ export async function replayDebit(
   violates: (observation: ReplayWitness) => boolean,
 ): Promise<DebitReplay> {
   const post = makeDebitRoute(handler);
-  const db = await PGlite.create();
-  try {
-    await db.exec(schema);
+  return withPostgres(schema, async db => {
     await db.exec(`INSERT INTO accounts (tenant_id, account_id, balance) VALUES
       ('acme', 'primary', 100), ('acme', 'reserve', 40), ('birch', 'primary', 100)`);
     const version = await db.query<{ version: string }>("SELECT current_setting('server_version') AS version");
@@ -79,14 +85,23 @@ export async function replayDebit(
       }
       const { tenantId, accountId, requestId, amountCents } = request;
       const before = await snapshot(db);
-      const response = await post(new Request("https://billing.example/debit", {
+      const body = { accountId, requestId, amountCents: amountCents.toString() };
+      const http = new Request("https://billing.example/debit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ accountId, requestId, amountCents: amountCents.toString() }),
-      }), { db, auth: { tenantId } });
+        body: JSON.stringify(body),
+      });
+      const response = await post(http, { db, auth: { tenantId } });
       const actualStatus = await readStatus(response);
+      // Release any work abandoned by an early return. The contract observes
+      // committed balances and receipts, including when the handler leaks a transaction.
+      await db.exec("ROLLBACK");
       const observed: Outcome = { ...await snapshot(db), status: actualStatus };
-      const observation = { scenario, tenantId, accountId, requestId, amountCents: amountCents.toString(), before, observed };
+      const observation: ReplayWitness = {
+        scenario, tenantId, ...body, before, observed,
+        http: { method: http.method, path: new URL(http.url).pathname, input: { tenantId, ...body },
+          status: response.status, result: actualStatus },
+      };
       if (violates(observation)) {
         report.witness = observation;
         return report;
@@ -94,7 +109,5 @@ export async function replayDebit(
       report.checks.push(scenario);
     }
     return report;
-  } finally {
-    await db.close();
-  }
+  });
 }

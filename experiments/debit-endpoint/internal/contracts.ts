@@ -1,49 +1,85 @@
 import { parse } from "@babel/parser";
-import { isDeepStrictEqual } from "node:util";
 import type { ReplayWitness } from "../replay.ts";
 
-type Expression = { code: string; holds(w: ReplayWitness): boolean };
+export interface Difference {
+  subject: string;
+  expected: string;
+  received: string;
+}
+
+// A replay evaluates the same expression we emit for Dafny. The first mismatch
+// carries the expected value from that expression and the value read from SQL.
+type Evaluation = true | Difference;
+type Expression = { code: string; evaluate(w: ReplayWitness): Evaluation };
 export interface Contract {
   name: string;
+  title?: string;
   line: number;
   claim: string;
-  lemma: string;
-  holds(w: ReplayWitness): boolean;
+  postcondition: string;
+  evaluate(w: ReplayWitness): Evaluation;
 }
 
 const key = (w: ReplayWitness) => `${w.tenantId}/${w.accountId}`;
 const receipt = (w: ReplayWitness) => `${w.tenantId}/${w.requestId}`;
 const claimKey = "ReceiptKey(q.tenant, q.requestId)";
-function sameReceipts(a: string[], b: string[]) {
-  return a.length === b.length && a.every(value => b.includes(value));
+
+function compareBalances(w: ReplayWitness, expected: Record<string, string>): Evaluation {
+  const received = w.observed.balances;
+  const cents = (value: string | undefined) => value === undefined ? "no account" : `${value} cents`;
+  for (const account of new Set([...Object.keys(expected), ...Object.keys(received)])) {
+    if (expected[account] === received[account]) continue;
+    const owner = account.startsWith(w.tenantId + "/") ? "" : " (other tenant)";
+    return { subject: `${account} balance${owner}`, expected: cents(expected[account]), received: cents(received[account]) };
+  }
+  return true;
+}
+
+function compareReceipts(w: ReplayWitness, expected: string[]): Evaluation {
+  const received = w.observed.receipts;
+  const missing = expected.find(id => !received.includes(id));
+  if (missing !== undefined) return { subject: `Receipt ${missing}`, expected: "recorded", received: "absent" };
+  const extra = received.find(id => !expected.includes(id));
+  if (extra !== undefined) return { subject: `Receipt ${extra}`, expected: "absent", received: "recorded" };
+  if (expected.length !== received.length) return { subject: "Receipt count", expected: String(expected.length), received: String(received.length) };
+  return true;
 }
 
 const facts = new Map<string, Expression>([
   ["seen(request)", {
     code: `(${claimKey} in s.receipts)`,
-    holds: w => w.before.receipts.includes(receipt(w)),
+    evaluate: w => w.before.receipts.includes(receipt(w)) || {
+      subject: `Receipt ${receipt(w)} before debit`, expected: "recorded", received: "absent",
+    },
   }],
   ["funded(account,amount)", {
     code: "Funded(s, q)",
-    holds: w => key(w) in w.before.balances && BigInt(w.before.balances[key(w)]!) >= BigInt(w.amountCents),
+    evaluate: w => {
+      const balance = w.before.balances[key(w)];
+      if (balance !== undefined && BigInt(balance) >= BigInt(w.amountCents)) return true;
+      return { subject: `${key(w)} balance before debit`, expected: `at least ${w.amountCents} cents`,
+        received: balance === undefined ? "no account" : `${balance} cents` };
+    },
   }],
   ["debitedOnly(account,amount)", {
     code: "DebitedOnly(s, q, o)",
-    holds: w => {
+    evaluate: w => {
       const k = key(w);
-      if (!(k in w.before.balances)) return false;
+      if (!(k in w.before.balances)) return { subject: `${k} before debit`, expected: "an account", received: "no account" };
       const cents = (BigInt(w.before.balances[k]!) - BigInt(w.amountCents)).toString();
-      return isDeepStrictEqual(w.observed.balances, { ...w.before.balances, [k]: cents });
+      return compareBalances(w, { ...w.before.balances, [k]: cents });
     },
   }],
   ["recordedOnly(request)", {
     code: `(o.after.receipts == s.receipts + {${claimKey}})`,
-    holds: w => sameReceipts(w.observed.receipts, [...new Set([...w.before.receipts, receipt(w)])]),
+    evaluate: w => compareReceipts(w, [...new Set([...w.before.receipts, receipt(w)])]),
   }],
   ["unchanged()", {
     code: "(o.after == s)",
-    holds: w => isDeepStrictEqual(w.observed.balances, w.before.balances)
-      && sameReceipts(w.observed.receipts, w.before.receipts),
+    evaluate: w => {
+      const balances = compareBalances(w, w.before.balances);
+      return balances === true ? compareReceipts(w, w.before.receipts) : balances;
+    },
   }],
 ]);
 
@@ -62,8 +98,10 @@ function predicate(input: string): Expression {
   }
   function atom(): Expression {
     if (take("!")) {
+      const start = pos;
       const inner = atom();
-      return { code: `(!${inner.code})`, holds: w => !inner.holds(w) };
+      const subject = tokens.slice(start, pos).join("");
+      return { code: `(!${inner.code})`, evaluate: w => inner.evaluate(w) !== true || { subject, expected: "false", received: "true" } };
     }
     if (take("(")) {
       const expr = implies();
@@ -71,14 +109,17 @@ function predicate(input: string): Expression {
       return expr;
     }
     const name = tokens[pos++];
-    if (name === "true" || name === "false") return { code: name, holds: () => name === "true" };
+    if (name === "true" || name === "false") return {
+      code: name, evaluate: () => name === "true" || { subject: "Constant condition", expected: "true", received: "false" },
+    };
     if (name === "result") {
       expect("===");
       const literal = tokens[pos++];
       const status = literal?.match(/^(["'])(applied|declined|duplicate)\1$/)?.[2];
       if (!status) throw new Error("expected an applied, declined or duplicate result literal");
-      const constructor = status[0]!.toUpperCase() + status.slice(1);
-      return { code: `(o.status == ${constructor})`, holds: w => w.observed.status === status };
+      return { code: `(o.status == ${JSON.stringify(status)})`, evaluate: w => w.observed.status === status || {
+        subject: "Returned status", expected: status, received: w.observed.status,
+      } };
     }
     expect("(");
     const args: string[] = [];
@@ -99,7 +140,10 @@ function predicate(input: string): Expression {
     let expr = atom();
     while (take("&&")) {
       const left = expr, right = atom();
-      expr = { code: `(${left.code} && ${right.code})`, holds: w => left.holds(w) && right.holds(w) };
+      expr = { code: `(${left.code} && ${right.code})`, evaluate: w => {
+        const first = left.evaluate(w);
+        return first === true ? right.evaluate(w) : first;
+      } };
     }
     return expr;
   }
@@ -107,7 +151,9 @@ function predicate(input: string): Expression {
     let expr = and();
     while (take("||")) {
       const left = expr, right = and();
-      expr = { code: `(${left.code} || ${right.code})`, holds: w => left.holds(w) || right.holds(w) };
+      expr = { code: `(${left.code} || ${right.code})`, evaluate: w => left.evaluate(w) === true || right.evaluate(w) === true || {
+        subject: "Alternatives", expected: "at least one true", received: "both false",
+      } };
     }
     return expr;
   }
@@ -115,7 +161,7 @@ function predicate(input: string): Expression {
     const left = or();
     if (!take("==>")) return left;
     const right = implies();
-    return { code: `(${left.code} ==> ${right.code})`, holds: w => !left.holds(w) || right.holds(w) };
+    return { code: `(${left.code} ==> ${right.code})`, evaluate: w => left.evaluate(w) !== true || right.evaluate(w) };
   }
   const expr = implies();
   if (pos !== tokens.length) throw new Error(`unexpected token '${tokens[pos]}'`);
@@ -137,22 +183,14 @@ export function contracts(source: string): Contract[] {
     if (!attached.has(comment.start) || comment.type !== "CommentLine") {
       throw new Error(`line ${line}: attach //@ ensures above the exported debit function`);
     }
-    const fields = /^@\s*ensures\s+([A-Za-z][A-Za-z_0-9]*)\s*:\s*(.+)$/.exec(annotation);
-    if (!fields) throw new Error(`line ${line}: expected //@ ensures name: condition`);
-    const name = fields[1]!, claim = fields[2]!.trim();
+    const fields = /^@\s*ensures\s+([A-Za-z][A-Za-z_0-9]*)(?:\s+"([^"\r\n]+)")?\s*:\s*(.+)$/.exec(annotation);
+    if (!fields) throw new Error(`line ${line}: expected //@ ensures name "optional title": condition`);
+    const name = fields[1]!, title = fields[2], claim = fields[3]!.trim();
     if (names.has(name)) throw new Error(`line ${line}: duplicate contract '${name}'`);
     names.add(name);
     try {
       const expr = predicate(claim);
-      // This hint unfolds membership for one row. It holds for *any* SQL WHERE predicate.
-      const lemma = `lemma Check_${name}(s: State, q: Request)
-  requires ValidState(s) && ValidRequest(q)
-  ensures var o := Execute(s, q); ${expr.code}
-{
-  var k := AccountKey(q.tenant, q.account);
-  if k in s.accounts { assert (k in MatchingRows(s, q)) == Matches(k, s.accounts[k], q); }
-}`;
-      result.push({ name, line, claim, lemma, holds: expr.holds });
+      result.push({ name, title, line, claim, postcondition: expr.code, evaluate: expr.evaluate });
     } catch (e) {
       throw new Error(`line ${line}: invalid contract '${name}': ${(e as Error).message}`);
     }

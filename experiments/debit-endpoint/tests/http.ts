@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { PGlite } from "@electric-sql/pglite";
+import { withPostgres } from "../postgres.ts";
 import { postDebit } from "../route.ts";
 
 export async function checkHttpRoute(): Promise<void> {
-  const db = await PGlite.create();
-  try {
-    await db.exec(await Bun.file(new URL("../schema.sql", import.meta.url)).text());
+  const schema = await Bun.file(new URL("../schema.sql", import.meta.url)).text();
+  await withPostgres(schema, async db => {
     await db.exec(`INSERT INTO accounts (tenant_id, account_id, balance) VALUES
       ('acme', 'wallet', 9223372036854775807), ('birch', 'wallet', 75)`);
     const context = { db, auth: { tenantId: "acme" } };
@@ -35,7 +34,5 @@ export async function checkHttpRoute(): Promise<void> {
       [{ tenant_id: "acme", balance: "0" }, { tenant_id: "birch", balance: "75" }]);
     assert.deepEqual((await db.query("SELECT tenant_id, request_id FROM debit_requests")).rows,
       [{ tenant_id: "acme", request_id: "order-1" }]);
-  } finally {
-    await db.close();
-  }
+  });
 }

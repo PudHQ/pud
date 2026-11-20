@@ -36,5 +36,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Examples (for now)
 examples
 
-# Skills (for now!!)
+# Include the repository's Markdown skill guides in checkouts.
 skills
+!/skills/
+/skills/**
+!/skills/**/
+!/skills/**/*.md

@@ -2,8 +2,7 @@ datatype AccountKey = AccountKey(tenant: string, account: string)
 datatype ReceiptKey = ReceiptKey(tenant: string, requestId: string)
 datatype Request = Request(tenant: string, account: string, requestId: string, amount: int)
 datatype State = State(accounts: map<AccountKey, int>, receipts: set<ReceiptKey>)
-datatype Status = Applied | Declined | Duplicate
-datatype Outcome = Outcome(status: Status, after: State)
+datatype Outcome = Outcome(status: string, after: State, closed: bool)
 
 // PostgreSQL bigint columns hold signed 64-bit values. The schema forbids negative balances.
 predicate ValidState(s: State) {
