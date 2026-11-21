@@ -42,3 +42,8 @@ skills
 /skills/**
 !/skills/**/
 !/skills/**/*.md
+
+/private/
+
+# LLM run output
+outputs

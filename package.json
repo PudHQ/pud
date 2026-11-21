@@ -3,12 +3,14 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": ["packages/*", "apps/*", "experiments/debit-endpoint"],
   "scripts": {
-    "demo": "bun packages/cli/demo/replay.ts",
+    "pack:cli": "bun ./packages/cli/scripts/pack.ts",
+    "demo": "bun experiments/debit-endpoint/demo.ts",
+    "demo:rocq": "bun packages/cli/demo/replay.ts",
     "verify": "pud",
     "test": "bun test",
-    "typecheck": "tsc --noEmit && bun run --cwd apps/www typecheck"
+    "typecheck": "tsc --noEmit && bun run --cwd apps/www typecheck && bun run --cwd apps/dex typecheck"
   },
   "devDependencies": {
     "@pud/cli": "workspace:*",

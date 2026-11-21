@@ -1,14 +1,90 @@
-# pud
+<p align="center">
+  <a href="https://pud.dev"><img src="apps/www/public/pud.svg" width="144" alt="Pud, a caramel pudding with round glasses and a pink bow tie"></a>
+</p>
 
-`pud` checks a property of a TypeScript function for every input of its declared types. A developer reviews the property in TypeScript, an agent can write the Rocq proof, and CI replays it without an LLM.
+# Pud
 
-## Try the demo
+**The proof-running toolchain for TypeScript.** A booking should never increase the number of available seats. Write that rule as a TypeScript property and Pud uses Dafny to check it for every input in the supported model. If replay finds a counterexample, Pud shows the input and what the function returned.
+
+Pud is under active development. You can run the examples today or [join the alpha at pud.dev](https://pud.dev/#alpha).
+
+[PudDex](https://dex.pud.dev) is the company wiki and link directory. Open its [Markdown content folder](apps/dex/content) as an Obsidian vault.
+
+## Try it locally
+
+With [Bun](https://bun.com/docs/installation) installed, run these commands from the repository root.
+
+```sh
+bun install --frozen-lockfile
+bun run pud check packages/cli/demo/seats.proof.ts
+```
+
+You should see `2 passed`. The proof file imports `reserveSeats` directly. Its first predicate compares the result, `remaining`, with the original seat count.
+
+```ts
+import { proof } from "@pud/cli";
+import { reserveSeats } from "./seats";
+
+export default proof(reserveSeats, "A reservation never creates seats",
+  (available, requested, remaining) => remaining <= available);
+```
+
+The second property names the condition `fits`, checks rejected reservations with an early return, and checks the exact seat count for an accepted reservation. Edit the function and rerun the command to check both claims. [Implementation](packages/cli/demo/seats.ts) · [Seat properties](packages/cli/demo/seats.proof.ts)
+
+To see a failure against a database, run the debit demo. It checks the real handler, removes its SQL tenant filter in a temporary copy, and shows which other tenant’s balance changed in PostgreSQL. [Debit example](experiments/debit-endpoint/README.md)
+
+```sh
+bun run demo
+```
+
+## Run your own checks
+
+To use Pud in another Bun project, run `bun run pack:cli` in this checkout. It prints the path to a self-contained package. Install that file in your app.
+
+```sh
+bun add --dev /path/to/pud-cli-0.0.1.tgz
+```
+
+Put a `*.proof.ts` beside a function. Import `proof` and the function, then export a property or an array of properties. The callback gets the function’s arguments in order and the return value last. The editor infers their TypeScript types. Pud reads the sidecar statically. The package covers pure checks, while the database example uses additional workspace packages.
+
+For a first run, copy [seats.ts](packages/cli/demo/seats.ts) and [seats.proof.ts](packages/cli/demo/seats.proof.ts) into your app, then run `bunx --no-install pud check`. Change `available - requested` to `available + requested` and rerun to see the input that breaks the rule.
+
+Pud checks properties automatically with Dafny, and can also check an explicit Rocq proof. To check the debit properties in this checkout, run
+
+```sh
+bun run pud check experiments/debit-endpoint/debit.proof.ts
+```
+
+`pud` and `pud check` discover sidecars below the working directory. Pass a directory or individual sidecars to select a suite, `--json` for machine-readable results or `--verbose` to show the properties. The Bun library returns the same per-file report.
+
+```ts
+import { check, emit } from "@pud/cli";
+
+const { results } = await check("seats.proof.ts");
+const unit = await emit("seats.proof.ts", "A reservation never creates seats");
+```
+
+Dafny is set up on first use and shared across projects in your user cache. Pud also recognizes a toolchain already installed under the working directory’s `.cache/dafny/`. Set `PUD_CACHE_DIR` to choose the cache or `DAFNY` to select a complete installation. Use `pud --emit FILE.proof.ts "property name"` to inspect a verification unit independently of the prover and replay. The command without a selector works for single-property files.
+
+## How the model fits together
+
+| Part | Responsibility |
+| --- | --- |
+| [Pud model](packages/model/src/model.ts) | Typed expressions, local bindings, branches, returns and domain-specific operations. The data structures have no parser or solver dependencies. |
+| [TypeScript frontend](packages/model/src/typescript.ts) | Read ordinary control flow from the parsed function. The pure frontend binds `bigint` and `boolean`. A domain adapter can give meaning to additional values and effects. |
+| [Adapter and backend interfaces](packages/model/src/adapter.ts) | A domain adapter models an export, binds each predicate, and replays the original implementation. A proof backend emits and verifies a claim and can suggest inputs for replay. Adapter authors can import the types from `@pud/cli`. Custom adapters and backends are trusted project code. |
+| [Dafny](packages/model/src/dafny.ts) and [Rocq](packages/cli/src/rocq-model.ts) | Render the shared model. Dafny checks automatic properties. Rocq checks explicit proofs of pure functions. |
+| [Postgres replay](packages/postgres/src/postgres.ts) | Apply application migrations to an isolated PGlite database. The example’s separate [ledger adapter](experiments/debit-endpoint/ledger.ts) supplies its formal SQL semantics. |
+
+The pure model covers required `bigint` and `boolean` arguments, immutable local bindings, branches and the operations listed below. General JavaScript `number` arithmetic is unsupported. The ledger adapter covers the documented SQL operations and transaction model. Proofs rely on the translator, the adapter’s assumptions, and the selected prover.
+
+## Explicit Rocq proof demo
 
 Install [Bun](https://bun.com/docs/installation) and [Rocq 9 with its standard library](https://rocq-prover.org/install). Put `rocq` on your PATH or set `ROCQ` to its executable. From the repository root run
 
 ```sh
 bun install --frozen-lockfile
-bun run demo
+bun run demo:rocq
 ```
 
 The [demo](packages/cli/demo/replay.ts) works in a temporary directory. It holds [the reviewed property](packages/cli/demo/bounds.proof.ts) fixed throughout.
@@ -18,7 +94,7 @@ The [demo](packages/cli/demo/replay.ts) works in a temporary directory. It holds
 | Original implementation, `a < b ? b : a` | `PASS`. Rocq checks the proof. |
 | Equivalent implementation, `b < a ? a : b` | `UNPROVED`. The original proof splits on the old comparison. |
 | Same implementation, [agent’s repaired proof](packages/cli/demo/repair/Maximum.v) | `PASS`. The same repair also checks against the original implementation. |
-| Wrong implementation, `a < b ? a : b` | `DISPROVED`. Calling `max(0n, 1n)` returns `0n`, which violates the reviewed property. |
+| Wrong implementation, `a < b ? a : b` | `FAIL`. Calling `max(0n, 1n)` returns `0n`, which violates the reviewed property. |
 
 The repair was written by an agent given the failing proof and the generated theorem. The demo replays the saved repair locally. To check just the current files, use the same command on a laptop or in CI.
 
@@ -26,7 +102,7 @@ The repair was written by an agent given the failing proof and the generated the
 bun run --silent verify packages/cli/demo/bounds.proof.ts
 ```
 
-## Write the property
+## Link a Rocq proof
 
 Use a named value import in a `*.proof.ts` file. The predicate takes the function’s arguments in order and its result last. Here the final clause rules out returning a number larger than both inputs.
 
@@ -55,16 +131,19 @@ At verification time, Rocq compiles the generated model and the proof in a fresh
 
 | Result | Meaning |
 | --- | --- |
-| `PASS` | Rocq checked the exact claim for all declared inputs with no additional global axioms. |
-| `DISPROVED` | For a reviewed TS predicate, executing the validated function body and predicate on the JS runtime produced the displayed counterexample. |
-| `UNPROVED` | The submitted proof did not establish the claim, or a reviewed property has no proof yet. |
-| `ERROR` | Unsupported TypeScript, invalid input, or a tool error prevented verification. |
+| `PASS` | The selected prover established the reviewed claim within the supported model. |
+| `FAIL` | Replaying the actual implementation produced a counterexample. |
+| `UNPROVED` | Verification did not establish the claim and replay supplied no witness. |
+| `UNSUPPORTED` | A construct falls outside the selected model. |
+| `ERROR` | Invalid input or a tool failure prevented a check. |
 
-Witness search tries up to 256 argument combinations using small signed bigints and both booleans. It can miss bugs. If it finds no witness, verification continues to Rocq. Native Rocq reference specs have no JS predicate to replay. Exit `0` means every check passed, `1` means a claim was unproved or disproved, and `2` means an error occurred and takes precedence. Pass `--verbose` before the manifest for full Rocq diagnostics.
+Pure-function replay tries up to 256 combinations of small signed bigints and booleans. When Dafny supplies scalar inputs for an inconclusive property, Pud also runs the actual TypeScript on those inputs and reports an observed violation. Database replay exercises the concrete cases in the adapter. Passing samples alone cannot produce a passing verdict. Exit `0` means every check passed, `1` means unproved or disproved, and `2` means an error or unsupported input and takes precedence.
+
+A run checks a snapshot of the selected sidecars, TypeScript subjects and linked Rocq scripts. An adapter can register additional model inputs through `subject.readDependency`, which the ledger uses for its schema and formal SQL definitions. If one of those inputs changes before the report is returned, affected results ask you to rerun.
 
 ## Supported TypeScript
 
-The verified function must be a named export with required `bigint` or `boolean` parameters and an explicit return type. It may use literals, `return`, `if/else`, ternaries, integer `+`, `-`, `*`, comparisons, boolean `!`, `&&`, `||`, and strict equality on like types. Reviewed predicates use the same expressions and must return a boolean.
+The pure frontend accepts named exported functions and `export const` arrows with required `bigint` or `boolean` parameters. Pud can infer a consistent return type from the body. It supports literals, initialized `const` locals, `return`, `if/else`, ternaries, integer `+`, `-`, `*`, comparisons, boolean `!`, `&&`, `||`, and strict equality on like types. Pure properties can use the same local bindings and control flow and must return a boolean on every path.
 
 The enclosing module may include literal constants, type-only declarations or imports, and unrelated named functions. Runtime imports, executable module initialization, calls or mutation in the verified function, loops and JS `number` are outside this fragment. Witness replay executes only the validated bodies. The proof relies on the translator faithfully modelling this fragment, callers supplying the stated types, and sufficient execution resources. Use trusted local Rocq scripts.
 

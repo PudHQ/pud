@@ -1,6 +1,6 @@
 {
   "include": ["packages/**/*.ts", "apps/**/*.ts"],
-  "exclude": ["**/node_modules", "apps/www"],
+  "exclude": ["**/node_modules", "apps/www", "apps/dex"],
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],
