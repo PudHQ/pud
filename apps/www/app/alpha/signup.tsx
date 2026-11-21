@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type MouseEvent } from "react";
+import { analytics } from "../analytics";
 import { joinAlpha, type SignupState } from "./actions";
 
 const initialState: SignupState = { status: "idle" };
@@ -8,6 +9,7 @@ const initialState: SignupState = { status: "idle" };
 export function JoinAlphaLink() {
   function focusSignup(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    analytics?.capture("alpha_signup_cta_clicked");
     const target = document.getElementById("alpha-entry");
     target?.focus({ preventScroll: true });
     if (target instanceof HTMLInputElement && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -39,11 +41,13 @@ export function AlphaSignup() {
   const state = clientState ?? serverState;
   const email = useRef<HTMLInputElement>(null);
   const feedback = useRef<HTMLDivElement>(null);
+  const reportedState = useRef<SignupState>(initialState);
 
   // The form action also works before hydration. Once hydrated, keep the input on network errors.
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    analytics?.capture("alpha_signup_submitted");
     const data = new FormData(event.currentTarget);
     startTransition(async () => {
       try {
@@ -57,6 +61,10 @@ export function AlphaSignup() {
   useEffect(() => {
     if (state.status === "joined") feedback.current?.focus({ preventScroll: true });
     if (state.status === "invalid") email.current?.focus();
+    if (state.status !== "idle" && reportedState.current !== state) {
+      reportedState.current = state;
+      analytics?.capture("alpha_signup_result", { outcome: state.status });
+    }
   }, [state]);
 
   return (
@@ -66,6 +74,7 @@ export function AlphaSignup() {
           className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 phone:grid-cols-1"
           action={nativeAction}
           onSubmit={submit}
+          onInvalid={() => analytics?.capture("alpha_signup_result", { outcome: "invalid" })}
           aria-labelledby="alpha-title"
           aria-busy={pending}
         >

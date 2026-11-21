@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@vinext/cloudflare": "1.4.0",
+    "posthog-js": "1.453.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-server-dom-webpack": "19.3.1",

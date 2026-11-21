@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import { AlphaSignup, JoinAlphaLink } from "./alpha/signup";
+import { GitHubStarLink } from "./github-star-link";
 
 // Google Sans Flex 4.007 retains the grade axis used in the original wordmark.
 const pudWordmark = localFont({
@@ -17,8 +18,8 @@ const pudDisplay = localFont({
 export default function Home() {
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="group/masthead bg-ink text-paper">
-        <nav className="flex min-h-[clamp(4rem,6.8vw,6rem)] flex-wrap items-center justify-between gap-2" aria-label="Main">
+      <header className="bg-ink text-paper">
+        <nav className="flex min-h-[clamp(4rem,6.8vw,6rem)] flex-wrap items-center justify-between gap-2 small-phone:gap-1" aria-label="Main">
           <a
             className={`${pudWordmark.className} relative isolate flex items-center self-stretch
               ps-gutter pe-[clamp(1.6rem,4.4vw,5rem)] pt-[0.65rem] pb-3
@@ -34,35 +35,10 @@ export default function Home() {
             <span>Pud<span className="text-[#ff1641]">.</span><span className="text-[#881d00]">dev</span></span>
           </a>
           <div className="ms-auto flex items-center gap-[clamp(1rem,3vw,3rem)] text-[clamp(0.85rem,1.1vw,1.05rem)] leading-[1.2] font-[650] phone:gap-3 small-phone:gap-1.5">
-            <button
-              className="group/about inline-flex min-h-11 min-w-11 cursor-pointer items-center gap-[0.5em] [anchor-name:--about-tab]
-                focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-paper small-phone:justify-center"
-              type="button"
-              popoverTarget="about-pud"
-              aria-label="About Pud"
-            >
-              About
-              <span
-                aria-hidden="true"
-                className="relative h-0.5 w-[0.85rem] flex-none bg-current text-cyan group-hover/about:text-paper small-phone:hidden
-                  after:absolute after:inset-0 after:rotate-90 after:bg-current group-has-[:popover-open]/masthead:after:rotate-0
-                  motion-safe:after:transition-transform motion-safe:after:duration-160 motion-safe:after:ease-out"
-              />
-            </button>
+            <GitHubStarLink />
             <JoinAlphaLink />
           </div>
         </nav>
-        <div
-          id="about-pud"
-          popover="auto"
-          role="region"
-          aria-label="About Pud"
-          className="fixed inset-auto top-[5.5rem] right-gutter m-0 w-[min(22rem,100%_-_2_*_var(--spacing-gutter))]
-            bg-ink px-[1.35rem] py-[1.1rem] text-[clamp(1rem,1.2vw,1.125rem)] leading-normal text-paper shadow-[3px_3px_var(--color-cyan)]
-            [position-anchor:--about-tab] supports-[top:anchor(bottom)]:top-[calc(anchor(bottom,4.8rem)+0.7rem)]"
-        >
-          <p>Pud is a true next-generation tool for running proofs against your TypeScript programs in order to make them bug-free.</p>
-        </div>
       </header>
       <main className="flex flex-1 flex-col">
         <div className="mx-gutter grid min-h-[clamp(22rem,54svh,48rem)] flex-1 grid-cols-poster gap-column-gap narrow:portrait:grid-cols-1 narrow:portrait:gap-0">
