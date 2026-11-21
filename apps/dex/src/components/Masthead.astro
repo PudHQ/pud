@@ -2,20 +2,33 @@
 import { width, height, ring } from "../lib/globe";
 import PudFoil from "./PudFoil.astro";
 const { compact = false } = Astro.props;
+const wordmark = "-ml-wordmark-shift w-fit font-pixel leading-wordmark font-bold tracking-wordmark whitespace-nowrap text-vermilion text-shadow-wordmark";
+const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rendering:var(--rendering-pixel)]";
 ---
-<div class:list={["masthead", { compact }]}>
-  <div class="stars" aria-hidden="true"></div>
-  <div class="mast-copy">
-    {compact ? <a href="/" class="wordmark">Pud<span>Dex</span></a> : <h1 class="wordmark">Pud<span>Dex</span></h1>}
-    {!compact && <p>Pud’s handbook, work log, ideas, and links.</p>}
+<div data-masthead class:list={[
+  `group/masthead relative isolate flex items-center overflow-hidden border border-t-slate-600 border-r-chrome-highlight
+    border-b-chrome-highlight border-l-slate-600 bg-(image:--background-masthead) px-masthead phone:px-3.5 small-phone:px-2.5`,
+  compact
+    ? "min-h-20.5 pt-3.75 pb-4.5 phone:min-h-16.5 phone:pt-2.5 phone:pb-3"
+    : "min-h-masthead-height pt-5 pb-6 phone:min-h-masthead-phone-height phone:py-3.5",
+]}>
+  <div class="absolute inset-0 -z-1 bg-(image:--background-stars) bg-size-(--background-size-stars) bg-right
+    mask-(--mask-stars) opacity-67" aria-hidden="true"></div>
+  <div class="pointer-events-none relative z-1 w-33/50 phone:w-16/25">
+    {compact
+      ? <a href="/" class:list={[wordmark, "pointer-events-auto inline-block text-wordmark-compact"]}>Pud<span class="text-amber-50">Dex</span></a>
+      : <h1 class:list={[wordmark, "text-wordmark phone:text-wordmark-phone"]}>Pud<span class="text-amber-50">Dex</span></h1>}
+    {!compact && <p class="mt-3.5 max-w-masthead-copy text-masthead-caption/normal text-balance text-slate-200
+      phone:mt-2 phone:max-w-masthead-copy-phone phone:text-xs/normal">Pud’s handbook, work log, ideas, and links.</p>}
   </div>
-  <div class="orbit">
-    <img class="globe-poster" src="/globe.svg" alt="" {width} {height} />
+  <div class:list={["pointer-events-none absolute top-0 grid h-full place-items-center",
+    compact ? "right-1/25 w-30 phone:right-1/50 phone:w-23.5" : "right-orbit-inset w-7/20 phone:right-0 phone:w-2/5"]}>
+    <img class:list={[globeLayer, "group-data-interactive/masthead:invisible"]} src="/globe.svg" alt="" {width} {height} />
     {!compact && <>
-      <canvas class="globe-canvas" {width} {height} aria-hidden="true"></canvas>
-      <svg class="globe-light" viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false" shape-rendering="crispEdges">
-        <path class="surface-light" fill="#d6efff" d="M69 34h3v1h-3zM73 32h5v1h-5zM78 30h2v1h-2z" />
-        <path class="ring-light" fill="none" stroke="#fff9e8" stroke-width="2" pathLength="100"
+      <canvas data-globe-canvas class:list={[globeLayer, "invisible group-data-interactive/masthead:visible"]} {width} {height} aria-hidden="true"></canvas>
+      <svg class={globeLayer} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+        <path class="opacity-0 motion-safe:animate-water-shimmer" fill="#d6efff" d="M69 34h3v1h-3zM73 32h5v1h-5zM78 30h2v1h-2z" />
+        <path class="opacity-0 motion-safe:animate-orbit-sheen" fill="none" stroke="#fff9e8" stroke-width="2" stroke-dasharray="8 110" pathLength="100"
           d={`M${-ring.rx} 0a${ring.rx} ${ring.ry} 0 0 0 ${ring.rx * 2} 0`}
           transform={`translate(${ring.cx} ${ring.cy}) rotate(${ring.angle})`} />
       </svg>
@@ -27,8 +40,8 @@ const { compact = false } = Astro.props;
 <script>
   import { globeFrame, width, height, palette } from "../lib/globe";
 
-  const mast = document.querySelector<HTMLElement>(".masthead");
-  const canvas = mast?.querySelector<HTMLCanvasElement>(".globe-canvas");
+  const mast = document.querySelector<HTMLElement>("[data-masthead]");
+  const canvas = mast?.querySelector<HTMLCanvasElement>("[data-globe-canvas]");
   const ctx = canvas?.getContext("2d");
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   if (mast && canvas && ctx) {
@@ -52,21 +65,21 @@ const { compact = false } = Astro.props;
       ctx!.putImageData(rgba, 0, 0);
       mast!.style.setProperty("--pud-x", Math.round(turn * 58 - remaining * 10) + "px");
       mast!.style.setProperty("--pud-y", Math.round(tilt * -40 - remaining * 4) + "px");
-      mast!.classList.add("interactive");
+      mast!.setAttribute("data-interactive", "");
       if (remaining > 0) frame = requestAnimationFrame(draw);
     }
     function reset() {
       cancelAnimationFrame(frame);
       frame = 0;
       arrival = 0;
-      mast!.classList.remove("interactive");
+      mast!.removeAttribute("data-interactive");
       mast!.style.removeProperty("--pud-x");
       mast!.style.removeProperty("--pud-y");
     }
     if (arrival) frame = requestAnimationFrame(draw);
     mast.addEventListener("pointermove", event => {
       if (motion.matches || event.pointerType === "touch") return;
-      if (event.target instanceof Element && event.target.closest(".foil-control")) return;
+      if (event.target instanceof Element && event.target.closest("[data-foil-control]")) return;
       const box = mast.getBoundingClientRect();
       arrival = 0;
       const x = event.clientX - box.left, y = event.clientY - box.top;

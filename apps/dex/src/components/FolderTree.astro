@@ -1,16 +1,21 @@
 ---
 import Icon from "./Icon.astro";
 import type { Folder } from "../lib/vault";
+import { folderCount, folderLink, summary } from "../lib/styles";
 interface Props { folders: Folder[]; active?: string; level?: number }
 const { folders, active, level = 0 } = Astro.props;
 ---
-<ul class="branches" style={"--level:" + level}>
-  {folders.map(folder => <li class="tree-node">
-    <a href={folder.href} class:list={["folder-link", { selected: active === folder.path }]} aria-current={Astro.url.pathname === folder.href ? "page" : undefined}>
-      <Icon name={active === folder.path ? "open" : "folder"} /> {folder.name} <span>{folder.notes.length}</span>
+<ul style={`--branch-indent: ${7 + level * 13}px`}>
+  {folders.map(folder => <li class="relative before:absolute before:inset-y-0 before:left-branch-line before:border-l before:border-dotted before:border-slate-400
+    last:before:bottom-auto last:before:h-3.75 after:pointer-events-none after:absolute after:top-3.5 after:left-branch-line after:w-3.25 after:border-t after:border-dotted after:border-slate-400">
+    <a href={folder.href} class:list={[folderLink, "ml-branch-label"]} data-selected={active === folder.path ? "" : undefined} aria-current={Astro.url.pathname === folder.href ? "page" : undefined}>
+      <Icon name={active === folder.path ? "open" : "folder"} /> {folder.name} <span class={folderCount}>{folder.notes.length}</span>
     </a>
-    {folder.children.length > 0 && <details class="subtree" open={level === 0 || active === folder.path || active?.startsWith(folder.path + "/")}>
-      <summary aria-label={"Subfolders of " + folder.path} title={"Subfolders of " + folder.path}></summary>
+    {folder.children.length > 0 && <details open={level === 0 || active === folder.path || active?.startsWith(folder.path + "/")}>
+      <summary class:list={[summary, `absolute top-0.25 left-branch-toggle z-1 grid h-6.75 w-3.75 place-items-center
+        before:grid before:size-2.75 before:place-items-center before:border before:border-chrome-edge before:bg-paper before:font-mono before:text-caption before:leading-none
+        before:content-(--disclosure-closed) expanded:before:content-(--disclosure-open)`]}
+        aria-label={"Subfolders of " + folder.path} title={"Subfolders of " + folder.path}></summary>
       <Astro.self folders={folder.children} active={active} level={level + 1} />
     </details>}
   </li>)}

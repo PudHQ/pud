@@ -1,10 +1,12 @@
 ---
 import { vault } from "../lib/content";
-interface Props { folder: string; current?: boolean }
-const { folder, current } = Astro.props;
+import { link } from "../lib/styles";
+interface Props { folder: string; current?: boolean; class?: string }
+const { folder, current, class: className } = Astro.props;
 const parents = vault.folders.filter(group => group.path === folder || folder.startsWith(group.path + "/"));
+const crumbLink = current ? link : "underline underline-offset-3";
 ---
-<nav class="crumbs" aria-label="Breadcrumb">
-  <a href="/">Directory</a>{parents.map(group => <><span aria-hidden="true">/</span>{current && group.path === folder
-    ? <span aria-current="page">{group.name}</span> : <a href={group.href}>{group.name}</a>}</>)}
+<nav class:list={["flex min-w-0 flex-wrap items-baseline gap-1.25 font-mono text-xs/normal wrap-anywhere", className]} aria-label="Breadcrumb">
+  <a class={crumbLink} href="/">Directory</a>{parents.map(group => <><span aria-hidden="true">/</span>{current && group.path === folder
+    ? <span aria-current="page">{group.name}</span> : <a class={crumbLink} href={group.href}>{group.name}</a>}</>)}
 </nav>

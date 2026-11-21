@@ -1,9 +1,14 @@
 ---
 import Shell from "../layouts/Shell.astro";
 import Icon from "../components/Icon.astro";
+import { activeBar, link, panel, reading, readingTitle } from "../lib/styles";
 ---
 <Shell title="Page not found">
-  <div class="panel"><div class="bar active-bar"><Icon name="note" /> 404</div>
-    <div class="reading"><h1>Page not found</h1><p><a href="/">Browse the directory</a></p></div>
+  <div class={panel}>
+    <div class={activeBar}><Icon name="note" /> 404</div>
+    <div class={reading}>
+      <h1 class={readingTitle}>Page not found</h1>
+      <p class="my-4"><a class={link} href="/">Browse the directory</a></p>
+    </div>
   </div>
 </Shell>

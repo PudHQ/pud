@@ -1,0 +1,16 @@
+---
+import Icon from "./Icon.astro";
+import { bar, panel, summary } from "../lib/styles";
+
+interface Props { label: string; icon: "folder" | "link" }
+const { label, icon } = Astro.props;
+---
+<nav class={panel} aria-label={label}>
+  <details data-sidebar-panel open>
+    <summary class:list={[bar, summary, "bg-panel-bar text-slate-800 phone:min-h-8",
+      "after:ml-auto after:font-mono after:text-base/ui after:font-normal after:content-(--disclosure-closed) expanded:after:content-(--disclosure-open)"]}>
+      <Icon name={icon} /> {label}
+    </summary>
+    <slot />
+  </details>
+</nav>

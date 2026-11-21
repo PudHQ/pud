@@ -1,13 +1,22 @@
 ---
 const { compact = false } = Astro.props;
 const sprite = "/pud-chrome.png";
+const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel)]
+  group-data-raised/foil:invisible group-data-material/foil:invisible`;
 ---
-<span class="orbiter" data-foil={compact ? undefined : ""}>
-  <img class="foil-print" src={sprite} alt="" width="76" height="77" draggable="false" />
+<span data-foil={compact ? undefined : ""} class="group/foil absolute bottom-orbiter-rise left-3/25 w-orbiter-width drop-shadow-orbiter
+  not-data-placed:translate-x-orbit-x not-data-placed:translate-y-orbit-y data-placed:translate-x-foil-x data-placed:translate-y-foil-y
+  data-foil:z-2 data-foil:min-w-11 data-raised:not-data-material:drop-shadow-foil-raised data-material:filter-none">
+  <img data-foil-print class={printClasses} src={sprite} alt="" width="76" height="77" draggable="false" />
   {!compact && <>
-    <img class="cap-light" src={sprite} alt="" width="76" height="77" draggable="false" />
-    <canvas class="foil-surface" aria-hidden="true"></canvas>
-    <button class="foil-control" type="button" aria-label="Move or curl Pud" aria-describedby="foil-help"
+    <img class:list={[printClasses, "absolute inset-0 mask-(--mask-cap) mask-size-(--mask-size-cap) mask-top-right mask-no-repeat opacity-0 brightness-245 [clip-path:var(--clip-cap)] motion-safe:animate-cap-sheen"]}
+      src={sprite} alt="" width="76" height="77" draggable="false" />
+    <canvas data-foil-surface class="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-1/2
+      [image-rendering:var(--rendering-pixel)] group-data-raised/foil:not-data-hologram:block
+      group-data-material/foil:data-hologram:block group-data-material/foil:not-data-hologram:invisible" aria-hidden="true"></canvas>
+    <button data-foil-control class="pointer-events-auto absolute inset-0 size-full cursor-grab touch-none border-0 bg-transparent p-0 select-none
+      focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dotted focus-visible:outline-amber-100 active:cursor-grabbing"
+      type="button" aria-label="Move or curl Pud" aria-describedby="foil-help"
       aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Home Enter Space" title="Drag to move and curl Pud" hidden></button>
     <span class="sr-only" id="foil-help">Hold and drag to move Pud. Arrow keys move, Space curls, and Home returns Pud to the globe.</span>
   </>}
@@ -18,10 +27,10 @@ const sprite = "/pud-chrome.png";
   import { createHologram } from "../lib/pud-holo";
 
   async function mountFoil(wrapper: HTMLElement) {
-    const print = wrapper.querySelector<HTMLImageElement>(".foil-print")!;
-    const canvas = wrapper.querySelector<HTMLCanvasElement>(".foil-surface")!;
-    const button = wrapper.querySelector<HTMLButtonElement>(".foil-control")!;
-    const mast = wrapper.closest<HTMLElement>(".masthead")!;
+    const print = wrapper.querySelector<HTMLImageElement>("[data-foil-print]")!;
+    const canvas = wrapper.querySelector<HTMLCanvasElement>("[data-foil-surface]")!;
+    const button = wrapper.querySelector<HTMLButtonElement>("[data-foil-control]")!;
+    const mast = wrapper.closest<HTMLElement>("[data-masthead]")!;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     try { await print.decode(); } catch { return; }
@@ -36,7 +45,7 @@ const sprite = "/pud-chrome.png";
     canvas.style.height = 100 * foil.height / h + "%";
     const image = new ImageData(foil.pixels, foil.width, foil.height);
     const coated = canvas.cloneNode(false) as HTMLCanvasElement;
-    coated.classList.add("foil-hologram");
+    coated.setAttribute("data-hologram", "");
     canvas.after(coated);
     let material: Awaited<ReturnType<typeof createHologram>>;
 
@@ -52,7 +61,7 @@ const sprite = "/pud-chrome.png";
 
     function paint() {
       const raised = Math.abs(bend) > 0.005;
-      wrapper.classList.toggle("foil-raised", raised);
+      wrapper.toggleAttribute("data-raised", raised);
       if (material) {
         material.draw(raised ? bend : 0, bearing, lightX + 0.19 * bend * Math.cos(bearing), lightY + 0.19 * bend * Math.sin(bearing));
       } else if (raised) {
@@ -122,7 +131,7 @@ const sprite = "/pud-chrome.png";
         width: Math.max(0, box.width - size.width - 3 - right), height: Math.max(0, box.height - size.height - top - 3) };
     }
     function place(left: number, top: number) {
-      wrapper.classList.add("foil-placed");
+      wrapper.setAttribute("data-placed", "");
       const area = bounds(), current = wrapper.getBoundingClientRect();
       const x = Math.max(0, Math.min(area.width, left - area.left));
       const y = Math.max(0, Math.min(area.height, top - area.top));
@@ -134,7 +143,7 @@ const sprite = "/pud-chrome.png";
       fractionY = area.height ? y / area.height : 0;
     }
     const resize = new ResizeObserver(() => {
-      if (!wrapper.classList.contains("foil-placed")) return;
+      if (!wrapper.hasAttribute("data-placed")) return;
       const area = bounds();
       place(area.left + fractionX * area.width, area.top + fractionY * area.height);
     });
@@ -192,7 +201,7 @@ const sprite = "/pud-chrome.png";
       if (pointer !== null) return;
       if (event.key === "Home") {
         event.preventDefault();
-        wrapper.classList.remove("foil-placed");
+        wrapper.removeAttribute("data-placed");
         wrapper.style.removeProperty("--foil-x"); wrapper.style.removeProperty("--foil-y");
         offsetX = offsetY = 0;
         rest();

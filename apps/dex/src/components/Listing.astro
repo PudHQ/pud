@@ -3,6 +3,7 @@ import Icon from "./Icon.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import { vault } from "../lib/content";
 import { outboundAttributes } from "../lib/web-links";
+import { activeBar, favicon, link, panel } from "../lib/styles";
 import type { Note, SavedLink } from "../lib/vault";
 interface Props { title: string; notes?: Note[]; links?: SavedLink[]; heading?: "h1" | "h2"; folderPath?: string }
 const { title, notes = [], links, heading: Heading = "h1", folderPath } = Astro.props;
@@ -10,46 +11,53 @@ const total = links ? links.length : notes.length;
 const noun = links ? "link" : "entry";
 const plural = links ? "links" : "entries";
 const icons = { Handbook: "book", Log: "disk", "Captain's Log": "disk", Ideas: "idea", Bookmarks: "link" } as const;
+const row = `grid grid-cols-entry items-start gap-2.25 border-t border-zinc-200 py-2.5 first:border-t-0
+  stacked:grid-cols-entry-stacked stacked:gap-x-2 stacked:gap-y-px stacked:py-2.25`;
+const entryTitle = `${link} text-entry font-bold wrap-anywhere decoration-1`;
+const description = "mt-0.5 max-w-summary text-small/normal wrap-anywhere text-slate-600";
+const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere text-slate-600
+  stacked:col-start-2 stacked:max-w-none stacked:justify-self-start stacked:text-left`;
 ---
-<section class="panel listing">
-  <div class="bar active-bar">
+<section class={panel}>
+  <div class={activeBar}>
     <Icon name={links ? "link" : "open"} />
-    <Heading>{title}</Heading>
-    <span class="count" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
+    <Heading class="wrap-anywhere">{title}</Heading>
+    <span class="ml-auto shrink-0 font-mono text-caption font-normal text-slate-200" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
   </div>
-  <div class="list-tools">
-    {folderPath && <Breadcrumbs folder={folderPath} current />}
-    <label hidden class="filter">
+  <div class="border-b border-line bg-zinc-200 px-2.5 py-1.75 has-[>[hidden]:only-child]:hidden">
+    {folderPath && <Breadcrumbs folder={folderPath} class="mt-px mb-1.5" current />}
+    <label data-filter hidden class="flex min-h-7.5 items-center gap-2 border border-t-chrome-edge border-r-white border-b-white border-l-chrome-edge
+      bg-white px-1.75 text-slate-600 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-link">
       <Icon name="search" size={16} />
-      <input type="search" aria-label={links ? "Search links" : "Search entries"} placeholder={links ? "Search links…" : "Search entries…"} aria-keyshortcuts="/" />
-      <kbd aria-hidden="true">/</kbd>
+      <input class="h-7.25 min-w-0 flex-1 text-ui text-ink placeholder:text-slate-500 focus:outline-none"
+        type="search" aria-label={links ? "Search links" : "Search entries"} placeholder={links ? "Search links…" : "Search entries…"} aria-keyshortcuts="/" />
+      <kbd class="border border-line px-1 font-mono text-caption/tight text-slate-600" aria-hidden="true">/</kbd>
     </label>
   </div>
-  {links ? <ul class="entries link-entries">
-    {links.map(link => <li data-entry>
-      <div class="entry-copy">
-        <a class="entry-title" href={link.href} {...outboundAttributes(link.href)}>{link.title} <span aria-hidden="true">↗</span></a>
-        <p class="source-notes">Saved in {link.sources.map((note, i) => <>{i > 0 && ", "}<a href={note.href}>{note.title}</a></>)}</p>
+  <ul class="px-3.25 phone:px-2.5">
+    {links ? links.map(saved => <li class:list={[row, "relative"]} data-entry>
+      <div class="col-start-2 min-w-0">
+        <a class:list={[entryTitle, favicon, "outbound:before:absolute outbound:before:top-3 outbound:before:left-0.5"]}
+          href={saved.href} {...outboundAttributes(saved.href)}>{saved.title} <span aria-hidden="true">↗</span></a>
+        <p class={description}>Saved in {saved.sources.map((note, i) => <>{i > 0 && ", "}<a class={link} href={note.href}>{note.title}</a></>)}</p>
       </div>
-      <span class="kind">{link.host}</span>
-    </li>)}
-  </ul> : <ul class="entries">
-    {notes.map(note => {
+      <span class:list={[kind, "max-w-link-host"]}>{saved.host}</span>
+    </li>) : notes.map(note => {
       const folder = vault.folders.find(group => group.path === note.folder);
-      return <li data-entry data-keywords={[...note.tags, ...note.aliases, note.folder].join(" ")}>
-        <span class="file-icon"><Icon name={icons[note.folder.split("/")[0] as keyof typeof icons] ?? "note"} size={20} /></span>
-        <div class="entry-copy">
-          <a class="entry-title" href={note.href}>{note.title}</a>
-          {note.summary && <p>{note.summary}</p>}
+      return <li class={row} data-entry data-keywords={[...note.tags, ...note.aliases, note.folder].join(" ")}>
+        <span class="flex h-5.5 items-center justify-center"><Icon name={icons[note.folder.split("/")[0] as keyof typeof icons] ?? "note"} size={20} /></span>
+        <div class="min-w-0">
+          <a class={entryTitle} href={note.href}>{note.title}</a>
+          {note.summary && <p class={description}>{note.summary}</p>}
         </div>
-        {folder && <a class="kind" href={folder.href} title={folder.path}>{folder.name}</a>}
+        {folder && <a class:list={[kind, "max-w-entry-kind hover:text-link hover:underline"]} href={folder.href} title={folder.path}>{folder.name}</a>}
       </li>;
     })}
-  </ul>}
-  <p class="empty" hidden={total > 0} data-empty>{total ? "No matches." : links ? "No links yet." : "No entries yet."}</p>
+  </ul>
+  <p class="p-4 text-ui text-slate-600" hidden={total > 0} data-empty>{total ? "No matches." : links ? "No links yet." : "No entries yet."}</p>
 </section>
 <script>
-  const filter = document.querySelector<HTMLLabelElement>(".filter");
+  const filter = document.querySelector<HTMLLabelElement>("[data-filter]");
   const input = filter?.querySelector("input");
   const count = document.querySelector<HTMLElement>("[data-count]");
   if (filter && input && count) {

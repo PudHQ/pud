@@ -1,0 +1,164 @@
+@import "tailwindcss" source("../");
+
+@theme {
+  --color-ink: #182633;
+  --color-paper: #fffefa;
+  --color-desktop: #8195a5;
+  --color-chrome: #d5d8da;
+  --color-chrome-edge: #74818a;
+  --color-chrome-highlight: #f6f8fa;
+  --color-chrome-shadow: #404f5a;
+  --color-panel-bar: #c2cad0;
+  --color-line: #c7cdd0;
+  --color-navy: #123664;
+  --color-selected: #245386;
+  --color-vermilion: #ff462d;
+  --color-link: #134d87;
+  --color-link-visited: #3e5679;
+  --color-link-hover: #983815;
+  --color-focus: #b2421e;
+
+  --font-sans: Tahoma, Verdana, Geneva, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-pixel: "Pixelify Sans Variable", monospace;
+  --font-synthesis-ui: none;
+  --leading-ui: normal;
+  --text-caption: .68rem;
+  --text-small: .8rem;
+  --text-ui: .84rem;
+  --text-entry: .92rem;
+  --text-entry--line-height: 1.45;
+  --text-note: .97rem;
+  --text-note--line-height: 1.65;
+  --text-note-heading: clamp(1.45rem, 3vw, 2rem);
+  --text-wordmark: clamp(3.8rem, 8vw, 6.8rem);
+  --text-wordmark-phone: clamp(2.65rem, 11vw, 4.2rem);
+  --text-wordmark-compact: clamp(2rem, 4vw, 3.2rem);
+  --text-masthead-caption: clamp(.83rem, 1.28vw, 1rem);
+  --leading-wordmark: .92;
+  --tracking-wordmark: -.065em;
+  --tracking-heading: -.035em;
+  --text-shadow-wordmark: .035em .035em #0a223e;
+
+  --container-window: 1160px;
+  --container-note: 68ch;
+  --container-summary: 66ch;
+  --container-masthead-copy: 45ch;
+  --container-masthead-copy-phone: 28ch;
+  --container-entry-kind: 16ch;
+  --container-link-host: 24ch;
+  --spacing-window-margin: clamp(14px, 3vw, 36px);
+  --spacing-reading: clamp(16px, 2.4vw, 30px);
+  --spacing-masthead: clamp(24px, 4vw, 52px);
+  --spacing-masthead-height: clamp(184px, 18.5vw, 226px);
+  --spacing-masthead-phone-height: clamp(128px, 25vw, 160px);
+  --spacing-wordmark-shift: .035em;
+  --spacing-orbit-inset: 3.5%;
+  --spacing-orbiter-rise: 17%;
+  --spacing-orbiter-width: 27%;
+  --grid-template-columns-workspace: clamp(190px, 20vw, 224px) minmax(0, 1fr);
+  --grid-template-columns-workspace-narrow: 178px minmax(0, 1fr);
+  --grid-template-columns-entry: 21px minmax(0, 1fr) minmax(0, max-content);
+  --grid-template-columns-entry-stacked: 20px minmax(0, 1fr);
+  --shadow-window: 1px 1px #435563;
+  --inset-shadow-current-tab: inset 0 -2px #b94620;
+
+  --background-masthead: linear-gradient(110deg, #102e51, #143d68 72%, #103153);
+  --background-stars: url("/stars.svg");
+  --background-size-stars: 270px 192px;
+  --mask-stars: linear-gradient(90deg, transparent 28%, black 76%);
+  --mask-cap: linear-gradient(113deg, transparent 40%, #0008 44%, black 47% 50%, transparent 54%);
+  --mask-size-cap: 300% 100%;
+  --clip-cap: polygon(0 0, 100% 0, 100% 25%, 84% 25%, 79% 29%, 73% 37%, 68% 35%, 59% 29%, 51% 28%, 39% 31%, 31% 31%, 23% 27%, 15% 22%, 0 22%);
+  --rendering-pixel: pixelated;
+  --align-favicon: -3px;
+  --content-empty: "";
+  --list-style-nested: circle;
+  --disclosure-closed: "+";
+  --disclosure-open: "−";
+
+  --animate-cap-sheen: cap-sheen 8s steps(16, end) infinite;
+  --animate-water-shimmer: water-shimmer 8s ease-in-out infinite;
+  --animate-orbit-sheen: orbit-sheen 8s linear infinite;
+
+  @keyframes cap-sheen {
+    0%, 8% { mask-position: 100% 0; opacity: 0; }
+    10%, 20% { opacity: .9; }
+    23%, 100% { mask-position: 0 0; opacity: 0; }
+  }
+
+  @keyframes water-shimmer {
+    0%, 17%, 30%, 100% { opacity: 0; }
+    17% { transform: translateX(--spacing(-.5)); }
+    23% { opacity: .8; }
+    30%, 100% { transform: translateX(--spacing(.5)); }
+  }
+
+  @keyframes orbit-sheen {
+    0%, 23% { stroke-dashoffset: 8; opacity: 0; }
+    25%, 37% { opacity: .95; }
+    40%, 100% { stroke-dashoffset: -100; opacity: 0; }
+  }
+}
+
+@theme inline {
+  --spacing-branch-line: min(var(--branch-indent), 33%);
+  --spacing-branch-label: calc(min(var(--branch-indent), 33%) + --spacing(3.5));
+  --spacing-branch-toggle: calc(min(var(--branch-indent), 33%) - --spacing(1.75));
+  --translate-orbit-x: var(--pud-x, 0px);
+  --translate-orbit-y: var(--pud-y, 0px);
+  --translate-foil-x: var(--foil-x, 0px);
+  --translate-foil-y: var(--foil-y, 0px);
+  --drop-shadow-orbiter: -1px -1px #dedede, 1px 2px #161616;
+  --drop-shadow-foil-raised: 0 -1px #d7dfdf80, 1px var(--foil-lift, 1px) 1px #061827a8;
+}
+
+@custom-variant narrow (@media (width <= 800px));
+@custom-variant phone (@media (width <= 640px));
+@custom-variant stacked (@media (width <= 460px));
+@custom-variant small-phone (@media (width <= 355px));
+@custom-variant expanded (details[open] > &);
+@custom-variant outbound (&[target="_blank"]);
+
+/* Vault Markdown is rendered at build time. */
+@layer components {
+  .prose :is(h1, h2, h3) {
+    @apply mt-5 mb-2 leading-tight font-bold text-navy;
+  }
+
+  .prose h1 { @apply text-note-heading tracking-heading; }
+  .prose h2 { @apply text-2xl; }
+  .prose h3 { @apply text-lg; }
+  .prose :is(h4, h5, h6) { @apply my-4 font-bold; }
+  .prose h5 { @apply text-ui; }
+  .prose h6 { @apply text-xs; }
+  .prose :is(p, ul, ol, blockquote, pre) { @apply my-3; }
+  .prose :is(ul, ol) { @apply pl-5.5; }
+  .prose ul { @apply list-disc; }
+  .prose ul ul { @apply list-(--list-style-nested); }
+  .prose ol { @apply list-decimal; }
+  .prose li > :is(ul, ol) { @apply my-0; }
+  .prose hr { @apply my-3 border-line; }
+
+  .prose a, .footnote-ref a {
+    @apply text-link underline underline-offset-3 visited:text-link-visited hover:text-link-hover;
+  }
+
+  .prose a[target="_blank"]::before {
+    @apply mr-1 inline-block size-4 bg-(image:--site-icon) bg-contain bg-center bg-no-repeat align-(--align-favicon) content-(--content-empty);
+    image-rendering: var(--rendering-pixel);
+  }
+
+  .prose pre { @apply overflow-auto bg-slate-800 px-4 py-3 text-slate-50; }
+  .prose code { @apply font-mono text-sm/relaxed; }
+  .prose :not(pre) > code { @apply bg-slate-100 px-1 py-0.5 text-slate-800; }
+  .prose blockquote { @apply border-l-2 border-slate-400 pl-3.5; }
+  .prose table { @apply block max-w-full overflow-x-auto; }
+  .prose :is(td, th) { @apply border border-line px-2.5 py-1; }
+  .prose .unresolved { @apply border-b border-dashed text-zinc-600; }
+
+  .footnote-ref { @apply leading-0; }
+  .footnote-ref a { @apply underline-offset-2; }
+  .footnotes { @apply mt-6 border-t border-line pt-1.5 text-ui text-slate-600; }
+  .footnote-item, .footnote-ref a { @apply scroll-my-4 target:bg-slate-100; }
+}
