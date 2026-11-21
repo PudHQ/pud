@@ -22,8 +22,10 @@
       },
       "devDependencies": {
         "@astrojs/check": "0.9.12",
+        "@tailwindcss/vite": "4.3.5",
         "@webgpu/types": "^0.1.74",
         "cf": "1.0.0-rc.1",
+        "tailwindcss": "4.3.5",
         "typescript": "^6",
       },
     },
