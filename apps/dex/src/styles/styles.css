@@ -3,7 +3,7 @@
 @theme {
   --color-ink: #182633;
   --color-paper: #fffefa;
-  --color-desktop: #8195a5;
+  --color-desktop: #222222;
   --color-chrome: #d5d8da;
   --color-chrome-edge: #74818a;
   --color-chrome-highlight: #f6f8fa;
@@ -63,7 +63,7 @@
   --shadow-window: 1px 1px #435563;
   --inset-shadow-current-tab: inset 0 -2px #b94620;
 
-  --background-masthead: linear-gradient(110deg, #102e51, #143d68 72%, #103153);
+  --background-masthead: linear-gradient(110deg, #111111, #143d68 72%, #101020);
   --background-stars: url("/stars.svg");
   --background-size-stars: 270px 192px;
   --mask-stars: linear-gradient(90deg, transparent 28%, black 76%);
