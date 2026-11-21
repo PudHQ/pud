@@ -1,0 +1,59 @@
+---
+import { getOrbitStampArt, stampHeight, stampWidth } from "../lib/orbit-stamp-art";
+
+interface Props { compact?: boolean }
+const { compact = false } = Astro.props;
+const Heading = compact ? "a" : "h1";
+const art = await getOrbitStampArt();
+const pixel = "[image-rendering:var(--rendering-pixel)]";
+const gleam = Array.from({ length: 41 }, (_, row) => {
+  const y = row * 4 - 40;
+  const x = 2 * Math.round((27 - .596 * (y + 2)) / 2);
+  return `M${x} ${y}h2v4h-2z`;
+}).join("");
+---
+<div class={compact ? "w-fit max-w-full" : "relative w-4/5 max-w-115 phone:w-9/10"}>
+  <Heading href={compact ? "/" : undefined} class={compact
+    ? "pointer-events-auto flex min-h-11 w-44 max-w-full items-center focus-visible:outline-amber-100 phone:w-31"
+    : undefined}>
+    <span class="sr-only">PudDex</span>
+    <svg data-orbit-stamp={compact ? undefined : ""} class="block h-auto w-full" width={stampWidth} height={stampHeight}
+      viewBox={`0 0 ${stampWidth} ${stampHeight}`} aria-hidden="true" focusable="false">
+      <image class={pixel} href={art.print} width={stampWidth} height={stampHeight} />
+      {!compact && <>
+        <defs>
+          <mask id="stamp-face" maskUnits="userSpaceOnUse" x="0" y="0" width={stampWidth} height={stampHeight}>
+            <image class={pixel} href={art.faces} width={stampWidth} height={stampHeight} />
+          </mask>
+          <linearGradient id="stamp-reflection" gradientUnits="userSpaceOnUse" x1="-26" y1="23" x2="26" y2="54">
+            <stop class="text-amber-200" stop-color="currentColor" stop-opacity="0" />
+            <stop offset=".45" class="text-amber-200" stop-color="currentColor" stop-opacity=".34" />
+            <stop offset=".56" class="text-amber-50" stop-color="currentColor" stop-opacity=".77" />
+            <stop offset=".68" class="text-sky-200" stop-color="currentColor" stop-opacity=".33" />
+            <stop offset="1" class="text-sky-200" stop-color="currentColor" stop-opacity="0" />
+          </linearGradient>
+          <radialGradient id="stamp-light-falloff">
+            <stop stop-color="white" />
+            <stop offset=".4" stop-color="white" stop-opacity=".94" />
+            <stop offset="1" stop-color="white" stop-opacity=".02" />
+          </radialGradient>
+          <mask id="stamp-light" maskUnits="userSpaceOnUse" x="-96" y="-40" width="192" height="162">
+            <rect x="-96" y="-40" width="192" height="162" fill="url(#stamp-light-falloff)" />
+          </mask>
+        </defs>
+        <g mask="url(#stamp-face)">
+          <g data-stamp-glint opacity="0">
+            <g mask="url(#stamp-light)">
+              <rect x="-96" y="-40" width="192" height="162" fill="url(#stamp-reflection)" />
+              <path d={gleam} class="fill-amber-50/90" shape-rendering="crispEdges" />
+              <path d={gleam} transform="translate(4)" class="fill-sky-100/55" shape-rendering="crispEdges" />
+            </g>
+          </g>
+        </g>
+      </>}
+    </svg>
+  </Heading>
+  {!compact && <button data-orbit-trigger type="button" aria-label="Send a pulse from PudDex around the globe" hidden
+    class="pointer-events-auto absolute inset-x-0 top-1/2 h-full min-h-11 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0
+      focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-dotted focus-visible:outline-amber-100"></button>}
+</div>

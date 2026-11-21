@@ -2,6 +2,7 @@
 // use the same pixels so the masthead also works before JavaScript loads.
 export const width = 176;
 export const height = 100;
+export const radius = 39;
 export const ring = { cx: 88, cy: 49, rx: 72, ry: 12, angle: -20 };
 export const palette = [
   "", "#102447", "#153867", "#204e8b", "#3269a4", "#5790c2", "#99c6e4",
@@ -38,6 +39,7 @@ const map = Uint8Array.from({ length: 180 * 90 }, (_, i) => {
   return Number(lat < -72 || continents.some(polygon => contains(polygon, lon, lat)));
 });
 const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+export const ditherThreshold = (x: number, y: number) => bayer[(y & 3) * 4 + (x & 3)] / 16;
 const tau = 2 * Math.PI;
 const ringCos = Math.cos(ring.angle * Math.PI / 180);
 const ringSin = Math.sin(ring.angle * Math.PI / 180);
@@ -45,7 +47,6 @@ const ringSin = Math.sin(ring.angle * Math.PI / 180);
 export function globeFrame(turn = 0, tilt = 0): Uint8Array {
   const pixels = new Uint8Array(width * height);
   const { cx, cy } = ring;
-  const radius = 39;
   function dot(x: number, y: number, color: number) {
     x = Math.round(x); y = Math.round(y);
     if (x >= 0 && x < width && y >= 0 && y < height) pixels[y * width + x] = color;
@@ -57,8 +58,9 @@ export function globeFrame(turn = 0, tilt = 0): Uint8Array {
       const x = ring.rx * Math.cos(phase), y = ring.ry * Math.sin(phase);
       const dx = cx + x * ringCos - y * ringSin;
       const dy = cy + x * ringSin + y * ringCos;
+      const reflection = ditherThreshold(Math.round(dx), Math.round(dy)) < .7 + .24 * Math.cos(phase + .65);
       dot(dx, dy + 1, front ? 13 : 3);
-      dot(dx, dy, front ? 15 : 5);
+      dot(dx, dy, front ? (reflection ? 15 : 14) : 5);
     }
   }
   drawRing(false);
@@ -76,7 +78,7 @@ export function globeFrame(turn = 0, tilt = 0): Uint8Array {
       const row = Math.min(89, Math.max(0, Math.floor((0.5 - lat) * 90)));
       const land = map[row * 180 + col];
       const light = (0.25 - vx * 0.46 + vy * 0.42 + vz * 0.43) * 4.3;
-      const screen = bayer[(y % 4) * 4 + x % 4] / 16;
+      const screen = ditherThreshold(x, y);
       let tone = Math.max(0, Math.min(5, Math.floor(light + screen)));
       if (!land && ((col % 15 === 0 && row % 2 === 0) || (row % 15 === 0 && col % 2 === 0))) tone = Math.min(5, tone + 1);
       dot(x, y, (land ? 7 : 1) + tone);

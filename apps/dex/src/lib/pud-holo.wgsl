@@ -76,11 +76,12 @@ fn displayColor(radiance: vec3f) -> vec3f {
   let opticalPath = 2.0 * 1.45 * thickness * sqrt(1.0 - (1.0 - glance * glance) / (1.45 * 1.45));
   let spectrum = pow(0.5 + 0.5 * cos(6.2831853 * opticalPath / vec3f(650.0, 535.0, 455.0)), vec3f(2.0));
   let holo = strip(stripe - 0.09, 0.16 + 0.10 * abs(light.bend));
+  let interference = mix(vec3f(dot(spectrum, vec3f(0.25, 0.55, 0.20))), spectrum, 0.76);
   let etched = 0.93 + 0.07 * cos(1.5 * f32(p.x) - 0.8 * f32(p.y));
   let coating = smoothstep(0.065, 0.23, ink);
   let silver = mix(vec3f(0.33, 0.42, 0.56), vec3f(0.89, 0.92, 0.95), smoothstep(-0.78, 0.46, reflection.y));
   let paper = pow(ink, 2.15) * silver * (1.0 - 0.59 * holo);
-  let reflected = white * vec3f(0.92, 0.96, 1.0) + gold * vec3f(1.0, 0.50, 0.115) + 1.8 * holo * etched * spectrum;
+  let reflected = white * vec3f(0.90, 0.96, 1.0) + gold * vec3f(1.0, 0.57, 0.26) + 1.65 * holo * etched * interference;
   let chrome = paper + coating * (0.24 + 0.58 * ink) * reflected + vec3f(0.008);
   return vec4f(displayColor(chrome) * texel.a, texel.a);
 }

@@ -31,14 +31,8 @@
   --text-note: .97rem;
   --text-note--line-height: 1.65;
   --text-note-heading: clamp(1.45rem, 3vw, 2rem);
-  --text-wordmark: clamp(3.8rem, 8vw, 6.8rem);
-  --text-wordmark-phone: clamp(2.65rem, 11vw, 4.2rem);
-  --text-wordmark-compact: clamp(2rem, 4vw, 3.2rem);
   --text-masthead-caption: clamp(.83rem, 1.28vw, 1rem);
-  --leading-wordmark: .92;
-  --tracking-wordmark: -.065em;
   --tracking-heading: -.035em;
-  --text-shadow-wordmark: .035em .035em #0a223e;
 
   --container-window: 1160px;
   --container-note: 68ch;
@@ -52,7 +46,6 @@
   --spacing-masthead: clamp(24px, 4vw, 52px);
   --spacing-masthead-height: clamp(184px, 18.5vw, 226px);
   --spacing-masthead-phone-height: clamp(128px, 25vw, 160px);
-  --spacing-wordmark-shift: .035em;
   --spacing-orbit-inset: 3.5%;
   --spacing-orbiter-rise: 17%;
   --spacing-orbiter-width: 27%;
@@ -80,6 +73,14 @@
   --animate-cap-sheen: cap-sheen 8s steps(16, end) infinite;
   --animate-water-shimmer: water-shimmer 8s ease-in-out infinite;
   --animate-orbit-sheen: orbit-sheen 8s linear infinite;
+  --animate-wallpaper-embers: wallpaper-embers 17s ease-in-out infinite;
+  --animate-wallpaper-cork: wallpaper-cork 26s ease-in-out infinite alternate;
+  --animate-wallpaper-twinkle: wallpaper-twinkle 13s ease-in-out infinite;
+  --animate-wallpaper-twinkle-offset: wallpaper-twinkle 17s ease-in-out -8s infinite;
+  --animate-wallpaper-signal: wallpaper-signal 11s linear infinite;
+  --animate-wallpaper-signal-offset: wallpaper-signal 11s linear -5.5s infinite;
+  --animate-wallpaper-tide: wallpaper-tide 22s ease-in-out infinite alternate;
+  --animate-wallpaper-bubbles: wallpaper-bubbles 24s linear infinite;
 
   @keyframes cap-sheen {
     0%, 8% { mask-position: 100% 0; opacity: 0; }
@@ -98,6 +99,41 @@
     0%, 23% { stroke-dashoffset: 8; opacity: 0; }
     25%, 37% { opacity: .95; }
     40%, 100% { stroke-dashoffset: -100; opacity: 0; }
+  }
+
+  @keyframes wallpaper-embers {
+    0%, 100% { opacity: .25; translate: 0; }
+    23% { opacity: .64; }
+    40% { opacity: .39; }
+    63% { opacity: .59; translate: --spacing(-2) --spacing(-1); }
+    81% { opacity: .36; }
+  }
+
+  @keyframes wallpaper-cork {
+    from { opacity: .22; translate: 0; }
+    to { opacity: .57; translate: --spacing(-4) --spacing(-2); }
+  }
+
+  @keyframes wallpaper-twinkle {
+    0%, 18%, 72%, 100% { opacity: .08; }
+    43% { opacity: .77; }
+  }
+
+  @keyframes wallpaper-signal {
+    0%, 19%, 51%, 100% { opacity: .12; }
+    24%, 31% { opacity: .68; }
+    38%, 42% { opacity: .31; }
+  }
+
+  @keyframes wallpaper-tide {
+    from { opacity: .3; translate: 0; }
+    to { opacity: .68; translate: --spacing(-3) --spacing(-1.5); }
+  }
+
+  @keyframes wallpaper-bubbles {
+    from { opacity: 0; translate: 0; }
+    27%, 71% { opacity: .62; }
+    to { opacity: 0; translate: 0 --spacing(-6); }
   }
 }
 
@@ -119,6 +155,52 @@
 @custom-variant small-phone (@media (width <= 355px));
 @custom-variant expanded (details[open] > &);
 @custom-variant outbound (&[target="_blank"]);
+
+@layer base {
+  :root { cursor: var(--wallpaper-cursor, auto); }
+  :where(a[href], [data-wallpaper-picker] label) { cursor: var(--wallpaper-cursor, pointer); }
+
+  :root:has(#wallpaper-brick:checked) {
+    --wallpaper-tile: url("/wallpapers/brick.png");
+    --wallpaper-light: url("/wallpapers/brick-light.png");
+    --wallpaper-cursor: url("/wallpapers/brick-cursor.png") 2 2, auto;
+    --wallpaper-motion: var(--animate-wallpaper-embers);
+  }
+
+  :root:has(#wallpaper-corkboard:checked) {
+    --wallpaper-tile: url("/wallpapers/corkboard.png");
+    --wallpaper-light: url("/wallpapers/corkboard-light.png");
+    --wallpaper-cursor: url("/wallpapers/corkboard-cursor.png") 2 28, auto;
+    --wallpaper-motion: var(--animate-wallpaper-cork);
+  }
+
+  :root:has(#wallpaper-starfield:checked) {
+    --wallpaper-tile: url("/wallpapers/starfield.png");
+    --wallpaper-light: url("/wallpapers/starfield-light.png");
+    --wallpaper-accent: url("/wallpapers/starfield-accent.png");
+    --wallpaper-cursor: url("/wallpapers/starfield-cursor.png") 8 6, auto;
+    --wallpaper-motion: var(--animate-wallpaper-twinkle);
+    --wallpaper-accent-motion: var(--animate-wallpaper-twinkle-offset);
+  }
+
+  :root:has(#wallpaper-circuit:checked) {
+    --wallpaper-tile: url("/wallpapers/circuit.png");
+    --wallpaper-light: url("/wallpapers/circuit-light.png");
+    --wallpaper-accent: url("/wallpapers/circuit-accent.png");
+    --wallpaper-cursor: url("/wallpapers/circuit-cursor.png") 6 28, auto;
+    --wallpaper-motion: var(--animate-wallpaper-signal);
+    --wallpaper-accent-motion: var(--animate-wallpaper-signal-offset);
+  }
+
+  :root:has(#wallpaper-aquarium:checked) {
+    --wallpaper-tile: url("/wallpapers/aquarium.png");
+    --wallpaper-light: url("/wallpapers/aquarium-light.png");
+    --wallpaper-accent: url("/wallpapers/aquarium-accent.png");
+    --wallpaper-cursor: url("/wallpapers/aquarium-cursor.png") 2 14, auto;
+    --wallpaper-motion: var(--animate-wallpaper-tide);
+    --wallpaper-accent-motion: var(--animate-wallpaper-bubbles);
+  }
+}
 
 /* Vault Markdown is rendered at build time. */
 @layer components {
