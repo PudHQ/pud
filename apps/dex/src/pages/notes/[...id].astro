@@ -27,9 +27,9 @@ const author = note.author ? authors.get(note.author) : undefined;
       {note.url && <a class:list={[link, favicon, "inline-flex min-h-7 items-center gap-1.5 bg-slate-100 px-2 py-0.5 font-mono text-small/normal"]}
         href={note.url} {...outboundAttributes(note.url)}>Visit {new URL(note.url).hostname} ↗</a>}
       <div class="prose text-note" set:html={note.html}></div>
-      {note.tags.length > 0 && <p class="my-3 flex flex-wrap gap-2 font-mono text-xs/normal text-slate-600">{note.tags.map(tag => <span>#{tag}</span>)}</p>}
+      {note.tags.length > 0 && <p class="my-3 flex flex-wrap gap-2 font-mono text-xs/normal font-label text-slate-600">{note.tags.map(tag => <span>#{tag}</span>)}</p>}
       <section class="mt-6 border-t border-line" aria-label="Backlinks">
-        <h2 class="mt-4.5 mb-1.75 flex items-center gap-1.75 text-entry/tight font-bold text-navy"><Icon name="link" /> Linked from</h2>
+        <h2 class="mt-4.5 mb-1.75 flex items-center gap-1.75 text-entry/tight font-panel text-navy"><Icon name="link" /> Linked from</h2>
         {note.backlinks.length
           ? <ul class="my-4 list-disc pl-5.25 text-ui/relaxed">{note.backlinks.map(source => <li><a class={link} href={source.href}>{source.title}</a></li>)}</ul>
           : <p class="my-3.5 text-ui/relaxed">No incoming links yet.</p>}

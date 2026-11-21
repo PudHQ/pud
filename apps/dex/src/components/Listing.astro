@@ -21,7 +21,7 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
 <section class={panel}>
   <div class={activeBar}>
     <Icon name={links ? "link" : "open"} />
-    <Heading class="wrap-anywhere">{title}</Heading>
+    <Heading class="font-section wrap-anywhere">{title}</Heading>
     <span class="ml-auto shrink-0 font-mono text-caption font-normal text-slate-200" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
   </div>
   <div class="border-b border-line bg-zinc-200 px-2.5 py-1.75 has-[>[hidden]:only-child]:hidden">
@@ -29,7 +29,7 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
     <label data-filter hidden class="flex min-h-7.5 items-center gap-2 border border-t-chrome-edge border-r-white border-b-white border-l-chrome-edge
       bg-white px-1.75 text-slate-600 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-link">
       <Icon name="search" size={16} />
-      <input class="h-7.25 min-w-0 flex-1 text-ui text-ink placeholder:text-slate-500 focus:outline-none"
+      <input class="h-7.25 min-w-0 flex-1 cursor-text text-ui text-ink placeholder:text-slate-500 focus:outline-none"
         type="search" aria-label={links ? "Search links" : "Search entries"} placeholder={links ? "Search links…" : "Search entries…"} aria-keyshortcuts="/" />
       <kbd class="border border-line px-1 font-mono text-caption/tight text-slate-600" aria-hidden="true">/</kbd>
     </label>

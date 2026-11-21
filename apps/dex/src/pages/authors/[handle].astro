@@ -3,7 +3,7 @@ import Shell from "../../layouts/Shell.astro";
 import Listing from "../../components/Listing.astro";
 import { authors } from "../../lib/authors";
 import { vault } from "../../lib/content";
-import { panel } from "../../lib/styles";
+import { pageTitle, panel } from "../../lib/styles";
 
 export function getStaticPaths() {
   return [...authors.values()].map(author => ({ params: { handle: author.handle }, props: { author } }));
@@ -16,8 +16,8 @@ const entries = vault.notes.filter(note => note.author === author.handle);
     <div class="grid size-20 shrink-0 place-items-center bg-vermilion">
       <img class="[image-rendering:var(--rendering-pixel)]" src={author.avatar} width="64" height="64" alt="" />
     </div>
-    <hgroup>
-      <h1 class="text-note-heading font-bold tracking-heading text-navy">{author.name}</h1>
+    <hgroup class="min-w-0 wrap-anywhere">
+      <h1 class={pageTitle}>{author.name}</h1>
       <p class="mt-1.25 font-mono text-small text-slate-600">@{author.handle}</p>
     </hgroup>
   </header>

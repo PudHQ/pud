@@ -1,0 +1,28 @@
+---
+import { outboundAttributes, pudHome } from "../lib/web-links";
+
+const { target, rel } = outboundAttributes(new URL(pudHome));
+---
+<a href={pudHome} {target} {rel} aria-label="Sponsored by Pud.dev (opens in a new tab)"
+  class="group/sponsor pointer-events-auto mb-2 ml-auto grid min-h-11 shrink-0 items-end focus-visible:outline-cyan-200">
+  <span class="relative isolate flex h-10.5 w-31 items-center gap-1.25 overflow-hidden border-2 border-t-cyan-200 border-r-indigo-950
+    border-b-violet-950 border-l-fuchsia-300 bg-linear-to-br from-indigo-950 via-violet-800 to-fuchsia-950 px-1 shadow-window
+    inset-ring-1 inset-ring-violet-200/25 group-hover/sponsor:brightness-110 group-focus-visible/sponsor:brightness-110
+    group-active/sponsor:translate-y-px">
+    <span class="pointer-events-none absolute inset-0 -z-1 bg-(image:--background-sponsor-scanlines)" aria-hidden="true"></span>
+    <img class="size-6 shrink-0 object-contain [image-rendering:var(--rendering-pixel)] motion-safe:transition-transform
+      motion-safe:group-hover/sponsor:-translate-y-0.5 motion-safe:group-focus-visible/sponsor:-translate-y-0.5"
+      src="/pud.png" width="24" height="24" alt="" />
+    <span class="grid gap-0.75 font-pixel font-bold whitespace-nowrap">
+      <span class="text-caption/none tracking-wide text-amber-100">SPONSORED BY</span>
+      <span class="text-lg/none tracking-tight text-lime-200">Pud.dev</span>
+    </span>
+    <span class="absolute right-1 bottom-1 font-mono text-sm/none text-amber-200" aria-hidden="true">↗</span>
+    <span class="pointer-events-none absolute inset-y-0 -left-9 w-8 -skew-x-12 bg-linear-to-r from-transparent via-cyan-100/60
+      to-transparent opacity-0 mix-blend-screen motion-safe:group-hover/sponsor:animate-sponsor-sheen
+      motion-safe:group-focus-visible/sponsor:animate-sponsor-sheen" aria-hidden="true"></span>
+    <span class="pointer-events-none absolute top-1 left-1 size-2 opacity-0 before:absolute before:inset-x-0 before:top-1/2
+      before:h-px before:bg-white after:absolute after:inset-y-0 after:left-1/2 after:w-px after:bg-amber-100
+      motion-safe:group-hover/sponsor:animate-sponsor-spark motion-safe:group-focus-visible/sponsor:animate-sponsor-spark" aria-hidden="true"></span>
+  </span>
+</a>

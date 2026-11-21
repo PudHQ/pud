@@ -43,23 +43,21 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
 
 <script>
   import { globeFrame, width, height, palette } from "../lib/globe";
+  import { dampAxis, motionAxis, restingRate, trackingRate } from "../lib/masthead-motion";
 
-  const mast = document.querySelector<HTMLElement>("[data-masthead]");
-  const canvas = mast?.querySelector<HTMLCanvasElement>("[data-globe-canvas]");
-  const ctx = canvas?.getContext("2d");
-  const motion = matchMedia("(prefers-reduced-motion: reduce)");
-  if (mast && canvas) void import("../lib/orbit-stamp").then(({ mountOrbitStamp }) => mountOrbitStamp(mast));
-  if (mast && canvas && ctx) {
+  function mountGlobe(mast: HTMLElement, ctx: CanvasRenderingContext2D) {
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
     const rgba = ctx.createImageData(width, height);
     const colors = palette.map(color => [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) || 0));
-    let turn = 0, tilt = 0, frame = 0, last = 0;
-    let arrival = motion.matches ? 0 : performance.now() + 1100;
-    function draw(now: number) {
-      frame = 0;
-      if (now - last < 32) { frame = requestAnimationFrame(draw); return; }
-      last = now;
-      const remaining = Math.max(0, (arrival - now) / 1100);
-      const pixels = globeFrame(turn - 0.13 * remaining ** 2, tilt);
+    const opening = !motion.matches && !document.hidden;
+    const turn = motionAxis(opening ? -.13 : 0), tilt = motionAxis();
+    const stickerX = motionAxis(opening ? -10 : 0), stickerY = motionAxis(opening ? -4 : 0);
+    let targetTurn = 0, targetTilt = 0, tracking = false;
+    let rate = opening ? 8.5 : restingRate;
+    let frame = 0, last = 0, lastPaint = -Infinity;
+
+    function paint() {
+      const pixels = globeFrame(turn.value, tilt.value);
       for (let i = 0; i < pixels.length; i++) {
         const color = colors[pixels[i]];
         rgba.data[i * 4] = color[0];
@@ -67,32 +65,91 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
         rgba.data[i * 4 + 2] = color[2];
         rgba.data[i * 4 + 3] = pixels[i] ? 255 : 0;
       }
-      ctx!.putImageData(rgba, 0, 0);
-      mast!.style.setProperty("--pud-x", Math.round(turn * 58 - remaining * 10) + "px");
-      mast!.style.setProperty("--pud-y", Math.round(tilt * -40 - remaining * 4) + "px");
-      mast!.setAttribute("data-interactive", "");
-      if (remaining > 0) frame = requestAnimationFrame(draw);
+      ctx.putImageData(rgba, 0, 0);
+      mast.setAttribute("data-interactive", "");
     }
+
+    function showPoster() {
+      last = 0;
+      lastPaint = -Infinity;
+      mast.removeAttribute("data-interactive");
+      mast.style.removeProperty("--pud-x");
+      mast.style.removeProperty("--pud-y");
+    }
+
+    function wake() {
+      if (!frame && !motion.matches && !document.hidden) frame = requestAnimationFrame(draw);
+    }
+
+    function draw(now: number) {
+      frame = 0;
+      const dt = Math.min(.05, last ? (now - last) / 1000 : 1 / 60);
+      last = now;
+      const turning = dampAxis(turn, targetTurn, rate, dt, .0005);
+      const tilting = dampAxis(tilt, targetTilt, rate, dt, .0005);
+      const driftingX = dampAxis(stickerX, targetTurn * 58, rate, dt, .025);
+      const driftingY = dampAxis(stickerY, targetTilt * -40, rate, dt, .025);
+      const moving = turning || tilting || driftingX || driftingY;
+      if (!tracking && !moving) {
+        showPoster();
+        return;
+      }
+
+      mast.style.setProperty("--pud-x", `${stickerX.value.toFixed(3)}px`);
+      mast.style.setProperty("--pud-y", `${stickerY.value.toFixed(3)}px`);
+      // The sticker can glide every frame while the pixel globe keeps its 30 fps budget.
+      if (now - lastPaint >= 32 || !moving) {
+        lastPaint = now;
+        paint();
+      }
+      if (moving) wake();
+      else last = 0;
+    }
+
+    function follow(event: PointerEvent) {
+      if (motion.matches || !event.isPrimary || event.pointerType === "touch") return;
+      if (event.target instanceof Element && event.target.closest("[data-foil-control]")) return;
+      const box = mast.getBoundingClientRect();
+      const x = event.clientX - box.left, y = event.clientY - box.top;
+      targetTurn = (x / box.width - 0.5) * 0.25;
+      targetTilt = (0.5 - y / box.height) * 0.35;
+      tracking = true;
+      rate = trackingRate;
+      wake();
+    }
+
+    function returnToRest(event: PointerEvent) {
+      if (!tracking || !event.isPrimary || event.pointerType === "touch") return;
+      tracking = false;
+      targetTurn = targetTilt = 0;
+      rate = restingRate;
+      wake();
+    }
+
     function reset() {
       cancelAnimationFrame(frame);
       frame = 0;
-      arrival = 0;
-      mast!.removeAttribute("data-interactive");
-      mast!.style.removeProperty("--pud-x");
-      mast!.style.removeProperty("--pud-y");
+      tracking = false;
+      targetTurn = targetTilt = 0;
+      for (const axis of [turn, tilt, stickerX, stickerY]) axis.value = axis.velocity = 0;
+      showPoster();
     }
-    if (arrival) frame = requestAnimationFrame(draw);
-    mast.addEventListener("pointermove", event => {
-      if (motion.matches || event.pointerType === "touch") return;
-      if (event.target instanceof Element && event.target.closest("[data-foil-control]")) return;
-      const box = mast.getBoundingClientRect();
-      arrival = 0;
-      const x = event.clientX - box.left, y = event.clientY - box.top;
-      turn = (x / box.width - 0.5) * 0.25;
-      tilt = (0.5 - y / box.height) * 0.35;
-      if (!frame) frame = requestAnimationFrame(draw);
-    });
-    mast.addEventListener("pointerleave", reset);
+
+    mast.addEventListener("pointerenter", follow);
+    mast.addEventListener("pointermove", follow);
+    mast.addEventListener("pointerleave", returnToRest);
+    mast.addEventListener("pointercancel", returnToRest);
     motion.addEventListener("change", reset);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) reset(); });
+    window.addEventListener("pagehide", reset);
+    if (opening) wake();
+  }
+
+  const mast = document.querySelector<HTMLElement>("[data-masthead]");
+  const canvas = mast?.querySelector<HTMLCanvasElement>("[data-globe-canvas]");
+  if (mast && canvas) {
+    void import("../lib/orbit-stamp").then(({ mountOrbitStamp }) => mountOrbitStamp(mast));
+    const ctx = canvas.getContext("2d");
+    if (ctx) mountGlobe(mast, ctx);
   }
 </script>

@@ -23,6 +23,7 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
 </span>
 
 <script>
+  import { dampAxis, motionAxis, restingRate, trackingRate } from "../lib/masthead-motion";
   import { createFoilMesh, createPudFoil } from "../lib/pud-foil";
   import { createHologram } from "../lib/pud-holo";
 
@@ -54,16 +55,20 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
     let downAt = 0, downX = 0, downY = 0, grabX = 0, grabY = 0, moved = false;
     let offsetX = 0, offsetY = 0, fractionX = 0, fractionY = 0;
     let hover = 0, pulse = 0, pulseEnd = 0;
-    let bearing = 2.25, aim = bearing, bend = 0, velocity = 0;
+    let bearing = 2.25, aim = bearing;
+    const fold = motionAxis();
     const restX = -0.16, restY = -0.12;
-    let lightX = restX, lightY = restY, lookX = restX, lookY = restY;
+    const lightX = motionAxis(restX), lightY = motionAxis(restY);
+    let lookX = restX, lookY = restY, lightRate = restingRate;
     let frame = 0, last = 0;
 
     function paint() {
+      const bend = fold.value;
       const raised = Math.abs(bend) > 0.005;
       wrapper.toggleAttribute("data-raised", raised);
       if (material) {
-        material.draw(raised ? bend : 0, bearing, lightX + 0.19 * bend * Math.cos(bearing), lightY + 0.19 * bend * Math.sin(bearing));
+        material.draw(raised ? bend : 0, bearing,
+          lightX.value + 0.19 * bend * Math.cos(bearing), lightY.value + 0.19 * bend * Math.sin(bearing));
       } else if (raised) {
         foil.draw(bend, bearing);
         ctx!.putImageData(image, 0, 0);
@@ -81,16 +86,22 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       last = now;
       const warmth = Math.min(1, (now - downAt) / 650);
       const target = pointer !== null ? 0.64 + 0.36 * warmth : now < pulseEnd ? pulse : hover;
+      const pressed = pointer !== null || now < pulseEnd;
       const turn = Math.atan2(Math.sin(aim - bearing), Math.cos(aim - bearing));
       bearing += turn * (1 - Math.exp(-16 * dt));
-      lightX += (lookX - lightX) * (1 - Math.exp(-17 * dt));
-      lightY += (lookY - lightY) * (1 - Math.exp(-17 * dt));
-      velocity = (velocity + (target - bend) * 150 * dt) * Math.exp(-10.5 * dt);
-      bend += velocity * dt;
+      const lightingX = dampAxis(lightX, lookX, lightRate, dt, .002);
+      const lightingY = dampAxis(lightY, lookY, lightRate, dt, .002);
+      let folding: boolean;
+      if (pressed) {
+        fold.velocity = (fold.velocity + (target - fold.value) * 150 * dt) * Math.exp(-10.5 * dt);
+        fold.value += fold.velocity * dt;
+        folding = Math.abs(target - fold.value) > .002 || Math.abs(fold.velocity) > .015;
+      } else {
+        folding = dampAxis(fold, target, target ? trackingRate : restingRate, dt, .002);
+      }
       paint();
-      if (Math.abs(target - bend) > 0.002 || Math.abs(velocity) > 0.015 ||
-          Math.abs(lookX - lightX) + Math.abs(lookY - lightY) > 0.004 ||
-          (Math.abs(bend) > 0.005 && Math.abs(turn) > 0.003) || now < pulseEnd || (pointer !== null && warmth < 1)) {
+      if (folding || lightingX || lightingY || (Math.abs(fold.value) > .005 && Math.abs(turn) > .003) ||
+          now < pulseEnd || (pointer !== null && warmth < 1)) {
         wake();
       } else {
         last = 0;
@@ -103,7 +114,7 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       const y = 2 * (event.clientY - rect.top) / rect.height - 1;
       const radius = Math.hypot(x, y);
       if (radius > 0.2) aim = Math.atan2(y, x);
-      if (Math.abs(bend) < 0.01) bearing = aim;
+      if (Math.abs(fold.value) < 0.01) bearing = aim;
       return Math.min(1, radius);
     }
 
@@ -118,8 +129,10 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       pointer = null;
       if (captured !== null && button.hasPointerCapture(captured)) button.releasePointerCapture(captured);
       cancelAnimationFrame(frame);
-      frame = last = hover = pulseEnd = bend = velocity = 0;
-      lightX = lookX = restX; lightY = lookY = restY;
+      frame = last = hover = pulseEnd = fold.value = fold.velocity = 0;
+      lightX.value = lookX = restX; lightY.value = lookY = restY;
+      lightX.velocity = lightY.velocity = 0;
+      lightRate = restingRate;
       paint();
     }
 
@@ -150,14 +163,26 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
     resize.observe(mast);
     resize.observe(wrapper);
 
-    mast.addEventListener("pointermove", event => {
-      if (!event.isPrimary || motion.matches || !material) return;
+    function followLight(event: PointerEvent) {
+      if (!event.isPrimary || motion.matches || !material || (event.pointerType === "touch" && pointer === null)) return;
       const area = mast.getBoundingClientRect();
       lookX = Math.max(-0.7, Math.min(0.7, (event.clientX - area.left) / area.width * 1.4 - 0.7));
       lookY = Math.max(-0.5, Math.min(0.5, (event.clientY - area.top) / area.height - 0.5));
+      lightRate = trackingRate;
       wake();
-    });
-    mast.addEventListener("pointerleave", () => { lookX = restX; lookY = restY; wake(); });
+    }
+    function settleLight(event: PointerEvent) {
+      if (!event.isPrimary) return;
+      lookX = restX;
+      lookY = restY;
+      lightRate = restingRate;
+      hover = 0;
+      wake();
+    }
+    mast.addEventListener("pointerenter", followLight);
+    mast.addEventListener("pointermove", followLight);
+    mast.addEventListener("pointerleave", settleLight);
+    mast.addEventListener("pointercancel", settleLight);
     button.addEventListener("pointermove", event => {
       if (!event.isPrimary || (pointer !== null && event.pointerId !== pointer) ||
           (pointer === null && event.pointerType === "touch")) return;

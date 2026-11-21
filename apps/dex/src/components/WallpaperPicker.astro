@@ -1,16 +1,16 @@
 ---
 const wallpapers = [
-  { id: "plain", label: "No wallpaper" },
   { id: "brick", label: "Brick" },
   { id: "corkboard", label: "Corkboard" },
   { id: "starfield", label: "Starfield" },
   { id: "circuit", label: "Circuit board" },
   { id: "aquarium", label: "Aquarium" },
+  { id: "plain", label: "No wallpaper" },
 ];
 ---
 <div data-wallpaper-backdrop class="pointer-events-auto fixed inset-0 -z-1 overflow-hidden bg-(image:--wallpaper-tile)" aria-hidden="true">
-  <div class="absolute inset-0 -right-4 -bottom-2 bg-(image:--wallpaper-light) opacity-35 motion-safe:animate-(--wallpaper-motion)"></div>
-  <div class="absolute inset-0 -bottom-6 bg-(image:--wallpaper-accent) opacity-35 motion-safe:animate-(--wallpaper-accent-motion)"></div>
+  <div class="pointer-events-none absolute inset-0 -right-4 -bottom-2 bg-(image:--wallpaper-light) opacity-35 motion-safe:animate-(--wallpaper-motion)"></div>
+  <div class="pointer-events-none absolute inset-0 -bottom-6 bg-(image:--wallpaper-accent) opacity-35 motion-safe:animate-(--wallpaper-accent-motion)"></div>
   <canvas class="pointer-events-none absolute inset-0 size-full [image-rendering:var(--rendering-pixel)]" width="1" height="1"></canvas>
 </div>
 <fieldset data-wallpaper-picker class="pointer-events-auto min-w-0">
@@ -19,8 +19,8 @@ const wallpapers = [
     {wallpapers.map(({ id, label }) => (
       <label class="group grid h-11 w-10 shrink-0 items-end phone:w-8 small-phone:w-7" title={label}>
         <input class="peer sr-only" type="radio" name="wallpaper" id={`wallpaper-${id}`} value={id}
-          checked={id === "plain"} aria-label={label} />
-        <span class="relative block h-7.75 border-2 border-t-slate-400 border-r-slate-950 border-b-slate-950 border-l-slate-400
+          checked={id === "starfield"} aria-label={label} />
+        <span class="pointer-events-none relative block h-7.75 border-2 border-t-slate-400 border-r-slate-950 border-b-slate-950 border-l-slate-400
           bg-slate-900 p-0.5 shadow-window after:absolute after:top-px after:right-px after:hidden after:size-1 after:bg-amber-200
           peer-checked:border-amber-200 peer-checked:after:block peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
           peer-focus-visible:outline-cyan-200 group-active:translate-y-px" aria-hidden="true">
