@@ -1,6 +1,5 @@
-import type { PGlite } from "@electric-sql/pglite";
-import type { debit } from "./handler.ts";
-import { withPostgres } from "./postgres.ts";
+import { withPostgres, type PGlite } from "@pud/postgres";
+import type { debit, Session } from "./handler.ts";
 import { makeDebitRoute } from "./route.ts";
 
 interface State {
@@ -8,7 +7,7 @@ interface State {
   receipts: string[];
 }
 
-type Outcome = State & { status: string };
+type Outcome = State & { status: string; transactionIssue?: string; threw?: string };
 type DebitRequest = Parameters<typeof debit>[2] & { tenantId: string };
 
 export interface ReplayWitness {
@@ -23,15 +22,15 @@ export interface ReplayWitness {
     method: string;
     path: string;
     input: Record<string, string>;
-    status: number;
+    status?: number;
     result: string;
   };
 }
 
 export interface DebitReplay {
   engine: string;
+  /** Scenarios visited, in execution order. The caller judges each observation. */
   checks: string[];
-  witness?: ReplayWitness;
 }
 
 async function readStatus(response: Response): Promise<string> {
@@ -41,6 +40,45 @@ async function readStatus(response: Response): Promise<string> {
     return typeof status === "string" ? status : JSON.stringify(status) ?? "undefined";
   }
   throw new Error(`Unexpected debit HTTP response: ${response.status} ${JSON.stringify(body)}`);
+}
+
+async function observeCall(handler: typeof debit, db: PGlite, http: Request, tenantId: string) {
+  let started = false, transactionIssue: string | undefined, databaseError: unknown;
+  const session: Session = {
+    async query(sql, params) {
+      const open = db.isInTransaction();
+      try {
+        const result = await db.query(sql, params);
+        if (result.command === "BEGIN") {
+          if (started) transactionIssue ??= "started a second transaction";
+          started = true;
+        } else if (!open) {
+          transactionIssue ??= `${result.command} ran outside a transaction`;
+        }
+        return result;
+      } catch (error) {
+        databaseError = error;
+        throw error;
+      }
+    },
+  };
+  let threw: string | undefined;
+  const post = makeDebitRoute(async (...args) => {
+    try { return await handler(...args); }
+    catch (error) {
+      if (error !== databaseError) threw = String(error);
+      throw error;
+    }
+  });
+  let response: Response | undefined;
+  try { response = await post(http, { db: session, auth: { tenantId } }); }
+  catch (error) { if (threw === undefined) throw error; }
+  const status = response ? await readStatus(response) : `threw ${threw}`;
+  if (db.isInTransaction()) {
+    transactionIssue ??= "still open when the handler returned";
+    await db.exec("ROLLBACK");
+  }
+  return { status, httpStatus: response?.status, ...(threw !== undefined && { threw }), ...(transactionIssue && { transactionIssue }) };
 }
 
 async function snapshot(db: PGlite): Promise<State> {
@@ -59,12 +97,17 @@ async function snapshot(db: PGlite): Promise<State> {
 export async function replayDebit(
   handler: typeof debit,
   schema: string,
-  violates: (observation: ReplayWitness) => boolean,
+  visit: (observation: ReplayWitness) => boolean,
+  queries: readonly string[] = [],
 ): Promise<DebitReplay> {
-  const post = makeDebitRoute(handler);
   return withPostgres(schema, async db => {
+    // Ask Postgres to resolve every modelled statement, including paths absent from replay.
+    for (const sql of queries) {
+      await db.exec(`PREPARE pud_check_query AS ${sql}`);
+      await db.exec("DEALLOCATE pud_check_query");
+    }
     await db.exec(`INSERT INTO accounts (tenant_id, account_id, balance) VALUES
-      ('acme', 'primary', 100), ('acme', 'reserve', 40), ('birch', 'primary', 100)`);
+      ('acme', 'primary', 100), ('acme', 'reserve', 40), ('birch', 'primary', 100), ('birch', 'savings', 100)`);
     const version = await db.query<{ version: string }>("SELECT current_setting('server_version') AS version");
     const report: DebitReplay = { engine: `PostgreSQL ${version.rows[0]!.version} (PGlite)`, checks: [] };
     const first = { tenantId: "acme", accountId: "primary", requestId: "order-1", amountCents: 30n };
@@ -75,7 +118,7 @@ export async function replayDebit(
       { scenario: "reuse a request ID in a different tenant", request: { ...first, tenantId: "birch" } },
       { scenario: "decline when funds are insufficient", request: larger },
       { scenario: "retry a declined request after topping up", request: larger, topUp: true },
-      { scenario: "decline an unknown account", request: { ...first, requestId: "order-3", accountId: "missing" } },
+      { scenario: "decline an account owned only by another tenant", request: { ...first, requestId: "order-3", accountId: "savings" } },
     ];
 
     for (const { scenario, request, topUp } of cases) {
@@ -91,22 +134,15 @@ export async function replayDebit(
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      const response = await post(http, { db, auth: { tenantId } });
-      const actualStatus = await readStatus(response);
-      // Release any work abandoned by an early return. The contract observes
-      // committed balances and receipts, including when the handler leaks a transaction.
-      await db.exec("ROLLBACK");
-      const observed: Outcome = { ...await snapshot(db), status: actualStatus };
+      const { httpStatus, ...outcome } = await observeCall(handler, db, http, tenantId);
+      const observed: Outcome = { ...await snapshot(db), ...outcome };
       const observation: ReplayWitness = {
         scenario, tenantId, ...body, before, observed,
         http: { method: http.method, path: new URL(http.url).pathname, input: { tenantId, ...body },
-          status: response.status, result: actualStatus },
+          status: httpStatus, result: outcome.status },
       };
-      if (violates(observation)) {
-        report.witness = observation;
-        return report;
-      }
       report.checks.push(scenario);
+      if (visit(observation)) break;
     }
     return report;
   });

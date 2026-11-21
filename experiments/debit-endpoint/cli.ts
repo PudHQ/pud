@@ -4,7 +4,7 @@ import { banner, format } from "./reporter.ts";
 
 export { format };
 
-const usage = `Usage: pud check [handler.ts] [--verbose | --json]
+const usage = `Usage: pud check [debit.proof.ts] [--verbose | --json]
 
   --verbose  Show the contract expressions and individual database replays.
   --json     Print the report for tools and CI.`;

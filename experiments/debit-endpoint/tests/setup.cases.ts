@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@pud/postgres";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

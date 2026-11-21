@@ -1,0 +1,20 @@
+{
+  "name": "@pud/model",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/model.ts",
+    "./typescript": "./src/typescript.ts",
+    "./module": "./src/module.ts",
+    "./manifest": "./src/manifest.ts",
+    "./source": "./src/source.ts",
+    "./dafny": "./src/dafny.ts",
+    "./verify": "./src/verify.ts",
+    "./adapter": "./src/adapter.ts"
+  },
+  "dependencies": {
+    "@babel/parser": "8.1.2",
+    "@babel/types": "8.1.2"
+  }
+}

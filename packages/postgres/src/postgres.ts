@@ -1,4 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
+export type { PGlite };
 
 /** Apply existing SQL migrations, run against a fresh in-memory Postgres, and close it. */
 export async function withPostgres<T>(

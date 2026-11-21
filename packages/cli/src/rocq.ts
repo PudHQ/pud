@@ -1,13 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import type { ProofDefinition } from "./manifest.ts";
-import { subjectModule, type Model } from "./translate.ts";
+import type { RocqDefinition } from "@pud/model/manifest";
+import type { ProofBackend } from "@pud/model/adapter";
+import type { Model } from "./translate.ts";
+import { subjectModule } from "./rocq-model.ts";
 
 export class ProofFailure extends Error {}
 
-export function checkProof(manifest: ProofDefinition, model: Model) {
+type LinkedProof = RocqDefinition & { script: string };
+
+function checkProof(manifest: LinkedProof, model: Model) {
   const dir = mkdtempSync(join(tmpdir(), "pud-"));
   const cmd = process.env.ROCQ || "rocq";
   const binary = cmd.includes("/") ? resolve(cmd) : cmd;
@@ -32,14 +36,7 @@ export function checkProof(manifest: ProofDefinition, model: Model) {
   try {
     writeFileSync(join(dir, "Subject.v"), subjectModule(model));
     compile("Subject.v", "Rocq could not compile the generated model. Check that Rocq 9 and its Stdlib are installed.");
-    try {
-      copyFileSync(manifest.proof, join(dir, "Linked.v"));
-    } catch (error) {
-      if (manifest.property && (error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new ProofFailure(`No proof yet. Write ${manifest.theorem} in ${manifest.proof}.`);
-      }
-      throw error;
-    }
+    writeFileSync(join(dir, "Linked.v"), manifest.script);
     compile("Linked.v", "The linked proof did not compile.", ProofFailure);
 
     // Check the exact type in a fresh module. Only this invocation's output
@@ -60,3 +57,14 @@ export function checkProof(manifest: ProofDefinition, model: Model) {
     rmSync(dir, { recursive: true, force: true });
   }
 }
+
+
+export const rocq = {
+  emit: (model: Model) => subjectModule(model),
+  async verify(model: Model, claims: readonly LinkedProof[]) {
+    return claims.map(claim => {
+      checkProof(claim, model);
+      return true;
+    });
+  },
+} satisfies ProofBackend<Model, LinkedProof>;

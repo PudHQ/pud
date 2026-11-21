@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { parse } from "@babel/parser";
-import { selectSubject } from "../src/module.ts";
+import { selectSubject } from "@pud/model/module";
 
 const subject = "export function max(a: bigint, b: bigint): bigint { return a < b ? b : a; }";
 

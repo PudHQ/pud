@@ -1,5 +1,6 @@
 import { Chalk } from "chalk";
 import type { ContractResult, Report } from "./lib.ts";
+import type { ReplayWitness } from "./replay.ts";
 
 export const ink = new Chalk({ level: process.env.NO_COLOR === undefined ? undefined : 0 });
 
@@ -41,21 +42,30 @@ export function format(report: Report, { elapsedMs, verbose = false }: { elapsed
   }
 
   if (report.status === "disproved") {
-    const { http, scenario } = report.counterexample;
-    if (http) {
-      const fields = Object.entries(http.input).map(([name, value]) => `${name}=${value}`);
-      lines.push("", `  ${ink.bold("HTTP replay")}  ${http.method} ${http.path} → ${http.status} ${http.result}`, `    ${fields.join("  ")}`);
-    } else {
-      lines.push("", `  Replay  ${scenario}`);
-    }
+    const groups = new Map<string, { witness: ReplayWitness; contracts: ContractResult[] }>();
     const failed = report.contracts.filter(c => c.status === "disproved");
     for (const c of failed) {
-      if (failed.length > 1) lines.push(`    ${ink.bold(c.title ?? c.name)}`);
-      if (c.difference) {
-        const { subject, expected, received } = c.difference;
-        lines.push(`    ${subject}`, `      ${ink.green("Expected")}  ${expected}`, `      ${ink.red("Received")}  ${received}`);
+      const witness = c.counterexample ?? report.counterexample;
+      const group = groups.get(witness.scenario);
+      if (group) group.contracts.push(c);
+      else groups.set(witness.scenario, { witness, contracts: [c] });
+    }
+    for (const { witness: { http, scenario }, contracts } of groups.values()) {
+      if (http) {
+        const fields = Object.entries(http.input).map(([name, value]) => `${name}=${value}`);
+        const response = http.status === undefined ? http.result : `${http.status} ${http.result}`;
+        lines.push("", `  ${ink.bold("HTTP replay")}  ${http.method} ${http.path} → ${response}`, `    ${fields.join("  ")}`);
       } else {
-        lines.push(`    ${c.claim}`);
+        lines.push("", `  Replay  ${scenario}`);
+      }
+      for (const c of contracts) {
+        if (failed.length > 1) lines.push(`    ${ink.bold(c.title ?? c.name)}`);
+        if (c.difference) {
+          const { subject, expected, received } = c.difference;
+          lines.push(`    ${subject}`, `      ${ink.green("Expected")}  ${expected}`, `      ${ink.red("Received")}  ${received}`);
+        } else {
+          lines.push(`    ${c.claim}`);
+        }
       }
     }
     if (report.modelDisagreement) lines.push(ink.red("  The proof model and the replay disagree on the failing contract."));
@@ -66,7 +76,9 @@ export function format(report: Report, { elapsedMs, verbose = false }: { elapsed
   if (verbose) {
     lines.push("", `  Replays on ${report.replay.engine}`);
     for (const scenario of report.replay.checks) lines.push(`    ${marks.proved} ${scenario}`);
-    if (report.status === "disproved") lines.push(`    ${marks.disproved} ${report.counterexample.scenario}`);
+    if (report.status === "disproved") {
+      for (const scenario of report.replay.failedChecks ?? [report.counterexample.scenario]) lines.push(`    ${marks.disproved} ${scenario}`);
+    }
   }
   return lines.join("\n");
 }

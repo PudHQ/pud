@@ -10,7 +10,11 @@ import { checkHttpRoute } from "./http.ts";
 import type { Report } from "../lib.ts";
 
 const example = new URL("../", import.meta.url);
-const original = await readFile(new URL("handler.ts", example), "utf8");
+const implementation = await readFile(new URL("handler.ts", example), "utf8");
+const legacyClauses = `//@ ensures debit "Charge only the requested account": !seen(request) && funded(account, amount) ==> result === "applied" && debitedOnly(account, amount) && recordedOnly(request)
+//@ ensures decline "Decline unfunded requests without a write": !seen(request) && !funded(account, amount) ==> result === "declined" && unchanged()
+//@ ensures retry "Recognize a retry without charging twice": seen(request) ==> result === "duplicate" && unchanged()`;
+const original = implementation.replace("export async function debit", legacyClauses + "\nexport async function debit");
 const schema = await readFile(new URL("schema.sql", example), "utf8");
 
 test("HTTP routing and input validation run through an actual PostgreSQL ledger", checkHttpRoute, 20_000);
@@ -45,17 +49,21 @@ test("the same check API proves, refutes, and refuses unsupported SQL", async ()
     const bad = await check(file);
     expect(bad.status).toBe("disproved");
     if (bad.status !== "disproved") throw new Error(JSON.stringify(bad));
-    expect(bad.contracts.map(c => c.status)).toEqual(["disproved", "unproved", "proved"]);
+    expect(bad.contracts.map(c => c.status)).toEqual(["disproved", "disproved", "proved"]);
     expect(bad.counterexample?.before.balances["birch/primary"]).toBe("100");
     expect(bad.counterexample?.observed.balances["birch/primary"]).toBe("70");
     expect(bad.modelDisagreement).toBeUndefined();
     expect(bad.contracts[0]?.difference).toEqual({
       subject: "birch/primary balance (other tenant)", expected: "100 cents", received: "70 cents",
     });
+    expect(bad.contracts[1]?.counterexample?.accountId).toBe("savings");
+    expect(bad.contracts[1]?.difference).toEqual({ subject: "Returned status", expected: "declined", received: "applied" });
     const failing = stripVTControlCharacters(format(bad));
-    expect(failing).toContain("1 failed · 1 unproved · 1 proved");
+    expect(failing).toContain("2 failed · 1 proved");
     expect(failing).toContain("× Charge only the requested account");
     expect(failing).toContain("Expected  100 cents\n      Received  70 cents");
+    expect(failing).toContain("accountId=savings");
+    expect(failing).toContain("Expected  declined\n      Received  applied");
     expect(failing).not.toContain("==>");
     const verbose = stripVTControlCharacters(format(bad, { verbose: true }));
     expect(verbose).toContain(bad.contracts[0]!.claim);
@@ -113,6 +121,19 @@ test("the CLI verifies the edited handler and reports falsified contracts on rea
     if (early.status !== "disproved") throw new Error(JSON.stringify(early));
     expect(early.modelDisagreement).toBeUndefined();
     expect(early.contracts[0]!.difference).toEqual({ subject: "Returned status", expected: "applied", received: "undefined" });
+
+    const leaked = await run(original.replace('await db.query("ROLLBACK");\n      return "declined";', 'return "declined";'), 1);
+    if (leaked.status !== "disproved") throw new Error(JSON.stringify(leaked));
+    expect(leaked.modelDisagreement).toBeUndefined();
+    expect(leaked.contracts[1]?.counterexample?.requestId).toBe("order-2");
+    expect(leaked.contracts[1]?.difference?.received).toBe("still open when the handler returned");
+
+    const threw = await run(original.replace(beforeBegin, `if (amountCents === 30n) throw new Error("changed branch");\n  ${beforeBegin}`), 1);
+    if (threw.status !== "disproved") throw new Error(JSON.stringify(threw));
+    expect(threw.modelDisagreement).toBeUndefined();
+    expect(threw.contracts[0]?.difference).toEqual({ subject: "Handler result", expected: "returned normally", received: "threw Error: changed branch" });
+    expect(threw.counterexample.http?.status).toBeUndefined();
+    expect(format(threw)).toContain("POST /debit → threw Error: changed branch");
 
     // The six samples all pass. The real early-return branch must still block a universal proof.
     const unsampled = await run(original.replace(beforeBegin, `if (amountCents === 7n) return "duplicate";\n  ${beforeBegin}`), 1);

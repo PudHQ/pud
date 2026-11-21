@@ -1,15 +1,14 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { readFile, readdir } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { contracts, type Contract, type Difference } from "./internal/contracts.ts";
-import { resolveDafny, verifyFile } from "./internal/dafny.ts";
-import { lower, type Transaction } from "./internal/lower.ts";
-import { compileTransaction } from "./internal/lemmascript.ts";
-import type { debit } from "./handler.ts";
-import { replayDebit, type ReplayWitness } from "./replay.ts";
+import { readManifest, type ProofDefinition } from "@pud/model/manifest";
+import { contracts, reviewedClause, type Contract, type Difference } from "./internal/contracts.ts";
+import { dafny } from "@pud/model/dafny";
+import { Unsupported } from "@pud/model/typescript";
+import { ensures, evaluate, ledger, prepareLedger } from "./ledger.ts";
+import type { ReplayWitness } from "./replay.ts";
 
-export { withPostgres } from "./postgres.ts";
+export { withPostgres } from "@pud/postgres";
 
 type Verdict = "proved" | "disproved" | "unproved";
 
@@ -20,13 +19,14 @@ export interface ContractResult {
   claim: string;
   status: Verdict;
   difference?: Difference;
+  counterexample?: ReplayWitness;
 }
 
 interface CheckedTransaction {
   file: string;
   scope: "serializable-debit-transaction";
   contracts: ContractResult[];
-  replay: { engine: string; checks: string[] };
+  replay: { engine: string; checks: string[]; failedChecks?: string[] };
 }
 
 export type Report =
@@ -36,73 +36,82 @@ export type Report =
 
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-async function loadHandler(source: string): Promise<typeof debit> {
-  const dir = await mkdtemp(join(tmpdir(), "pud-debit-source-"));
-  try {
-    const snapshot = join(dir, "handler.ts");
-    await writeFile(snapshot, source);
-    const module = await import(pathToFileURL(snapshot).href);
-    return module.debit;
-  } finally {
-    await rm(dir, { recursive: true, force: true });
+async function reviewManifest(file: string, definitions: ProofDefinition[]) {
+  const first = definitions[0]!;
+  if (first.proof !== undefined || !first.adapter || (await import(pathToFileURL(first.adapter.file).href))[first.adapter.binding] !== ledger) {
+    throw new Unsupported("This experiment needs the ledger adapter. Use the main pud check command for other models.");
   }
+  const clauses = definitions.map((p, i) => {
+    if (p.proof !== undefined || p.subject !== first.subject || p.source !== first.source) throw new Unsupported("Select one ledger handler per example report.");
+    const clause = reviewedClause(p.property, p.name ?? `Property ${i + 1}`);
+    return { ...clause, title: p.name };
+  });
+  return { file, subject: { file: first.source, name: first.subject, source: await readFile(first.source, "utf8") }, clauses };
 }
 
-async function prove(plan: Transaction, clauses: Contract[]): Promise<boolean[]> {
-  const dir = await mkdtemp(join(tmpdir(), "pud-debit-proof-"));
-  try {
-    const [binary, ...models] = await Promise.all([
-      resolveDafny(dir),
-      ...["Domain", "Postgres", "Debit"].map(name => readFile(new URL(`./verifier/${name}.dfy`, import.meta.url), "utf8")),
-    ]);
-    const body = await compileTransaction(plan, dir);
-    const results: boolean[] = [];
-    for (const clause of clauses) {
-      const file = join(dir, "Check.dfy");
-      const check = `method Check_${clause.name}(s: State, q: Request) returns (res: Outcome)
-  requires ValidState(s) && ValidRequest(q)
-  ensures var o := res; o.closed && (${clause.postcondition})
-${body}`;
-      await writeFile(file, [...models, plan.sql, check].join("\n"));
-      results.push(await verifyFile(binary, file));
-    }
-    return results;
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
+function legacyContracts(source: string) {
+  try { return contracts(source); }
+  catch (error) { throw new Unsupported(message(error)); }
 }
 
-/** Check the debit transaction in this file against the schema.sql beside it. */
-export async function check(file = "handler.ts"): Promise<Report> {
+async function review(file: string) {
+  if (file.endsWith(".proof.ts")) return reviewManifest(file, readManifest(file));
+  const source = await readFile(file, "utf8");
+  if (/^\s*\/\/\s*@\s*ensures\b/m.test(source)) {
+    return { file, subject: { file, name: "debit", source }, clauses: legacyContracts(source) };
+  }
+  const matches = [];
+  for (const name of await readdir(dirname(file))) {
+    if (!name.endsWith(".proof.ts")) continue;
+    const manifest = join(dirname(file), name);
+    const selected = readManifest(manifest).filter(d => d.source === resolve(file));
+    if (selected.length) matches.push({ manifest, selected });
+  }
+  if (matches.length !== 1) throw new Unsupported("Pass the *.proof.ts file containing this handler’s properties.");
+  return reviewManifest(matches[0]!.manifest, matches[0]!.selected);
+}
+
+/** The example replays the selected export and proves every reviewed property. */
+export async function check(file = "debit.proof.ts"): Promise<Report> {
   try {
-    const [source, schema] = await Promise.all([
-      readFile(file, "utf8"), readFile(join(dirname(file), "schema.sql"), "utf8"),
-    ]);
-    let generated: Transaction;
-    let reviewed: ReturnType<typeof contracts>;
+    let reviewed: Contract[], prepared: Awaited<ReturnType<typeof prepareLedger>>;
     try {
-      generated = lower(source, schema);
-      reviewed = contracts(source);
+      const suite = await review(file);
+      file = suite.file;
+      reviewed = suite.clauses;
+      prepared = await prepareLedger(suite.subject);
     } catch (error) {
-      return { file, status: "unsupported", message: message(error) };
+      if (error instanceof Unsupported || error instanceof SyntaxError) {
+        return { file, status: "unsupported", message: message(error) };
+      }
+      throw error;
     }
-
-    // Both consumers see the same validated source even if the file changes during a check.
-    const handler = await loadHandler(source);
+    const failures = new Map<Contract, { counterexample: ReplayWitness; difference: Difference }>();
+    const failedChecks = new Set<string>();
     const [proved, replay] = await Promise.all([
-      prove(generated, reviewed),
-      replayDebit(handler, schema, sample => reviewed.some(c => c.evaluate(sample) !== true)),
+      dafny.verify(prepared.method, reviewed.map(ensures)),
+      prepared.replay(sample => {
+        for (const clause of reviewed) {
+          const difference = evaluate(clause, sample);
+          if (difference === true) continue;
+          failedChecks.add(sample.scenario);
+          if (!failures.has(clause)) failures.set(clause, { counterexample: sample, difference });
+        }
+        return failures.size === reviewed.length;
+      }),
     ]);
-    const witness = replay.witness;
     const results: ContractResult[] = reviewed.map((c, i) => {
       const result = { name: c.name, title: c.title, line: c.line, claim: c.claim };
-      const observed = witness ? c.evaluate(witness) : true;
-      if (observed !== true) return { ...result, status: "disproved", difference: observed };
+      const failure = failures.get(c);
+      if (failure) return { ...result, status: "disproved", ...failure };
       return { ...result, status: proved[i] ? "proved" : "unproved" };
     });
     const checked: CheckedTransaction = {
-      file, scope: "serializable-debit-transaction", contracts: results, replay: { engine: replay.engine, checks: replay.checks },
+      file, scope: "serializable-debit-transaction", contracts: results,
+      replay: { engine: replay.engine, checks: replay.checks.filter(scenario => !failedChecks.has(scenario)),
+        ...(failedChecks.size > 0 && { failedChecks: [...failedChecks] }) },
     };
+    const witness = failures.values().next().value?.counterexample;
     if (witness) {
       const disagrees = results.some((c, i) => c.status === "disproved" && proved[i]);
       return { ...checked, status: "disproved", counterexample: witness, ...(disagrees && { modelDisagreement: true }) };

@@ -1,4 +1,8 @@
 import { parse } from "@babel/parser";
+import type { Node } from "@babel/types";
+import type { ReviewedProperty } from "@pud/model/adapter";
+import { unsupported } from "@pud/model/typescript";
+import { propertyArrow } from "@pud/model/source";
 import type { ReplayWitness } from "../replay.ts";
 
 export interface Difference {
@@ -83,6 +87,81 @@ const facts = new Map<string, Expression>([
   }],
 ]);
 
+function constant(value: boolean): Expression {
+  return { code: String(value), evaluate: () => value || { subject: "Constant condition", expected: "true", received: "false" } };
+}
+
+function not(inner: Expression, label: string): Expression {
+  return { code: `(!${inner.code})`, evaluate: w => inner.evaluate(w) !== true || { subject: label, expected: "false", received: "true" } };
+}
+
+function and(left: Expression, right: Expression): Expression {
+  return { code: `(${left.code} && ${right.code})`, evaluate: w => {
+    const first = left.evaluate(w);
+    return first === true ? right.evaluate(w) : first;
+  } };
+}
+
+function or(left: Expression, right: Expression): Expression {
+  return { code: `(${left.code} || ${right.code})`, evaluate: w => left.evaluate(w) === true || right.evaluate(w) === true ||
+    { subject: "Alternatives", expected: "at least one true", received: "both false" } };
+}
+
+function resultIs(status: string): Expression {
+  return { code: `(o.isText && o.status == ${JSON.stringify(status)})`, evaluate: w => w.observed.status === status || {
+    subject: "Returned status", expected: status, received: w.observed.status,
+  } };
+}
+
+export interface DebitObservation {
+  result: "applied" | "duplicate" | "declined";
+  seen: boolean;
+  funded: boolean;
+  debitedOnly: boolean;
+  recordedOnly: boolean;
+  unchanged: boolean;
+}
+
+const observations = new Map([...facts].map(([signature, meaning]) => [signature.split("(")[0]!, meaning]));
+
+export function reviewedClause(property: ReviewedProperty, name: string): Contract {
+  const { file } = property;
+  const node = propertyArrow(property);
+  const param = node.params[0];
+  if (node.params.length !== 1 || param?.type !== "Identifier" || param.optional) unsupported(file, node, "A ledger property takes one observation.");
+  if (param.typeAnnotation && (param.typeAnnotation.type !== "TSTypeAnnotation" ||
+      param.typeAnnotation.typeAnnotation.type !== "TSTypeReference")) unsupported(file, param, "Use the ledger observation type for this parameter.");
+  if (node.returnType && (node.returnType.type !== "TSTypeAnnotation" || node.returnType.typeAnnotation.type !== "TSBooleanKeyword")) {
+    unsupported(file, node, "A ledger property must return a boolean.");
+  }
+  const binding = param.name;
+  function member(n: Node): string | undefined {
+    return n.type === "MemberExpression" && !n.computed && n.object.type === "Identifier" && n.object.name === binding &&
+      n.property.type === "Identifier" ? n.property.name : undefined;
+  }
+  function read(n: Node): Expression {
+    const field = member(n);
+    if (field && observations.has(field)) return observations.get(field)!;
+    if (n.type === "BooleanLiteral") return constant(n.value);
+    if (n.type === "UnaryExpression" && n.operator === "!") return not(read(n.argument), member(n.argument) ?? "Condition");
+    if (n.type === "LogicalExpression" && n.operator === "&&") return and(read(n.left), read(n.right));
+    if (n.type === "LogicalExpression" && n.operator === "||") return or(read(n.left), read(n.right));
+    if (n.type === "ConditionalExpression") {
+      const test = read(n.test), yes = read(n.consequent), no = read(n.alternate);
+      return { code: `(if ${test.code} then ${yes.code} else ${no.code})`,
+        evaluate: w => test.evaluate(w) === true ? yes.evaluate(w) : no.evaluate(w) };
+    }
+    if (n.type === "BinaryExpression" && (n.operator === "===" || n.operator === "!==") && member(n.left) === "result" &&
+        n.right.type === "StringLiteral" && ["applied", "declined", "duplicate"].includes(n.right.value)) {
+      const equal = resultIs(n.right.value);
+      return n.operator === "===" ? equal : not(equal, "Returned status");
+    }
+    return unsupported(file, n, `Unsupported ledger observation: ${field ?? n.type}`);
+  }
+  const expr = read(node.body);
+  return { name, line: node.loc!.start.line, claim: property.expression, postcondition: expr.code, evaluate: expr.evaluate };
+}
+
 // The tiny language has no arbitrary JS execution. The same parse builds both interpretations.
 // Boolean precedence, tightest first: !, &&, ||, then right-associative implication.
 function predicate(input: string): Expression {
@@ -101,7 +180,7 @@ function predicate(input: string): Expression {
       const start = pos;
       const inner = atom();
       const subject = tokens.slice(start, pos).join("");
-      return { code: `(!${inner.code})`, evaluate: w => inner.evaluate(w) !== true || { subject, expected: "false", received: "true" } };
+      return not(inner, subject);
     }
     if (take("(")) {
       const expr = implies();
@@ -109,17 +188,13 @@ function predicate(input: string): Expression {
       return expr;
     }
     const name = tokens[pos++];
-    if (name === "true" || name === "false") return {
-      code: name, evaluate: () => name === "true" || { subject: "Constant condition", expected: "true", received: "false" },
-    };
+    if (name === "true" || name === "false") return constant(name === "true");
     if (name === "result") {
       expect("===");
       const literal = tokens[pos++];
       const status = literal?.match(/^(["'])(applied|declined|duplicate)\1$/)?.[2];
       if (!status) throw new Error("expected an applied, declined or duplicate result literal");
-      return { code: `(o.status == ${JSON.stringify(status)})`, evaluate: w => w.observed.status === status || {
-        subject: "Returned status", expected: status, received: w.observed.status,
-      } };
+      return resultIs(status);
     }
     expect("(");
     const args: string[] = [];
@@ -136,29 +211,18 @@ function predicate(input: string): Expression {
     if (!fact) throw new Error(`unsupported contract term '${signature}'`);
     return fact;
   }
-  function and(): Expression {
+  function conjunction(): Expression {
     let expr = atom();
-    while (take("&&")) {
-      const left = expr, right = atom();
-      expr = { code: `(${left.code} && ${right.code})`, evaluate: w => {
-        const first = left.evaluate(w);
-        return first === true ? right.evaluate(w) : first;
-      } };
-    }
+    while (take("&&")) expr = and(expr, atom());
     return expr;
   }
-  function or(): Expression {
-    let expr = and();
-    while (take("||")) {
-      const left = expr, right = and();
-      expr = { code: `(${left.code} || ${right.code})`, evaluate: w => left.evaluate(w) === true || right.evaluate(w) === true || {
-        subject: "Alternatives", expected: "at least one true", received: "both false",
-      } };
-    }
+  function disjunction(): Expression {
+    let expr = conjunction();
+    while (take("||")) expr = or(expr, conjunction());
     return expr;
   }
   function implies(): Expression {
-    const left = or();
+    const left = disjunction();
     if (!take("==>")) return left;
     const right = implies();
     return { code: `(${left.code} ==> ${right.code})`, evaluate: w => left.evaluate(w) !== true || right.evaluate(w) };

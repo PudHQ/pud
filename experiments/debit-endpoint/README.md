@@ -1,10 +1,10 @@
 # Debit endpoint
 
-This standalone example checks a tenant-scoped wallet debit from TypeScript through its SQL write. Review the three `//@ ensures` clauses beside [the transaction](handler.ts). [The HTTP route](route.ts) gets the tenant from authenticated context, accepts integer cents as a decimal string, and uses a dedicated database session.
+This workspace example checks a tenant-scoped wallet debit from TypeScript through its SQL write. The sidecar imports the real transaction and states three reviewed properties. The HTTP route gets the tenant from authenticated context, accepts integer cents as a decimal string, and uses a dedicated database session. [Proof file](debit.proof.ts) · [Handler](handler.ts) · [HTTP route](route.ts)
 
 ## Run it
 
-Run these commands from the repository root with Bun installed.
+Run these commands from the repository root with Bun installed. The example uses the shared workspace lockfile.
 
 ```sh
 cd experiments/debit-endpoint
@@ -13,9 +13,9 @@ bun run pud check
 bun run demo
 ```
 
-On first use, `pud` checks an available Dafny installation by verifying a small theorem. If setup is needed, it downloads the complete [Dafny 4.11.0 release](https://github.com/dafny-lang/dafny/releases/tag/v4.11.0), checks its SHA-256 digest, and caches it in this package’s `.cache/dafny/`. Later runs can use that cache offline. Automatic setup supports macOS (Apple Silicon and Intel), Linux x64 and Windows x64. Set `DAFNY` to use a specific executable. Extraction uses `unzip` on macOS and Linux and `tar` on Windows.
+On first use, `pud` verifies a small theorem to check the Dafny installation. It can reuse an existing toolchain in the working directory’s `.cache/dafny/`. If setup is needed, Pud downloads Dafny 4.11.0, checks the release’s SHA-256 digest, and installs it in your user cache for offline reuse across projects. Set `PUD_CACHE_DIR` to choose a cache directory or `DAFNY` to use a specific executable. Automatic setup supports macOS (Apple Silicon and Intel), Linux x64 and Windows x64. Extraction uses `unzip` on macOS and Linux and `tar` on Windows. [Dafny release](https://github.com/dafny-lang/dafny/releases/tag/v4.11.0)
 
-The demo checks the original handler, then removes the SQL tenant filter in a temporary copy. It declares the expected verdict before each run. Both use the same checker and reporter as `pud check`. With the supplied accounts, Acme’s 30-cent debit drops Birch’s balance from 100 to 70 cents. The failure report shows the balance required by the contract alongside the balance read from PostgreSQL.
+The demo runs the public CLI on the original handler, then removes the SQL tenant filter in a temporary copy and runs it again. It displays both reports with the CLI’s renderer. One request now drops Birch’s balance from 100 to 70 cents. Another request for an account owned only by Birch returns `applied` to Acme. Each failing property shows its own HTTP request and the observed difference.
 
 To try your own edit, change `handler.ts` and run `bun run pud check`. An early `return "duplicate"` on a funded request breaks the debit contract. Changing the decline branch from `ROLLBACK` to `COMMIT` saves a receipt for a debit that never happened. Renaming a query constant preserves the proof. A branch outside the six replay cases can still leave a contract unproved.
 
@@ -23,10 +23,10 @@ To try your own edit, change `handler.ts` and run `bun run pud check`. An early 
 
 `pud check` creates [PostgreSQL in memory with PGlite](https://pglite.dev/docs/about), applies `schema.sql`, seeds the example accounts, and passes the connection to the actual handler. PostgreSQL executes the handler’s SQL. The example supplies the six debit scenarios.
 
-For your own replay, pass your existing migration SQL and an application callback to [`withPostgres`](postgres.ts). It applies migrations in order, returns the callback’s result, and closes the database after success or failure.
+For your own replay, pass your migration SQL and application callback to [`withPostgres`](../../packages/postgres/src/postgres.ts). It applies migrations in order, returns the callback’s result, and closes the database after success or failure.
 
 ```ts
-import { withPostgres } from "@pud/debit-example";
+import { withPostgres } from "@pud/postgres";
 import { debit } from "./handler.ts";
 
 const schema = await Bun.file("schema.sql").text();
@@ -40,26 +40,24 @@ The fixture can replay other PGlite-compatible schemas. A universal proof also r
 
 ## CLI and library
 
-Use one command locally and in CI. This package defaults to `handler.ts`. To check another copy, pass its path and place its `schema.sql` beside it.
+The public CLI discovers `debit.proof.ts` from this directory. The sidecar selects the exported function and ledger adapter. Place `schema.sql` beside the implementation. The root command `bun run pud check experiments/debit-endpoint/debit.proof.ts` checks the same sidecar.
 
 ```sh
 bun run pud check
 bun run pud check --verbose
-bun run pud check handler.ts --json
+bun run pud check debit.proof.ts --json
 ```
 
-The default view shows the contract titles, verdict counts, and elapsed time. Failed and inconclusive contracts include their source locations. A failing replay shows the HTTP exchange and the first mismatched value for each violated contract. Use `--verbose` for the reviewed expressions and individual replay scenarios. Use `--json` for the typed report returned by the [library](lib.ts).
+The default view shows the contract titles, source locations, verdict counts, and elapsed time. A failing replay shows the HTTP exchange and the first mismatched value for each violated contract. Use `--verbose` for the reviewed expressions. Use `--json` for the per-file results.
 
 ```ts
-import { check } from "@pud/debit-example";
+import { check } from "@pud/cli";
 
-const report = await check("handler.ts");
-if (report.status === "disproved") {
-  console.log(report.counterexample);
-}
+const { results } = await check("debit.proof.ts");
+for (const result of results) if (result.counterexample) console.log(result.counterexample);
 ```
 
-The package name is local to this private experiment. The app itself imports no verification library. Annotations live with the behavior; the developer does not register a schema, proof file, solver, or replay fixture at the call site.
+The application imports no verification library. The [experiment’s lower-level API](lib.ts) also exposes PostgreSQL replay details and accepts the earlier inline `//@ ensures` format. The maintained example keeps its properties in one sidecar.
 
 | Runner / JSON status | Evidence | CLI exit |
 | --- | --- | --- |
@@ -74,16 +72,18 @@ The package name is local to this private experiment. The app itself imports no 
 - **decline** — A fresh request against a missing or underfunded account returns `declined`. Both tables stay as they were. A later retry after funding can succeed.
 - **retry** — An existing receipt for this tenant and request ID returns `duplicate`. Both tables stay as they were. Reusing the key with a different payload still gives `duplicate`.
 
-The clauses are a small specification language inside TS comments. Each has an identifier and an optional quoted title for display. `==>` means “implies.” `account` means the pair of authenticated tenant and requested account. `request` means the pair of authenticated tenant and request ID. `funded` and `seen` read the pre-transaction state. `debitedOnly`, `recordedOnly` and `unchanged` compare the complete before and after tables. The expression determines what both Dafny and the HTTP replay check. [Contract compiler](internal/contracts.ts)
+Each predicate receives a typed `DebitObservation`. `seen` and `funded` read the state before the call. `debitedOnly`, `recordedOnly` and `unchanged` compare the complete committed state. `result` observes the handler’s reply. The same predicate determines the Dafny claim and the expected outcome on PostgreSQL. [Observation definitions](internal/contracts.ts)
 
 ## What the proof covers
 
-Pud reads the selected handler and projects its supported operations into a synchronous TypeScript function. Each awaited query operates on explicit pending state. A commit publishes that state and a rollback discards it. The actual branches, return values, SQL placeholders and bound arguments determine the program. LemmaScript 0.6.10 translates that function to Dafny. Pud links the generated method with concrete SQL operations and checks each reviewed clause against the method. The proof depends on the adapter and on LemmaScript’s translation. [Transaction adapter](internal/lower.ts) · [SQL operations](internal/sql.ts) · [LemmaScript integration](internal/lemmascript.ts)
+The ledger registers `schema.sql`, `Domain.dfy`, `Postgres.dfy`, and `Debit.dfy` as proof inputs. If one changes during `pud check`, each affected property reports which file changed and asks for a rerun.
 
-The example supports the supplied ledger schema, static receipt inserts and balance updates, and a dedicated serializable transaction. The TypeScript subset includes immutable bindings, object destructuring, simple conditions, early returns, and database errors that are rethrown. Unsupported statements or external calls report a source line. New schemas and SQL operations need adapter support. The balances use nonnegative PostgreSQL `bigint` values and debit amounts use positive signed 64-bit integers. [Schema](schema.sql) · [Domain](verifier/Domain.dfy)
+Pud reads the imported export and represents its branches, returns and awaited queries as data. The PostgreSQL adapter parses each supported write, including its actual bind arguments. A commit publishes the pending state and a rollback discards it. The Dafny backend renders these operations directly. The database independently prepares every modelled write against the migration and executes the actual handler during replay. [Handler frontend](internal/lower.ts) · [SQL operations](internal/sql.ts) · [Dafny backend](internal/postgres-dafny.ts)
 
-The proof covers handled business outcomes under [PostgreSQL serializable isolation](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE), with a dedicated connection, valid database text IDs with deterministic equality, the stated schema, and a trusted authenticated tenant. Database execution errors propagate. A caller retrying after an aborted or uncertain transaction must keep the same request ID. HTTP parsing, auth middleware, production schema drift, and concurrent client scheduling are outside the formal claim.
+The model supports the ledger’s two tables, receipt inserts, guarded balance updates and serializable transactions. It checks the required column types, nonnegative balance constraint and composite primary keys. Tables, columns and primary key columns can be reordered. A balance update can use direct bind parameters or the single-row `FROM (VALUES ...)` form. New operations and state observations need adapter support. The TypeScript fragment includes immutable bindings, object destructuring, conditions, early returns, and database errors that are rethrown. [Schema](schema.sql) · [Domain](verifier/Domain.dfy)
 
-Six [HTTP replays](replay.ts) exercise the route, its status codes, the selected transaction, and actual database state on one connection. The fixture rolls back any work abandoned by an early return before inspecting the committed state. A proof also requires that the handler close any transaction it opened. Replay stops at the first violating observation. With the tenant guard removed, the debit clause has a concrete witness, the decline clause is unproved, and the duplicate-request clause still proves.
+Each property requires a normal return and scopes database work to a single serializable transaction that the handler closes. The proof assumes a dedicated connection, valid database text IDs with deterministic equality, the stated schema, and a trusted authenticated tenant. Database execution errors propagate. A caller retrying after an aborted or uncertain transaction must keep the same request ID. HTTP parsing, auth middleware, production schema drift, and concurrent client scheduling are outside the formal claim. [PostgreSQL serializable isolation](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE)
+
+Six HTTP replays exercise the route, the selected transaction, and database state on one connection. PostgreSQL reports which commands ran and whether the handler left a transaction open. The fixture records abandoned work before rolling it back and reading committed state. When the handler throws on a valid request, the report shows the exception and the request that reached it. Each clause keeps its first counterexample as replay continues. With the tenant guard removed, separate requests disprove the debit and decline clauses, and the retry clause still proves. [Replay implementation](replay.ts)
 
 Run `bun run typecheck` and `bun run test` here for the HTTP, translation, and end-to-end regression checks.

@@ -26,9 +26,6 @@ export const DEBIT = `
   RETURNING a.account_id
 `;
 
-//@ ensures debit "Charge only the requested account": !seen(request) && funded(account, amount) ==> result === "applied" && debitedOnly(account, amount) && recordedOnly(request)
-//@ ensures decline "Decline unfunded requests without a write": !seen(request) && !funded(account, amount) ==> result === "declined" && unchanged()
-//@ ensures retry "Recognize a retry without charging twice": seen(request) ==> result === "duplicate" && unchanged()
 export async function debit(
   db: Session,
   auth: Auth,

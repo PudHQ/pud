@@ -47,21 +47,24 @@ test("bounds proves both functions and reports which one breaks after either imp
   const pass = run([file], env);
   expect(pass.err).toBe("");
   expect(pass.status).toBe(0);
-  const maxPass = `🍮 PASS  max  ${file}:6\n`;
-  const minPass = `🍮 PASS  min vs minimum  ${file}\n`;
-  expect(pass.out).toBe(maxPass + minPass);
+  const maxPass = `PASS       max  ${file}:6\n`;
+  const minPass = `PASS       min vs minimum  ${file}\n`;
+  expect(pass.out).toContain(maxPass + minPass);
+  expect(pass.out).toContain("2 passed");
 
   edit(source, "a < b ? b : a", "a < b ? a : b");
   const fail = run([file], env);
   expect(fail.status).toBe(1);
-  expect(fail.out).toBe(minPass);
-  expect(fail.err).toContain(`🦠 DISPROVED  max  ${file}:6\n`);
+  expect(fail.out).toBe("");
+  expect(fail.err).toContain(minPass);
+  expect(fail.err).toContain("1 passed · 1 failed");
+  expect(fail.err).toContain(`FAIL       max  ${file}:6\n`);
   expect(fail.err).toContain("maximum(0n, 1n) returned 0n. The property evaluated to false.");
   writeFileSync(source, original.replace("a < b ? a : b", "a < b ? b : a"));
   const verbose = run(["--verbose", file], env);
   expect(verbose.status).toBe(1);
-  expect(verbose.out).toBe(maxPass);
-  expect(verbose.err).toContain(`🦠 UNPROVED  min vs minimum  ${file}\n`);
+  expect(verbose.err).toContain(maxPass);
+  expect(verbose.err).toContain(`UNPROVED   min vs minimum  ${file}\n`);
   expect(verbose.err).toContain("Minimum.v");
   expect(verbose.err).toContain("The linked proof did not compile.");
   expect(readdirSync(dir)).toEqual(originalFiles);
@@ -75,7 +78,7 @@ test("an agent's proof repair replays against both equivalent bodies with the pr
   edit(source, "a < b ? b : a", "b < a ? a : b");
   const stale = run([file]);
   expect(stale.status).toBe(1);
-  expect(stale.err).toContain("UNPROVED  max");
+  expect(stale.err).toMatch(/UNPROVED\s+max/);
   expect(stale.err).toContain("Maximum.v:");
   cpSync(join(dir, "repair", "Maximum.v"), join(dir, "Maximum.v"));
   expect(run([file]).status).toBe(0);
@@ -89,7 +92,7 @@ test("only the generated TS claim can certify a reviewed property", () => {
   writeFileSync(join(dir, "Maximum.v"), "Theorem max_correct : True. Proof. exact I. Qed.");
   const swapped = run([file]);
   expect(swapped.status).toBe(1);
-  expect(swapped.err).toContain("UNPROVED  max");
+  expect(swapped.err).toMatch(/UNPROVED\s+max/);
   expect(swapped.err).toContain("the reviewed TypeScript property");
 }, 30_000);
 
@@ -99,9 +102,9 @@ test("finite witness search never certifies an unproved claim", () => {
     export default {subject: max, property: (a, b, r) => a !== 100n, proof: "./Absent.v", theorem: "claim"};`);
   const unknown = run([file]);
   expect(unknown.status).toBe(1);
-  expect(unknown.err).toContain("UNPROVED  max");
+  expect(unknown.err).toMatch(/UNPROVED\s+max/);
   expect(unknown.err).toContain("No proof yet");
-  expect(unknown.out).toBe("");
+  expect(unknown.err).toContain("1 unproved");
 }, 30_000);
 
 test("a valid but unrelated theorem does not certify the function", () => {
@@ -183,7 +186,7 @@ test("emitting needs no Rocq; a missing compiler is an error, never a proof resu
   expect(model.out).toContain("forall (p0 : Z) (p1 : Z), impl p0 p1 = spec p0 p1");
   const check = run([file], env);
   expect(check.status).toBe(2);
-  expect(check.err).toContain("🦠 ERROR");
+  expect(check.err).toContain("ERROR");
   expect(check.err).toContain("Rocq was not found");
 });
 
@@ -222,7 +225,7 @@ test.each(["[]", "[,]", "[...checks]", "[makeProof()]"])("rejects an empty or dy
   writeFileSync(file, `import { min } from "./bounds.ts"; export default ${value};`);
   const r = run([file]);
   expect(r.status).toBe(2);
-  expect(r.out).toBe("");
+  expect(r.err).toContain("1 unsupported");
   expect(r.err).toContain("proof definition");
 });
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { withPostgres } from "../postgres.ts";
+import { withPostgres } from "@pud/postgres";
 import { postDebit } from "../route.ts";
 
 export async function checkHttpRoute(): Promise<void> {

@@ -1,5 +1,7 @@
-import { traverseFast, type FunctionDeclaration, type Node, type Program } from "@babel/types";
-import { invalid } from "./source.ts";
+import { traverseFast, type ArrowFunctionExpression, type FunctionDeclaration, type Node, type Program } from "@babel/types";
+import { unsupported as invalid } from "./typescript.ts";
+
+type SubjectFunction = FunctionDeclaration | ArrowFunctionExpression;
 
 function literalInitializer(node: Node | null | undefined): boolean {
   if (!node) return false;
@@ -10,6 +12,8 @@ function literalInitializer(node: Node | null | undefined): boolean {
     case "BigIntLiteral":
     case "NullLiteral":
       return true;
+    case "TemplateLiteral":
+      return node.expressions.length === 0;
     case "UnaryExpression":
       return node.operator === "-" && (node.argument.type === "BigIntLiteral" || node.argument.type === "NumericLiteral");
     case "TSAsExpression":
@@ -50,7 +54,7 @@ function writesBinding(target: Node, name: string): boolean {
 }
 
 // A callable sibling must not be able to replace the exported binding after verification.
-function checkSibling(file: string, fn: FunctionDeclaration, subject: string) {
+function checkSibling(file: string, fn: SubjectFunction, subject: string) {
   const hasLocalParameter = fn.params.some(p => p.type === "Identifier" && p.name === subject);
   traverseFast(fn, node => {
     if (node.type === "Identifier" && node.name === "eval") {
@@ -65,8 +69,10 @@ function checkSibling(file: string, fn: FunctionDeclaration, subject: string) {
   });
 }
 
-export function selectSubject(program: Program, file: string, name: string): FunctionDeclaration {
-  let fn: FunctionDeclaration | undefined;
+export function selectSubject(program: Program, file: string, name: string): FunctionDeclaration;
+export function selectSubject(program: Program, file: string, name: string, options: { allowArrowFunctions: true }): SubjectFunction;
+export function selectSubject(program: Program, file: string, name: string, options?: { allowArrowFunctions: true }): SubjectFunction {
+  let fn: SubjectFunction | undefined;
   for (const stmt of program.body) {
     if (stmt.type === "ImportDeclaration" && stmt.importKind === "type") continue;
     if ((stmt.type === "ExportNamedDeclaration" || stmt.type === "ExportAllDeclaration") && stmt.exportKind === "type") continue;
@@ -78,9 +84,20 @@ export function selectSubject(program: Program, file: string, name: string): Fun
       continue;
     }
     if (decl?.type === "TSInterfaceDeclaration" || decl?.type === "TSTypeAliasDeclaration") continue;
-    if (decl?.type === "VariableDeclaration" && decl.kind === "const" &&
-        decl.declarations.every(d => d.id.type === "Identifier" && literalInitializer(d.init))) continue;
-    invalid(file, stmt, "Subject modules may contain only named function declarations, type-only declarations, or constants initialized to primitive literals.");
+    if (decl?.type === "VariableDeclaration" && decl.kind === "const" && !decl.declare) {
+      for (const d of decl.declarations) {
+        if (d.id.type === "Identifier" && literalInitializer(d.init)) continue;
+        if (d.id.type !== "Identifier" || !options?.allowArrowFunctions || d.init?.type !== "ArrowFunctionExpression") {
+          invalid(file, d, "Subject modules may contain only named functions, type-only declarations, or constants with supported initializers.");
+        }
+        if (exported && d.id.name === name) {
+          if (d.id.typeAnnotation) invalid(file, d.id, "Declare parameter and return types on the arrow function itself.");
+          fn = d.init;
+        } else checkSibling(file, d.init, name);
+      }
+      continue;
+    }
+    invalid(file, stmt, "Subject modules may contain only named functions, type-only declarations, or constants with supported initializers.");
   }
   if (!fn) throw new Error(`${file}: No named function export '${name}'.`);
   return fn;
