@@ -1,0 +1,83 @@
+---
+import Icon from "./Icon.astro";
+import Breadcrumbs from "./Breadcrumbs.astro";
+import { vault } from "../lib/content";
+import { outboundAttributes } from "../lib/web-links";
+import type { Note, SavedLink } from "../lib/vault";
+interface Props { title: string; notes?: Note[]; links?: SavedLink[]; heading?: "h1" | "h2"; folderPath?: string }
+const { title, notes = [], links, heading: Heading = "h1", folderPath } = Astro.props;
+const total = links ? links.length : notes.length;
+const noun = links ? "link" : "entry";
+const plural = links ? "links" : "entries";
+const icons = { Handbook: "book", Log: "disk", "Captain's Log": "disk", Ideas: "idea", Bookmarks: "link" } as const;
+---
+<section class="panel listing">
+  <div class="bar active-bar">
+    <Icon name={links ? "link" : "open"} />
+    <Heading>{title}</Heading>
+    <span class="count" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
+  </div>
+  <div class="list-tools">
+    {folderPath && <Breadcrumbs folder={folderPath} current />}
+    <label hidden class="filter">
+      <Icon name="search" size={16} />
+      <input type="search" aria-label={links ? "Search links" : "Search entries"} placeholder={links ? "Search links…" : "Search entries…"} aria-keyshortcuts="/" />
+      <kbd aria-hidden="true">/</kbd>
+    </label>
+  </div>
+  {links ? <ul class="entries link-entries">
+    {links.map(link => <li data-entry>
+      <div class="entry-copy">
+        <a class="entry-title" href={link.href} {...outboundAttributes(link.href)}>{link.title} <span aria-hidden="true">↗</span></a>
+        <p class="source-notes">Saved in {link.sources.map((note, i) => <>{i > 0 && ", "}<a href={note.href}>{note.title}</a></>)}</p>
+      </div>
+      <span class="kind">{link.host}</span>
+    </li>)}
+  </ul> : <ul class="entries">
+    {notes.map(note => {
+      const folder = vault.folders.find(group => group.path === note.folder);
+      return <li data-entry data-keywords={[...note.tags, ...note.aliases, note.folder].join(" ")}>
+        <span class="file-icon"><Icon name={icons[note.folder.split("/")[0] as keyof typeof icons] ?? "note"} size={20} /></span>
+        <div class="entry-copy">
+          <a class="entry-title" href={note.href}>{note.title}</a>
+          {note.summary && <p>{note.summary}</p>}
+        </div>
+        {folder && <a class="kind" href={folder.href} title={folder.path}>{folder.name}</a>}
+      </li>;
+    })}
+  </ul>}
+  <p class="empty" hidden={total > 0} data-empty>{total ? "No matches." : links ? "No links yet." : "No entries yet."}</p>
+</section>
+<script>
+  const filter = document.querySelector<HTMLLabelElement>(".filter");
+  const input = filter?.querySelector("input");
+  const count = document.querySelector<HTMLElement>("[data-count]");
+  if (filter && input && count) {
+    filter.hidden = false;
+    const entries = Array.from(document.querySelectorAll<HTMLElement>("[data-entry]"), row => ({
+      row, text: (row.textContent + " " + (row.dataset.keywords ?? "")).toLocaleLowerCase(),
+    }));
+    const empty = document.querySelector<HTMLElement>("[data-empty]")!;
+    function update() {
+      const words = input!.value.trim().toLocaleLowerCase().split(/\s+/);
+      let shown = 0;
+      for (const { row, text } of entries) {
+        row.hidden = !words.every(word => text.includes(word));
+        if (!row.hidden) shown++;
+      }
+      count!.textContent = shown + " " + (shown === 1 ? count!.dataset.one : count!.dataset.many);
+      empty.hidden = shown !== 0;
+    }
+    input.addEventListener("input", update);
+    window.addEventListener("pageshow", update);
+    document.addEventListener("keydown", event => {
+      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && !(event.target instanceof HTMLInputElement)) {
+        event.preventDefault();
+        input.focus();
+      } else if (event.key === "Escape" && document.activeElement === input) {
+        input.value = "";
+        update();
+      }
+    });
+  }
+</script>

@@ -1,0 +1,31 @@
+---
+import Shell from "../../layouts/Shell.astro";
+import Icon from "../../components/Icon.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { vault } from "../../lib/content";
+import { authors } from "../../lib/authors";
+import { outboundAttributes } from "../../lib/web-links";
+export function getStaticPaths() {
+  return vault.notes.map(note => ({ params: { id: note.id }, props: { note } }));
+}
+const { note } = Astro.props;
+const author = note.author ? authors.get(note.author) : undefined;
+---
+<Shell title={note.title} description={note.summary || undefined} folder={note.folder} author={author?.name ?? note.author}>
+  <article class="panel">
+    <div class="bar active-bar"><Icon name="note" /><Breadcrumbs folder={note.folder} /></div>
+    <div class="reading">
+      <h1 id={note.headingId}>{note.title}<Fragment set:html={note.titleFootnotes} /></h1>
+      {note.author && <p class="byline">By {author
+        ? <a href={author.href} rel="author"><span class="portrait"><img src={author.avatar} width="36" height="36" alt="" /></span>{author.name}</a>
+        : note.author}</p>}
+      {note.url && <a class="bookmark-url" href={note.url} {...outboundAttributes(note.url)}>Visit {new URL(note.url).hostname} ↗</a>}
+      <div class="prose" set:html={note.html}></div>
+      {note.tags.length > 0 && <p class="tags">{note.tags.map(tag => <span>#{tag}</span>)}</p>}
+      <section class="backlinks" aria-label="Backlinks">
+        <h2><Icon name="link" /> Linked from</h2>
+        {note.backlinks.length ? <ul>{note.backlinks.map(source => <li><a href={source.href}>{source.title}</a></li>)}</ul> : <p>No incoming links yet.</p>}
+      </section>
+    </div>
+  </article>
+</Shell>

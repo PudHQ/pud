@@ -1,0 +1,76 @@
+---
+import "@fontsource-variable/pixelify-sans";
+import "../styles/site.css";
+import { vault } from "../lib/content";
+import { outboundAttributes, pudHome } from "../lib/web-links";
+import Masthead from "../components/Masthead.astro";
+import Icon from "../components/Icon.astro";
+import FolderTree from "../components/FolderTree.astro";
+
+interface Props { title: string; description?: string; author?: string; home?: boolean; linkIndex?: boolean; folder?: string }
+const { title, description = "The Pud company wiki, work log, and collection of links.", author, home, linkIndex, folder } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const { bookmarks, directory } = vault;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#123664" />
+    <meta name="description" content={description} />
+    {author && <meta name="author" content={author} />}
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/pud-chrome.png" type="image/png" />
+    <title>{home ? "PudDex" : title + " · PudDex"}</title>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <div class="site">
+      <header>
+        <div class="topbar">
+          <a class="host" href="/"><img src="/pud-chrome.png" width="26" height="26" alt="" /> dex.pud.dev</a>
+          <nav aria-label="Site">
+            <a href="/" aria-current={home ? "page" : undefined}>Directory</a>
+            <a href="/links/" aria-current={linkIndex ? "page" : undefined}>Link index</a>
+            <a href={pudHome} {...outboundAttributes(pudHome)}>Pud.dev <span aria-hidden="true">↗</span></a>
+          </nav>
+        </div>
+        <Masthead compact={!home} />
+      </header>
+      <div class="workspace">
+        <aside>
+          <nav class="panel" aria-label="Folders">
+            <details class="sidebar-panel" open>
+              <summary class="bar"><Icon name="folder" /> Folders</summary>
+              <div class="tree">
+                <a class:list={["tree-root", { selected: home }]} href="/" aria-current={home ? "page" : undefined}>
+                  <Icon name="open" /> All entries <span>{directory.notes.length}</span>
+                </a>
+                <FolderTree folders={directory.folders} active={folder} />
+              </div>
+            </details>
+          </nav>
+          {bookmarks && <nav class="panel bookmarks" aria-label="Bookmarks">
+            <details class="sidebar-panel" open>
+              <summary class="bar"><Icon name="link" /> Bookmarks</summary>
+              <ul>{bookmarks.notes.map(note => <li>
+                <a href={note.url ?? note.href} {...outboundAttributes(note.url)}>{note.title}{note.url && <span aria-hidden="true"> ↗</span>}</a>
+                {note.url && <small>{new URL(note.url).hostname}</small>}
+              </li>)}</ul>
+            </details>
+          </nav>}
+        </aside>
+        <main id="content" tabindex="-1"><slot /></main>
+      </div>
+      <footer>
+        <span class="vault-count"><Icon name="disk" /> {directory.notes.length} {directory.notes.length === 1 ? "entry" : "entries"} <b>·</b> {vault.links.length} {vault.links.length === 1 ? "link" : "links"}</span>
+      </footer>
+    </div>
+  </body>
+</html>
+<script>
+  if (matchMedia("(max-width: 640px)").matches) {
+    for (const panel of document.querySelectorAll<HTMLDetailsElement>(".sidebar-panel")) panel.open = false;
+  }
+</script>

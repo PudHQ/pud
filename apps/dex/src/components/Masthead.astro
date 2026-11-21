@@ -1,0 +1,80 @@
+---
+import { width, height, ring } from "../lib/globe";
+import PudFoil from "./PudFoil.astro";
+const { compact = false } = Astro.props;
+---
+<div class:list={["masthead", { compact }]}>
+  <div class="stars" aria-hidden="true"></div>
+  <div class="mast-copy">
+    {compact ? <a href="/" class="wordmark">Pud<span>Dex</span></a> : <h1 class="wordmark">Pud<span>Dex</span></h1>}
+    {!compact && <p>Pud’s handbook, work log, ideas, and links.</p>}
+  </div>
+  <div class="orbit">
+    <img class="globe-poster" src="/globe.svg" alt="" {width} {height} />
+    {!compact && <>
+      <canvas class="globe-canvas" {width} {height} aria-hidden="true"></canvas>
+      <svg class="globe-light" viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+        <path class="surface-light" fill="#d6efff" d="M69 34h3v1h-3zM73 32h5v1h-5zM78 30h2v1h-2z" />
+        <path class="ring-light" fill="none" stroke="#fff9e8" stroke-width="2" pathLength="100"
+          d={`M${-ring.rx} 0a${ring.rx} ${ring.ry} 0 0 0 ${ring.rx * 2} 0`}
+          transform={`translate(${ring.cx} ${ring.cy}) rotate(${ring.angle})`} />
+      </svg>
+    </>}
+    <PudFoil {compact} />
+  </div>
+</div>
+
+<script>
+  import { globeFrame, width, height, palette } from "../lib/globe";
+
+  const mast = document.querySelector<HTMLElement>(".masthead");
+  const canvas = mast?.querySelector<HTMLCanvasElement>(".globe-canvas");
+  const ctx = canvas?.getContext("2d");
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  if (mast && canvas && ctx) {
+    const rgba = ctx.createImageData(width, height);
+    const colors = palette.map(color => [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) || 0));
+    let turn = 0, tilt = 0, frame = 0, last = 0;
+    let arrival = motion.matches ? 0 : performance.now() + 1100;
+    function draw(now: number) {
+      frame = 0;
+      if (now - last < 32) { frame = requestAnimationFrame(draw); return; }
+      last = now;
+      const remaining = Math.max(0, (arrival - now) / 1100);
+      const pixels = globeFrame(turn - 0.13 * remaining ** 2, tilt);
+      for (let i = 0; i < pixels.length; i++) {
+        const color = colors[pixels[i]];
+        rgba.data[i * 4] = color[0];
+        rgba.data[i * 4 + 1] = color[1];
+        rgba.data[i * 4 + 2] = color[2];
+        rgba.data[i * 4 + 3] = pixels[i] ? 255 : 0;
+      }
+      ctx!.putImageData(rgba, 0, 0);
+      mast!.style.setProperty("--pud-x", Math.round(turn * 58 - remaining * 10) + "px");
+      mast!.style.setProperty("--pud-y", Math.round(tilt * -40 - remaining * 4) + "px");
+      mast!.classList.add("interactive");
+      if (remaining > 0) frame = requestAnimationFrame(draw);
+    }
+    function reset() {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      arrival = 0;
+      mast!.classList.remove("interactive");
+      mast!.style.removeProperty("--pud-x");
+      mast!.style.removeProperty("--pud-y");
+    }
+    if (arrival) frame = requestAnimationFrame(draw);
+    mast.addEventListener("pointermove", event => {
+      if (motion.matches || event.pointerType === "touch") return;
+      if (event.target instanceof Element && event.target.closest(".foil-control")) return;
+      const box = mast.getBoundingClientRect();
+      arrival = 0;
+      const x = event.clientX - box.left, y = event.clientY - box.top;
+      turn = (x / box.width - 0.5) * 0.25;
+      tilt = (0.5 - y / box.height) * 0.35;
+      if (!frame) frame = requestAnimationFrame(draw);
+    });
+    mast.addEventListener("pointerleave", reset);
+    motion.addEventListener("change", reset);
+  }
+</script>

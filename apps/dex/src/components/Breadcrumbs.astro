@@ -1,0 +1,10 @@
+---
+import { vault } from "../lib/content";
+interface Props { folder: string; current?: boolean }
+const { folder, current } = Astro.props;
+const parents = vault.folders.filter(group => group.path === folder || folder.startsWith(group.path + "/"));
+---
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="/">Directory</a>{parents.map(group => <><span aria-hidden="true">/</span>{current && group.path === folder
+    ? <span aria-current="page">{group.name}</span> : <a href={group.href}>{group.name}</a>}</>)}
+</nav>

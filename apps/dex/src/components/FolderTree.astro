@@ -1,0 +1,17 @@
+---
+import Icon from "./Icon.astro";
+import type { Folder } from "../lib/vault";
+interface Props { folders: Folder[]; active?: string; level?: number }
+const { folders, active, level = 0 } = Astro.props;
+---
+<ul class="branches" style={"--level:" + level}>
+  {folders.map(folder => <li class="tree-node">
+    <a href={folder.href} class:list={["folder-link", { selected: active === folder.path }]} aria-current={Astro.url.pathname === folder.href ? "page" : undefined}>
+      <Icon name={active === folder.path ? "open" : "folder"} /> {folder.name} <span>{folder.notes.length}</span>
+    </a>
+    {folder.children.length > 0 && <details class="subtree" open={level === 0 || active === folder.path || active?.startsWith(folder.path + "/")}>
+      <summary aria-label={"Subfolders of " + folder.path} title={"Subfolders of " + folder.path}></summary>
+      <Astro.self folders={folder.children} active={active} level={level + 1} />
+    </details>}
+  </li>)}
+</ul>

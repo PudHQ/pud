@@ -1,0 +1,41 @@
+---
+type Kind = "folder" | "open" | "disk" | "book" | "note" | "idea" | "link" | "search";
+interface Props { name: Kind; size?: number }
+const { name, size = 18 } = Astro.props;
+const art: Record<Kind, [string, string][]> = {
+  folder: [
+    ["#3d3940", "M1 3h6v1h8v1h2v9H1z"], ["#ed834c", "M2 4h4v1h8v2H2z"],
+    ["#ffd49d", "M2 7h14v2H2z"], ["#f19a5b", "M2 9h14v4H2z"],
+  ],
+  open: [
+    ["#3d3940", "M1 2h7v2h7v2h3v3h-1v3h-1v2H1z"], ["#ed834c", "M2 3h5v2h7v2H4v3H2z"],
+    ["#ffddb0", "M5 7h12v2H4V8h1z"], ["#f5a56a", "M4 9h12v2h-1v2H3v-2h1z"],
+  ],
+  disk: [
+    ["#243444", "M2 1h12v1h2v13H2z"], ["#7da8cb", "M3 2h11v1h1v11H3z"],
+    ["#34516f", "M5 2h7v4H5z"], ["#e5eff5", "M9 2h2v3H9zM5 9h8v5H5z"], ["#6b8093", "M6 10h6v1H6zM6 12h4v1H6z"],
+  ],
+  book: [
+    ["#2d3f51", "M3 2h5v1h2V2h5v1h2v11h-7v1H8v-1H1V3h2z"], ["#89adcb", "M2 4h1v8h5v1H2zM10 12h5V4h1v9h-6z"],
+    ["#fff8e8", "M3 3h4v1h1v8H7v-1H3zM11 3h4v8h-4v1h-1V4h1z"],
+  ],
+  note: [
+    ["#394954", "M3 1h9v1h1v1h1v1h1v11H3z"], ["#f8f9f5", "M4 2h7v4h3v8H4z"], ["#879eae", "M5 7h7v1H5zM5 9h7v1H5zM5 11h4v1H5zM12 3v2h2z"],
+  ],
+  idea: [
+    ["#483e38", "M6 1h6v1h2v2h1v4h-2v2h-1v3H7v-3H5V8H4V4h1V2h1zM8 14h3v1H8z"],
+    ["#ffb97a", "M7 2h4v1h2v5h-2v2H8V8H6V4h1z"], ["#ffead0", "M7 3h3v1H8v3H7z"], ["#98a4ad", "M8 11h3v2H8z"],
+  ],
+  link: [
+    ["#28496c", "M10 1h4v1h2v2h1v3h-2v2h-2v1H9V8H7V5h2V3h1zM4 6h4v2h2v3H9v2H7v2H3v-1H1v-2H0V9h2V7h2z"],
+    ["#73a8cf", "M11 2h3v1h1v3h-1V4h-3v1H9V4h1V3h1zM4 8h3v1H4v1H3v2h1v1h3v1H3v-1H2v-3h1V9h1z"],
+    ["#d9eefa", "M8 6h4v1h-1v1H9v1H7v1H5V9h1V8h1V7h1z"],
+  ],
+  search: [
+    ["currentColor", "M4 1h5v1h2v2h1v5h-1v1l5 4-2 2-5-5H4v-1H2V8H1V4h1V2h2zM4 3v1H3v4h1v1h5V8h1V4H9V3z"],
+  ],
+};
+---
+<svg aria-hidden="true" class="icon" width={size} height={size} viewBox="0 0 18 16" shape-rendering="crispEdges" fill-rule="evenodd">
+  {art[name].map(([fill, d]) => <path {fill} {d} />)}
+</svg>

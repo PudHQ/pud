@@ -1,0 +1,10 @@
+---
+import Shell from "../../layouts/Shell.astro";
+import Listing from "../../components/Listing.astro";
+import { vault } from "../../lib/content";
+export function getStaticPaths() {
+  return vault.folders.map(folder => ({ params: { id: folder.id }, props: { folder } }));
+}
+const { folder } = Astro.props;
+---
+<Shell title={folder.path} folder={folder.path}><Listing title={folder.name} folderPath={folder.path} notes={folder.notes} /></Shell>

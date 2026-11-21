@@ -1,0 +1,237 @@
+---
+const { compact = false } = Astro.props;
+const sprite = "/pud-chrome.png";
+---
+<span class="orbiter" data-foil={compact ? undefined : ""}>
+  <img class="foil-print" src={sprite} alt="" width="76" height="77" draggable="false" />
+  {!compact && <>
+    <img class="cap-light" src={sprite} alt="" width="76" height="77" draggable="false" />
+    <canvas class="foil-surface" aria-hidden="true"></canvas>
+    <button class="foil-control" type="button" aria-label="Move or curl Pud" aria-describedby="foil-help"
+      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Home Enter Space" title="Drag to move and curl Pud" hidden></button>
+    <span class="sr-only" id="foil-help">Hold and drag to move Pud. Arrow keys move, Space curls, and Home returns Pud to the globe.</span>
+  </>}
+</span>
+
+<script>
+  import { createFoilMesh, createPudFoil } from "../lib/pud-foil";
+  import { createHologram } from "../lib/pud-holo";
+
+  async function mountFoil(wrapper: HTMLElement) {
+    const print = wrapper.querySelector<HTMLImageElement>(".foil-print")!;
+    const canvas = wrapper.querySelector<HTMLCanvasElement>(".foil-surface")!;
+    const button = wrapper.querySelector<HTMLButtonElement>(".foil-control")!;
+    const mast = wrapper.closest<HTMLElement>(".masthead")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    try { await print.decode(); } catch { return; }
+    const w = print.naturalWidth, h = print.naturalHeight;
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(print, 0, 0);
+    const sprite = ctx.getImageData(0, 0, w, h);
+    const mesh = createFoilMesh(w, h);
+    const foil = createPudFoil(sprite.data, w, h, mesh);
+    canvas.width = foil.width; canvas.height = foil.height;
+    canvas.style.width = 100 * foil.width / w + "%";
+    canvas.style.height = 100 * foil.height / h + "%";
+    const image = new ImageData(foil.pixels, foil.width, foil.height);
+    const coated = canvas.cloneNode(false) as HTMLCanvasElement;
+    coated.classList.add("foil-hologram");
+    canvas.after(coated);
+    let material: Awaited<ReturnType<typeof createHologram>>;
+
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    let pointer: number | null = null;
+    let downAt = 0, downX = 0, downY = 0, grabX = 0, grabY = 0, moved = false;
+    let offsetX = 0, offsetY = 0, fractionX = 0, fractionY = 0;
+    let hover = 0, pulse = 0, pulseEnd = 0;
+    let bearing = 2.25, aim = bearing, bend = 0, velocity = 0;
+    const restX = -0.16, restY = -0.12;
+    let lightX = restX, lightY = restY, lookX = restX, lookY = restY;
+    let frame = 0, last = 0;
+
+    function paint() {
+      const raised = Math.abs(bend) > 0.005;
+      wrapper.classList.toggle("foil-raised", raised);
+      if (material) {
+        material.draw(raised ? bend : 0, bearing, lightX + 0.19 * bend * Math.cos(bearing), lightY + 0.19 * bend * Math.sin(bearing));
+      } else if (raised) {
+        foil.draw(bend, bearing);
+        ctx!.putImageData(image, 0, 0);
+      }
+      if (raised) wrapper.style.setProperty("--foil-lift", Math.round(Math.abs(bend) * 5) + "px");
+    }
+
+    function wake() {
+      if (!frame && !motion.matches && !document.hidden) frame = requestAnimationFrame(animate);
+    }
+
+    function animate(now: number) {
+      frame = 0;
+      const dt = Math.min(0.032, last ? (now - last) / 1000 : 1 / 60);
+      last = now;
+      const warmth = Math.min(1, (now - downAt) / 650);
+      const target = pointer !== null ? 0.64 + 0.36 * warmth : now < pulseEnd ? pulse : hover;
+      const turn = Math.atan2(Math.sin(aim - bearing), Math.cos(aim - bearing));
+      bearing += turn * (1 - Math.exp(-16 * dt));
+      lightX += (lookX - lightX) * (1 - Math.exp(-17 * dt));
+      lightY += (lookY - lightY) * (1 - Math.exp(-17 * dt));
+      velocity = (velocity + (target - bend) * 150 * dt) * Math.exp(-10.5 * dt);
+      bend += velocity * dt;
+      paint();
+      if (Math.abs(target - bend) > 0.002 || Math.abs(velocity) > 0.015 ||
+          Math.abs(lookX - lightX) + Math.abs(lookY - lightY) > 0.004 ||
+          (Math.abs(bend) > 0.005 && Math.abs(turn) > 0.003) || now < pulseEnd || (pointer !== null && warmth < 1)) {
+        wake();
+      } else {
+        last = 0;
+      }
+    }
+
+    function aimAt(event: PointerEvent) {
+      const rect = button.getBoundingClientRect();
+      const x = 2 * (event.clientX - rect.left) / rect.width - 1;
+      const y = 2 * (event.clientY - rect.top) / rect.height - 1;
+      const radius = Math.hypot(x, y);
+      if (radius > 0.2) aim = Math.atan2(y, x);
+      if (Math.abs(bend) < 0.01) bearing = aim;
+      return Math.min(1, radius);
+    }
+
+    function touchFoil(amount: number, duration: number) {
+      pulse = amount;
+      pulseEnd = performance.now() + duration;
+      wake();
+    }
+
+    function rest() {
+      const captured = pointer;
+      pointer = null;
+      if (captured !== null && button.hasPointerCapture(captured)) button.releasePointerCapture(captured);
+      cancelAnimationFrame(frame);
+      frame = last = hover = pulseEnd = bend = velocity = 0;
+      lightX = lookX = restX; lightY = lookY = restY;
+      paint();
+    }
+
+    function bounds() {
+      const box = mast.getBoundingClientRect(), size = wrapper.getBoundingClientRect();
+      // A fully curled edge projects above and to the right of the flat print.
+      const top = Math.ceil(size.height * 0.09) + 2, right = Math.ceil(size.width * 0.05) + 2;
+      return { left: box.left + 3, top: box.top + top,
+        width: Math.max(0, box.width - size.width - 3 - right), height: Math.max(0, box.height - size.height - top - 3) };
+    }
+    function place(left: number, top: number) {
+      wrapper.classList.add("foil-placed");
+      const area = bounds(), current = wrapper.getBoundingClientRect();
+      const x = Math.max(0, Math.min(area.width, left - area.left));
+      const y = Math.max(0, Math.min(area.height, top - area.top));
+      offsetX += area.left + x - current.left;
+      offsetY += area.top + y - current.top;
+      wrapper.style.setProperty("--foil-x", offsetX + "px");
+      wrapper.style.setProperty("--foil-y", offsetY + "px");
+      fractionX = area.width ? x / area.width : 0;
+      fractionY = area.height ? y / area.height : 0;
+    }
+    const resize = new ResizeObserver(() => {
+      if (!wrapper.classList.contains("foil-placed")) return;
+      const area = bounds();
+      place(area.left + fractionX * area.width, area.top + fractionY * area.height);
+    });
+    resize.observe(mast);
+    resize.observe(wrapper);
+
+    mast.addEventListener("pointermove", event => {
+      if (!event.isPrimary || motion.matches || !material) return;
+      const area = mast.getBoundingClientRect();
+      lookX = Math.max(-0.7, Math.min(0.7, (event.clientX - area.left) / area.width * 1.4 - 0.7));
+      lookY = Math.max(-0.5, Math.min(0.5, (event.clientY - area.top) / area.height - 0.5));
+      wake();
+    });
+    mast.addEventListener("pointerleave", () => { lookX = restX; lookY = restY; wake(); });
+    button.addEventListener("pointermove", event => {
+      if (!event.isPrimary || (pointer !== null && event.pointerId !== pointer) ||
+          (pointer === null && event.pointerType === "touch")) return;
+      if (pointer !== null) {
+        const dx = event.clientX - downX, dy = event.clientY - downY;
+        if (Math.hypot(dx, dy) > 3) { moved = true; aim = Math.atan2(dy, dx); }
+        if (moved) place(event.clientX - grabX, event.clientY - grabY);
+      } else {
+        hover = 0.23 + 0.26 * aimAt(event);
+      }
+      wake();
+    });
+    button.addEventListener("pointerleave", () => { hover = 0; wake(); });
+    button.addEventListener("pointerdown", event => {
+      if (!event.isPrimary || event.button !== 0 || pointer !== null) return;
+      pointer = event.pointerId;
+      downAt = performance.now(); downX = event.clientX; downY = event.clientY;
+      const rect = button.getBoundingClientRect();
+      grabX = event.clientX - rect.left; grabY = event.clientY - rect.top; moved = false;
+      pulseEnd = hover = 0;
+      aimAt(event);
+      button.setPointerCapture(pointer);
+      wake();
+    });
+    button.addEventListener("pointerup", event => {
+      if (event.pointerId !== pointer) return;
+      pointer = null;
+      if (!moved && performance.now() - downAt < 220) {
+        touchFoil(0.96, 340);
+      } else {
+        wake();
+      }
+    });
+    function cancelPointer(event: PointerEvent) {
+      if (event.pointerId === pointer) { pointer = null; hover = 0; wake(); }
+    }
+    button.addEventListener("pointercancel", cancelPointer);
+    button.addEventListener("lostpointercapture", cancelPointer);
+    button.addEventListener("click", event => { if (event.detail === 0) touchFoil(1, 420); });
+    button.addEventListener("keydown", event => {
+      if (pointer !== null) return;
+      if (event.key === "Home") {
+        event.preventDefault();
+        wrapper.classList.remove("foil-placed");
+        wrapper.style.removeProperty("--foil-x"); wrapper.style.removeProperty("--foil-y");
+        offsetX = offsetY = 0;
+        rest();
+        return;
+      }
+      const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+      const direction = directions[event.key];
+      if (!direction) return;
+      event.preventDefault();
+      const rect = button.getBoundingClientRect(), step = event.shiftKey ? 36 : 12;
+      place(rect.left + direction[0] * step, rect.top + direction[1] * step);
+      aim = Math.atan2(direction[1], direction[0]);
+      touchFoil(0.48, 140);
+    });
+    window.addEventListener("blur", rest);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) rest(); });
+    motion.addEventListener("change", rest);
+    button.hidden = false;
+    if (!motion.matches) touchFoil(0.47, 280);
+
+    function uncoat() {
+      material = undefined;
+      wrapper.removeAttribute("data-material");
+      paint();
+    }
+    window.addEventListener("pagehide", event => { if (!event.persisted) { resize.disconnect(); material?.destroy(); } });
+    window.addEventListener("pageshow", paint);
+    try {
+      material = await createHologram(coated, sprite, mesh, uncoat);
+      if (material) {
+        wrapper.dataset.material = material.hdr ? "hdr" : "sdr";
+        paint();
+      }
+    } catch (error) {
+      console.warn("Pud foil is using the canvas renderer.", error);
+      uncoat();
+    }
+  }
+
+  const foil = document.querySelector<HTMLElement>("[data-foil]");
+  if (foil) void mountFoil(foil);
+</script>

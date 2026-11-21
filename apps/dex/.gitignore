@@ -1,0 +1,4 @@
+.astro/
+.cloudflare/
+content/**/.obsidian/
+content/**/.trash/

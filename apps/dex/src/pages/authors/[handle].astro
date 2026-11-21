@@ -1,0 +1,19 @@
+---
+import Shell from "../../layouts/Shell.astro";
+import Listing from "../../components/Listing.astro";
+import { authors } from "../../lib/authors";
+import { vault } from "../../lib/content";
+
+export function getStaticPaths() {
+  return [...authors.values()].map(author => ({ params: { handle: author.handle }, props: { author } }));
+}
+const { author } = Astro.props;
+const entries = vault.notes.filter(note => note.author === author.handle);
+---
+<Shell title={author.name} description={`Entries by ${author.name} on PudDex.`}>
+  <header class="panel author-profile">
+    <div class="portrait"><img src={author.avatar} width="64" height="64" alt="" /></div>
+    <hgroup><h1>{author.name}</h1><p>@{author.handle}</p></hgroup>
+  </header>
+  <Listing title="Entries" notes={entries} heading="h2" />
+</Shell>
