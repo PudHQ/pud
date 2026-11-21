@@ -1,0 +1,25 @@
+# Mathematics review of the first edition
+
+This review covers the first edition of *The Software Engineer’s Introduction to Formal Verification*, its figures, exercises and three base proof files. The coordinate argument holds. The main points concern precisely what follows from a proof when a second function or a database transaction enters the picture. [First-edition PDF](first-edition.pdf) · [First-edition manuscript](first-edition.md)
+
+## Corrections and clarifications
+
+**1. A bijection needs exactly one source per target.** In chapter 10, “A miniature paper about a raster,” distinguish reaching every target from reaching every target *once*. Send A and B to the only target, X. Each source has one destination and the function reaches every target, yet X has two preimages. The full definition gives every source one destination and every destination exactly one source. Undo establishes *at most one* source per destination. Exhibiting `(v, h - 1 - u)` establishes *at least one*. The second direction is proved on paper. The three base proof files check undo after a forward turn.
+
+**2. Give the transfer invariant an observation point.** In chapter 9, “Two balances in one transaction,” the total of the two balances belongs to one committed snapshot. A debit of 30 from 100 and a credit of 30 to a second account initially holding zero preserve the total. Intermediate values seen by the writer need not add to 100. A reader using separate Read Committed queries could see the old 100 and the new 30. One query reading both accounts sees a consistent pair. An intended debit and credit must each affect exactly one row, with rollback on a missing recipient or other failure. PostgreSQL treats an update affecting zero rows as successful. [PostgreSQL transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html) · [Update counts](https://www.postgresql.org/docs/current/sql-update.html#SQL-UPDATE-OUTPUTS) · [Read Committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED)
+
+**3. Give the proposition and its proof their own names.** In chapter 5, `Inside w h p` is a proposition *of type* `Prop`. In chapter 6, `turn_one` names the evidence for an equality. Rocq’s `Check turn_one.` returns the equality as its type. Checking the equality expression itself returns `Prop`. The two judgments can be inspected directly in the proof editor. [Software Foundations on proof objects](https://softwarefoundations.cis.upenn.edu/lf-current/ProofObjects.html)
+
+**4. Say which direction of the contract was tested.** In chapter 8, “The proof that passes the wrong design,” the two coordinate equations fix the forward turn completely. A separately written undo still needs its own specification or a checked round-trip law. A flawless forward turn can coexist with an undo that returns the origin for every input. Lean and Rocq include the labelled B example. Changing both transforms to `(x, y) ↦ (y, x)` in the base Dafny file produced `4 verified, 0 errors`. Its batch contract promises to apply whichever `Cw` the file defines. [Dafny companion](proofs/Turn.dfy)
+
+## Details for a first-time proof reader
+
+**Show a state that defeats the induction step.** In chapters 7–8, remove the untouched-suffix invariant. Consider `h = 2`, a one-slot array, `i = 0`, snapshot `[(0, 0)]` and current array `[(0, 1)]`. The index bounds hold and the finished prefix is empty. The next write produces `(0, 0)` where the contract requires `(1, 0)`. The real program cannot reach this state. The two remaining invariants allow it, which explains the preservation failure. The revealing state is one that breaks the next proof obligation. Many unreachable states are harmless. [Dafny’s guide to loop invariants](https://dafny.org/v4.11.0/OnlineTutorial/guide)
+
+**Keep the two list exercises distinct.** In chapter 11, losing a repeated visit and changing the traversal order are separate failures. `[A, A]` becoming `[A]` and `[A, B]` becoming `[B, A]` isolate them. An empty trace `[]` becoming `[A]` demonstrates a third failure, the invention of a visit. Each illustrates a different consequence of checking membership alone.
+
+## Proofs and examples to retain
+
+The non-square raster and the half-cell counterexample carry the integer proof. The cancellation argument correctly needs no bounds premise. The induction preserves the trace’s order and repetitions, and the four-turn calculation uses the right height at every step. The bisection example also separates a lower bound from an achievable upper bound. Eight possible first bad commits require at least three binary probes in the worst case. The balanced decision tree attains three under the stated hypotheses of a linear history and a repeatable test with a single change.
+
+The mathematical checks included all three proof sources, reruns of Rocq and Dafny, and both inverse compositions and four turns on 14,400 signed-point cases. The finite checks served to catch transcription errors. The general claims rest on the proofs.
