@@ -10,12 +10,35 @@ Pud is under active development. You can run the examples today or [join the alp
 
 [PudDex](https://dex.pud.dev) is the company wiki and link directory. Open its [Markdown content folder](apps/dex/content) as an Obsidian vault.
 
+## Workspace
+
+Install the Bun version in [package.json](package.json) and the Node version in [.nvmrc](.nvmrc), then run `bun install --frozen-lockfile` from the repository root. The root Bun catalog pins dependencies for every workspace. PudDex uses a named TypeScript 6 catalog because the Astro checker supports TypeScript 5 and 6.
+
+| Workspace | Purpose |
+| --- | --- |
+| [Pud landing site](apps/www/README.md) | Vinext Worker with D1-backed alpha signups |
+| [PudDex](apps/dex/README.md) | Static Astro site built from an Obsidian vault |
+| [CLI](packages/cli/README.md) | Public command, authoring API, and package archive |
+| [Model](packages/model/README.md) | Shared verification model and backend interfaces |
+| [Postgres](packages/postgres/README.md) | Embedded PostgreSQL fixture for replay |
+| [Debit endpoint](experiments/debit-endpoint/README.md) | Runnable experiment using the shared packages |
+
+Run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` at the root to check the workspace and build both sites. The tests include proof replay and require [Rocq](https://rocq-prover.org/docs). Pud can provision Dafny on first use. CI runs the same commands and both proof demos. [Proof workflow](.github/workflows/proofs.yml)
+
+| Site | Dev | Build | Preview | Deploy |
+| --- | --- | --- | --- | --- |
+| Landing site · 4901 | `bun run dev:www` | `bun run build:www` | `bun run preview:www` | `bun run deploy:www` |
+| PudDex · 4902 | `bun run dev:dex` | `bun run build:dex` | `bun run preview:dex` | `bun run deploy:dex` |
+
+Reuse the app already listening on its assigned port. Build before running preview and free the assigned port before switching between dev and preview. Both apps use Vite and Tailwind and ship to Cloudflare Workers with the workspace's `cf` CLI. Sign in once with `bun run --cwd apps/www cf auth login`. Check setup with the same deploy command and `--dry-run`. The [landing site release notes](apps/www/README.md#release) cover D1 migrations and the [PudDex release notes](apps/dex/README.md#release) cover its asset build.
+
+Use lowercase, hyphenated source filenames and directories. Keep framework route syntax, conventional files like `README.md`, authored Obsidian titles, and filenames used by proof tooling or published proof examples. [Repo skills](skills/README.md)
+
 ## Try it locally
 
-With [Bun](https://bun.com/docs/installation) installed, run these commands from the repository root.
+After [workspace setup](#workspace), run this command from the repository root.
 
 ```sh
-bun install --frozen-lockfile
 bun run pud check packages/cli/demo/seats.proof.ts
 ```
 
@@ -147,7 +170,7 @@ The pure frontend accepts named exported functions and `export const` arrows wit
 
 The enclosing module may include literal constants, type-only declarations or imports, and unrelated named functions. Runtime imports, executable module initialization, calls or mutation in the verified function, loops and JS `number` are outside this fragment. Witness replay executes only the validated bodies. The proof relies on the translator faithfully modelling this fragment, callers supplying the stated types, and sufficient execution resources. Use trusted local Rocq scripts.
 
-Run `bun run typecheck` and `bun run test` from the root. The [proof-replay workflow](.github/workflows/proofs.yml) runs the tests and demo without an agent. The [paired Rocq/Dafny experiment](experiments/prover-comparison/README.md) records what a behavior-preserving edit required from each prover.
+The [paired Rocq/Dafny experiment](experiments/prover-comparison/README.md) records what a behavior-preserving edit required from each prover.
 
 ## License
 

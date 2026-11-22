@@ -5,6 +5,9 @@
   "type": "module",
   "exports": "./src/postgres.ts",
   "dependencies": {
-    "@electric-sql/pglite": "0.5.16"
+    "@electric-sql/pglite": "catalog:"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   }
 }

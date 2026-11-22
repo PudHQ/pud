@@ -18,7 +18,7 @@ test("the foil reveals its reverse when curled and settles back to the exact pri
   expect(foil.pixels.some((r, i, rgba) =>
     i % 4 === 0 && r > rgba[i + 1] + 40 && rgba[i + 3] > 0 && rgba[i + 3] < 255)).toBe(true);
   foil.draw(1, -0.5);
-  expect(bottomCurl.equals(foil.pixels)).toBe(false);
+  expect(bottomCurl.equals(Buffer.from(foil.pixels))).toBe(false);
   foil.draw(0, -0.5);
-  expect(flat.equals(foil.pixels)).toBe(true);
+  expect(flat.equals(Buffer.from(foil.pixels))).toBe(true);
 });

@@ -3,18 +3,76 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*", "experiments/debit-endpoint"],
+  "packageManager": "bun@1.4.2",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "experiments/debit-endpoint"
+  ],
   "scripts": {
-    "pack:cli": "bun ./packages/cli/scripts/pack.ts",
-    "demo": "bun experiments/debit-endpoint/demo.ts",
-    "demo:rocq": "bun packages/cli/demo/replay.ts",
-    "verify": "pud",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit && bun run --cwd apps/www typecheck && bun run --cwd apps/dex typecheck"
+    "dev:www": "\"$npm_execpath\" run --cwd apps/www dev",
+    "dev:dex": "\"$npm_execpath\" run --cwd apps/dex dev",
+    "build": "\"$npm_execpath\" run --filter './apps/*' build",
+    "build:www": "\"$npm_execpath\" run --cwd apps/www build",
+    "build:dex": "\"$npm_execpath\" run --cwd apps/dex build",
+    "preview:www": "\"$npm_execpath\" run --cwd apps/www preview",
+    "preview:dex": "\"$npm_execpath\" run --cwd apps/dex preview",
+    "deploy:www": "\"$npm_execpath\" run --cwd apps/www deploy",
+    "deploy:dex": "\"$npm_execpath\" run --cwd apps/dex deploy",
+    "lint": "biome lint",
+    "test": "\"$npm_execpath\" test",
+    "typecheck": "\"$npm_execpath\" run --workspaces typecheck",
+    "pack:cli": "\"$npm_execpath\" ./packages/cli/scripts/pack.ts",
+    "demo": "\"$npm_execpath\" experiments/debit-endpoint/demo.ts",
+    "demo:rocq": "\"$npm_execpath\" packages/cli/demo/replay.ts",
+    "pud": "\"$npm_execpath\" packages/cli/src/cli.ts",
+    "verify": "\"$npm_execpath\" run pud",
+    "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
   },
   "devDependencies": {
     "@pud/cli": "workspace:*",
-    "@types/bun": "latest",
-    "typescript": "^7"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "@biomejs/biome": "catalog:"
+  },
+  "catalog": {
+    "@astrojs/check": "0.9.12",
+    "@babel/parser": "8.1.2",
+    "@babel/types": "8.1.2",
+    "@biomejs/biome": "2.6.8",
+    "@cloudflare/vite-plugin": "2.0.0-rc.1",
+    "@electric-sql/pglite": "0.5.16",
+    "@fontsource-variable/atkinson-hyperlegible-mono": "5.3.0",
+    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
+    "@fontsource-variable/pixelify-sans": "5.3.0",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/bun": "1.4.4",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vinext/cloudflare": "1.4.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "@vitejs/plugin-rsc": "0.5.39",
+    "@webgpu/types": "0.1.74",
+    "astro": "7.4.13",
+    "cf": "1.0.0-rc.1",
+    "chalk": "6.0.1",
+    "markdown-it": "15.0.3",
+    "markdown-it-footnote": "4.0.0",
+    "posthog-js": "1.453.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-server-dom-webpack": "19.3.1",
+    "sharp": "0.35.5",
+    "tailwindcss": "4.3.5",
+    "typescript": "7.0.2",
+    "vinext": "1.4.6",
+    "vite": "8.3.8",
+    "yaml": "2.9.1"
+  },
+  "catalogs": {
+    "astro": {
+      "typescript": "6.0.3"
+    }
   }
 }

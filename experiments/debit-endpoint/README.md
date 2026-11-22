@@ -2,14 +2,12 @@
 
 This workspace example checks a tenant-scoped wallet debit from TypeScript through its SQL write. The sidecar imports the real transaction and states three reviewed properties. The HTTP route gets the tenant from authenticated context, accepts integer cents as a decimal string, and uses a dedicated database session. [Proof file](debit.proof.ts) · [Handler](handler.ts) · [HTTP route](route.ts)
 
-## Run it
+## Development
 
-Run these commands from the repository root with Bun installed. The example uses the shared workspace lockfile.
+Follow the [workspace setup](../../README.md#workspace), then run these commands from the repository root.
 
 ```sh
-cd experiments/debit-endpoint
-bun install --frozen-lockfile
-bun run pud check
+bun run pud check experiments/debit-endpoint/debit.proof.ts
 bun run demo
 ```
 
@@ -86,4 +84,4 @@ Each property requires a normal return and scopes database work to a single seri
 
 Six HTTP replays exercise the route, the selected transaction, and database state on one connection. PostgreSQL reports which commands ran and whether the handler left a transaction open. The fixture records abandoned work before rolling it back and reading committed state. When the handler throws on a valid request, the report shows the exception and the request that reached it. Each clause keeps its first counterexample as replay continues. With the tenant guard removed, separate requests disprove the debit and decline clauses, and the retry clause still proves. [Replay implementation](replay.ts)
 
-Run `bun run typecheck` and `bun run test` here for the HTTP, translation, and end-to-end regression checks.
+The root `bun run typecheck` and `bun run test` include the HTTP, translation, and end-to-end regression checks.

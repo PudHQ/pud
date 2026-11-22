@@ -3,7 +3,7 @@ import { outboundAttributes, pudHome } from "../lib/web-links";
 
 const { target, rel } = outboundAttributes(new URL(pudHome));
 ---
-<a href={pudHome} {target} {rel} aria-label="Sponsored by Pud.dev (opens in a new tab)"
+<a href={pudHome} {target} {rel} aria-label="Sponsored by Pud.dev (opens in a new tab)" transition:persist="dex-sponsor"
   class="group/sponsor pointer-events-auto mb-2 ml-auto grid min-h-11 shrink-0 items-end focus-visible:outline-cyan-200">
   <span class="relative isolate flex h-10.5 w-31 items-center gap-1.25 overflow-hidden border-2 border-t-cyan-200 border-r-indigo-950
     border-b-violet-950 border-l-fuchsia-300 bg-linear-to-br from-indigo-950 via-violet-800 to-fuchsia-950 px-1 shadow-window

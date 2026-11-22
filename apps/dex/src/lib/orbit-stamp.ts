@@ -12,7 +12,7 @@ const ringCos = Math.cos(ringAngle);
 const ringSin = Math.sin(ringAngle);
 interface Pulse { start: number; beacon: HTMLElement }
 
-export function mountOrbitStamp(mast: HTMLElement) {
+export function mountOrbitStamp(mast: HTMLElement, signal: AbortSignal) {
   const stamp = mast.querySelector<SVGSVGElement>("[data-orbit-stamp]");
   const glint = stamp?.querySelector<SVGGElement>("[data-stamp-glint]");
   const button = mast.querySelector<HTMLButtonElement>("[data-orbit-trigger]");
@@ -126,27 +126,28 @@ export function mountOrbitStamp(mast: HTMLElement) {
     const y = Math.max(0, Math.min(mark.height, (event.clientY - box.top) / box.height * mark.height));
     light.aim(x, y);
     if (!frame) animate();
-  });
-  button.addEventListener("pointerleave", () => { if (light.leave() && !frame) animate(); });
+  }, { signal });
+  button.addEventListener("pointerleave", () => { if (light.leave() && !frame) animate(); }, { signal });
   button.addEventListener("click", () => {
     if (motion.matches || document.hidden) return;
     if (!frame) animate();
     const beacon = marker.cloneNode() as HTMLElement;
     mast.append(beacon);
     pulses.push({ beacon, start: performance.now() });
-  });
-  motion.addEventListener("change", setMotion);
-  window.addEventListener("resize", rest);
-  document.addEventListener("visibilitychange", () => { if (document.hidden) rest(); });
+  }, { signal });
+  motion.addEventListener("change", setMotion, { signal });
+  window.addEventListener("resize", rest, { signal });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) rest(); }, { signal });
   canvas.addEventListener("webglcontextlost", event => {
     event.preventDefault();
     sparks = null;
     canvas.hidden = true;
-  });
-  canvas.addEventListener("webglcontextrestored", () => { sparks = undefined; });
+  }, { signal });
+  canvas.addEventListener("webglcontextrestored", () => { sparks = undefined; }, { signal });
   window.addEventListener("pagehide", event => {
     rest();
     if (!event.persisted) sparks?.destroy();
-  });
+  }, { signal });
+  signal.addEventListener("abort", () => { rest(); sparks?.destroy(); }, { once: true });
   setMotion();
 }

@@ -14,7 +14,11 @@
     "./adapter": "./src/adapter.ts"
   },
   "dependencies": {
-    "@babel/parser": "8.1.2",
-    "@babel/types": "8.1.2"
+    "@babel/parser": "catalog:",
+    "@babel/types": "catalog:"
+  },
+  "scripts": {
+    "test": "\"$npm_execpath\" test",
+    "typecheck": "tsc --noEmit"
   }
 }

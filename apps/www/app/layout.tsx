@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import "./globals.css";
+import "./styles.css";
 
 export const metadata: Metadata = {
   title: "Pud.dev by Rory McMeekin",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="bg-paper font-sans leading-[normal] text-ink">
+    <html lang="en" className="bg-paper font-sans leading-normal text-ink">
       <body>{children}</body>
     </html>
   );

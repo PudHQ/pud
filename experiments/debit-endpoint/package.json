@@ -4,20 +4,20 @@
   "type": "module",
   "exports": "./lib.ts",
   "scripts": {
-    "demo": "bun ./demo.ts",
+    "demo": "\"$npm_execpath\" ./demo.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test ./tests/*.cases.ts"
+    "test": "\"$npm_execpath\" test"
   },
   "dependencies": {
     "@pud/model": "workspace:*",
-    "@babel/parser": "8.1.2",
+    "@babel/parser": "catalog:",
     "@pud/postgres": "workspace:*",
-    "chalk": "6.0.1"
+    "chalk": "catalog:"
   },
   "devDependencies": {
     "@pud/cli": "workspace:*",
-    "@babel/types": "8.1.2",
-    "@types/bun": "1.4.4",
-    "typescript": "7.0.2"
+    "@babel/types": "catalog:",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
   }
 }

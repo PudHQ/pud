@@ -1,7 +1,7 @@
 ---
 import { width, height, ring } from "../lib/globe";
-import OrbitStamp from "./OrbitStamp.astro";
-import PudFoil from "./PudFoil.astro";
+import OrbitStamp from "./orbit-stamp.astro";
+import PudFoil from "./pud-foil.astro";
 const { compact = false } = Astro.props;
 const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rendering:var(--rendering-pixel)]";
 ---
@@ -14,16 +14,17 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
 ]}>
   <div class="absolute inset-0 -z-1 bg-(image:--background-stars) bg-size-(--background-size-stars) bg-right
     mask-(--mask-stars) opacity-67" aria-hidden="true"></div>
-  <div class="pointer-events-none relative z-1 w-33/50 phone:w-16/25">
+  <div class:list={["pointer-events-none relative z-1 w-33/50 phone:w-16/25",
+    !compact && "not-has-[p:not(:empty)]:invisible"]}>
     <OrbitStamp {compact} />
     {!compact && <p class="mt-3.5 max-w-masthead-copy text-masthead-caption/normal text-balance text-slate-200
       phone:mt-2 phone:max-w-masthead-copy-phone phone:text-xs/normal">A wiki, knowledge base, and microblog... Of sorts...</p>}
   </div>
   <div class:list={["pointer-events-none absolute top-0 grid h-full place-items-center",
     compact ? "right-2.25 w-30 phone:w-23.5" : "right-orbit-inset w-7/20 phone:right-0 phone:w-2/5"]}>
-    <img class:list={[globeLayer, "group-data-interactive/masthead:invisible"]} src="/globe.svg" alt="" {width} {height} />
+    <img class:list={[globeLayer, "group-data-interactive/masthead:invisible"]} src="/globe.svg" alt="" width={width} height={height} />
     {!compact && <>
-      <canvas data-globe-canvas class:list={[globeLayer, "invisible group-data-interactive/masthead:visible"]} {width} {height} aria-hidden="true"></canvas>
+      <canvas data-globe-canvas class:list={[globeLayer, "invisible group-data-interactive/masthead:visible"]} width={width} height={height} inert></canvas>
       <svg data-orbit-world class={globeLayer} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false" shape-rendering="crispEdges">
         <path class="opacity-0 motion-safe:animate-water-shimmer" fill="#d6efff" d="M69 34h3v1h-3zM73 32h5v1h-5zM78 30h2v1h-2z" />
         <path class="opacity-0 motion-safe:animate-orbit-sheen" fill="none" stroke="#fff9e8" stroke-width="2" stroke-dasharray="8 110" pathLength="100"
@@ -34,7 +35,7 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
     <PudFoil {compact} />
   </div>
   {!compact && <>
-    <canvas data-orbit-sparks class="pointer-events-none absolute inset-0 z-1 size-full" aria-hidden="true" hidden></canvas>
+    <canvas data-orbit-sparks class="pointer-events-none absolute inset-0 z-1 size-full" inert hidden></canvas>
     <template data-orbit-beacon>
       <span data-orbit-signal class="pointer-events-none absolute top-0 left-0 z-1 size-1.25 -translate-1/2 bg-amber-50 shadow-sm shadow-amber-400/70" aria-hidden="true" hidden></span>
     </template>
@@ -44,8 +45,9 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
 <script>
   import { globeFrame, width, height, palette } from "../lib/globe";
   import { dampAxis, motionAxis, restingRate, trackingRate } from "../lib/masthead-motion";
+  import { mountRouteElement } from "../lib/mount-route-element";
 
-  function mountGlobe(mast: HTMLElement, ctx: CanvasRenderingContext2D) {
+  function mountGlobe(mast: HTMLElement, ctx: CanvasRenderingContext2D, signal: AbortSignal) {
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     const rgba = ctx.createImageData(width, height);
     const colors = palette.map(color => [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) || 0));
@@ -135,21 +137,23 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
       showPoster();
     }
 
-    mast.addEventListener("pointerenter", follow);
-    mast.addEventListener("pointermove", follow);
-    mast.addEventListener("pointerleave", returnToRest);
-    mast.addEventListener("pointercancel", returnToRest);
-    motion.addEventListener("change", reset);
-    document.addEventListener("visibilitychange", () => { if (document.hidden) reset(); });
-    window.addEventListener("pagehide", reset);
+    mast.addEventListener("pointerenter", follow, { signal });
+    mast.addEventListener("pointermove", follow, { signal });
+    mast.addEventListener("pointerleave", returnToRest, { signal });
+    mast.addEventListener("pointercancel", returnToRest, { signal });
+    motion.addEventListener("change", reset, { signal });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) reset(); }, { signal });
+    window.addEventListener("pagehide", reset, { signal });
+    signal.addEventListener("abort", reset, { once: true });
     if (opening) wake();
   }
 
-  const mast = document.querySelector<HTMLElement>("[data-masthead]");
-  const canvas = mast?.querySelector<HTMLCanvasElement>("[data-globe-canvas]");
-  if (mast && canvas) {
-    void import("../lib/orbit-stamp").then(({ mountOrbitStamp }) => mountOrbitStamp(mast));
+  mountRouteElement<HTMLCanvasElement>("[data-globe-canvas]", (canvas, signal) => {
+    const mast = canvas.closest<HTMLElement>("[data-masthead]")!;
+    void import("../lib/orbit-stamp").then(({ mountOrbitStamp }) => {
+      if (!signal.aborted) mountOrbitStamp(mast, signal);
+    });
     const ctx = canvas.getContext("2d");
-    if (ctx) mountGlobe(mast, ctx);
-  }
+    if (ctx) mountGlobe(mast, ctx, signal);
+  });
 </script>

@@ -3,7 +3,7 @@ import { reserveSeats } from "./seats";
 
 export default [
   proof(reserveSeats, "A reservation never creates seats",
-    (available, requested, remaining) => remaining <= available),
+    (available, _requested, remaining) => remaining <= available),
   proof(reserveSeats, "Only a valid reservation consumes the requested seats",
     (available, requested, remaining) => {
       const fits = requested > 0n && requested <= available;

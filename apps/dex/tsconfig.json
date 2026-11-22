@@ -1,5 +1,16 @@
 {
-  "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "src/**/*", "cloudflare.config.ts"],
-  "exclude": ["dist"]
+  "extends": [
+    "astro/tsconfigs/strict",
+    "../../tsconfig.base.json"
+  ],
+  "compilerOptions": { "types": ["bun"] },
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "cloudflare.config.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
 }

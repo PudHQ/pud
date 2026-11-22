@@ -1,6 +1,6 @@
 ---
-import Shell from "../layouts/Shell.astro";
-import Listing from "../components/Listing.astro";
+import Shell from "../layouts/site-shell.astro";
+import Listing from "../components/entry-list.astro";
 import { vault } from "../lib/content";
 ---
 <Shell title="PudDex" home><Listing title="All entries" notes={vault.directory.notes} heading="h2" /></Shell>

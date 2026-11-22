@@ -36,7 +36,7 @@ async function StarCount() {
 
   const label = `${count.full} ${count.full === "1" ? "star" : "stars"}`;
   return (
-    <span title={label} className="font-mono text-[0.9em] tabular-nums">
+    <span title={label} className="font-mono text-star-count tabular-nums">
       <span aria-hidden="true">{count.short}</span>
       <span className="sr-only">{label}</span>
     </span>

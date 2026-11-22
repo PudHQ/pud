@@ -3,28 +3,30 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --bun astro dev",
-    "build": "bun --bun astro build",
-    "preview": "bun --bun astro preview",
-    "typecheck": "bun --bun astro check",
-    "deploy": "bun run build && cf deploy dist"
+    "dev": "\"$npm_execpath\" --bun astro dev",
+    "build": "\"$npm_execpath\" --bun astro build",
+    "preview": "\"$npm_execpath\" --bun astro preview",
+    "typecheck": "\"$npm_execpath\" --bun astro check",
+    "deploy": "\"$npm_execpath\" run build && cf deploy dist",
+    "test": "\"$npm_execpath\" test"
   },
   "dependencies": {
-    "@fontsource-variable/atkinson-hyperlegible-mono": "5.3.0",
-    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
-    "@fontsource-variable/pixelify-sans": "5.3.0",
-    "astro": "7.4.13",
-    "markdown-it": "15.0.3",
-    "markdown-it-footnote": "4.0.0",
-    "sharp": "0.35.5",
-    "yaml": "2.9.1"
+    "@fontsource-variable/atkinson-hyperlegible-mono": "catalog:",
+    "@fontsource-variable/atkinson-hyperlegible-next": "catalog:",
+    "@fontsource-variable/pixelify-sans": "catalog:",
+    "astro": "catalog:",
+    "markdown-it": "catalog:",
+    "markdown-it-footnote": "catalog:",
+    "sharp": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.12",
-    "@tailwindcss/vite": "4.3.5",
-    "@webgpu/types": "^0.1.74",
-    "cf": "1.0.0-rc.1",
-    "tailwindcss": "4.3.5",
-    "typescript": "^6"
+    "@astrojs/check": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/bun": "catalog:",
+    "@webgpu/types": "catalog:",
+    "cf": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:astro"
   }
 }

@@ -2,6 +2,14 @@
 
 The standalone company wiki at `dex.pud.dev`. Open [content](content) as an Obsidian vault. Each Markdown file becomes a page. Folders nest as deeply as you need. Each directory lists the notes in that folder and its descendants. The public build skips dot directories such as `.obsidian` and `.trash`.
 
+## Development
+
+Follow the [workspace setup](../../README.md#workspace) and run `bun run dev:dex` from the root. Changes to the vault update the local site.
+
+## Release
+
+Run `bun run build:dex` from the root to generate static pages in `apps/dex/dist`. Run `bun run deploy:dex` to build and publish those assets to the `pud-dex` Worker.
+
 ## Write
 
 Start a `.md` file anywhere in the vault. The first H1 supplies its title, with the filename as a fallback. The first paragraph supplies its directory description. YAML properties are optional.
@@ -33,9 +41,3 @@ Keep images in the vault and refer to them with `![[image.png]]` or `![descripti
 Files under [content/Bookmarks](content/Bookmarks), including subfolders, appear in the Bookmarks sidebar. A bookmark with a `url` property opens that address directly. Other bookmarks open their Markdown page.
 
 Outbound web links open in a new tab. PudDex fetches one favicon per hostname, maps it to a 16×16 pixel grid and a 16-colour palette, and serves the PNG from the wiki. The build reuses cached icons for a week. When a lookup fails, it uses the last good icon or a small globe.
-
-## Run
-
-Install workspace dependencies with `bun install` at the repository root. From `apps/dex`, run `bun run dev` on port `4902`. Changes to the vault update the local site.
-
-`bun run build` writes static pages to `dist/`. Run `bun run deploy` from this directory with the Cloudflare CLI signed in to publish the site as the `pud-dex` Worker. The deployment serves `dex.pud.dev`.

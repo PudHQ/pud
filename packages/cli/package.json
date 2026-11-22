@@ -9,8 +9,14 @@
   },
   "dependencies": {
     "@pud/model": "workspace:*",
-    "@babel/parser": "8.1.2",
-    "@babel/types": "8.1.2",
-    "chalk": "6.0.1"
+    "@babel/parser": "catalog:",
+    "@babel/types": "catalog:",
+    "chalk": "catalog:"
+  },
+  "scripts": {
+    "pack": "\"$npm_execpath\" ./scripts/pack.ts",
+    "demo": "\"$npm_execpath\" ./demo/replay.ts",
+    "test": "\"$npm_execpath\" test",
+    "typecheck": "tsc --noEmit"
   }
 }

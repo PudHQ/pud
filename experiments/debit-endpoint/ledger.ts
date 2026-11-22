@@ -6,7 +6,7 @@ import type { SubjectSource } from "@pud/model/adapter";
 import { dafny, type DafnyAdapter } from "@pud/model/dafny";
 import type { debit } from "./handler.ts";
 import { reviewedClause, type Contract } from "./internal/contracts.ts";
-import { lower } from "./internal/lower.ts";
+import { lower, type Transaction } from "./internal/lower.ts";
 import { transactionMethod } from "./internal/postgres-dafny.ts";
 import type { ReplayWitness } from "./replay.ts";
 import { Unsupported } from "@pud/model/typescript";
@@ -29,7 +29,7 @@ async function loadHandler(subject: SubjectSource): Promise<typeof debit> {
 export async function prepareLedger(subject: SubjectSource) {
   const read = subject.readDependency ?? ((path: string) => readFile(path, "utf8"));
   const schema = await read(resolve(dirname(subject.file), "schema.sql"));
-  let body;
+  let body: Transaction;
   try { body = lower(subject.source, schema, subject.name, subject.file); }
   catch (error) { throw new Unsupported((error as Error).message); }
   return {

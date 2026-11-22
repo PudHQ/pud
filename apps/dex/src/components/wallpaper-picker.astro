@@ -8,12 +8,13 @@ const wallpapers = [
   { id: "plain", label: "No wallpaper" },
 ];
 ---
-<div data-wallpaper-backdrop class="pointer-events-auto fixed inset-0 -z-1 overflow-hidden bg-(image:--wallpaper-tile)" aria-hidden="true">
+<div data-wallpaper-backdrop class="pointer-events-auto fixed inset-0 -z-1 overflow-hidden bg-(image:--wallpaper-tile)" aria-hidden="true"
+  transition:persist="dex-wallpaper">
   <div class="pointer-events-none absolute inset-0 -right-4 -bottom-2 bg-(image:--wallpaper-light) opacity-35 motion-safe:animate-(--wallpaper-motion)"></div>
   <div class="pointer-events-none absolute inset-0 -bottom-6 bg-(image:--wallpaper-accent) opacity-35 motion-safe:animate-(--wallpaper-accent-motion)"></div>
   <canvas class="pointer-events-none absolute inset-0 size-full [image-rendering:var(--rendering-pixel)]" width="1" height="1"></canvas>
 </div>
-<fieldset data-wallpaper-picker class="pointer-events-auto min-w-0">
+<fieldset data-wallpaper-picker class="pointer-events-auto min-w-0" transition:persist="dex-wallpaper-picker">
   <legend class="sr-only">Desktop wallpaper</legend>
   <div class="flex items-end gap-0.75 small-phone:gap-0.25">
     {wallpapers.map(({ id, label }) => (
@@ -80,6 +81,5 @@ const wallpapers = [
 
   const backdrop = document.querySelector<HTMLElement>("[data-wallpaper-backdrop]");
   const picker = document.querySelector<HTMLFieldSetElement>("[data-wallpaper-picker]");
-  const desktop = document.querySelector<HTMLElement>("[data-dex-window]");
-  if (backdrop && picker && desktop) mountWallpaperEffects(backdrop, picker, desktop);
+  if (backdrop && picker) mountWallpaperEffects(backdrop, picker);
 </script>

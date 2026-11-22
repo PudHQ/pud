@@ -23,7 +23,9 @@ export function lower(source: string, schema: string, subject = "debit", file = 
   checkSchema(schema);
   const program = parse(source, { sourceType: "module", plugins: ["typescript"] }).program;
   const entry = selectSubject(program, file, subject);
-  const fail = (node: Node, reason: string): never => unsupported(file, node, reason);
+  function fail(node: Node, reason: string): never {
+    return unsupported(file, node, reason);
+  }
 
   function field(node: Node, object: Value, name: string): Value {
     if (object.kind === "auth" && name === "tenantId") return { kind: "text", term: ref("string", "q", "tenant") };
@@ -95,14 +97,14 @@ export function lower(source: string, schema: string, subject = "debit", file = 
 
   function bind(node: Node, env: Scope, v: Value): void {
     if (node.type === "Identifier") {
-      if (env.has(node.name) || ["undefined", "RangeError", "Error"].includes(node.name)) return fail(node, `Unsupported shadowed binding '${node.name}'`);
+      if (env.has(node.name) || ["undefined", "RangeError", "Error"].includes(node.name)) fail(node, `Unsupported shadowed binding '${node.name}'`);
       env.set(node.name, v);
     } else if (node.type === "ObjectPattern") {
       for (const p of node.properties) {
-        if (p.type !== "ObjectProperty" || p.computed || p.key.type !== "Identifier") return fail(p, "Unsupported destructuring");
+        if (p.type !== "ObjectProperty" || p.computed || p.key.type !== "Identifier") fail(p, "Unsupported destructuring");
         bind(p.value, env, field(p, v, p.key.name));
       }
-    } else return fail(node, "Expected a name or object destructuring");
+    } else fail(node, "Expected a name or object destructuring");
   }
 
   const env: Scope = new Map();

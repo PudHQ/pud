@@ -13,7 +13,7 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       src={sprite} alt="" width="76" height="77" draggable="false" />
     <canvas data-foil-surface class="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-1/2
       [image-rendering:var(--rendering-pixel)] group-data-raised/foil:not-data-hologram:block
-      group-data-material/foil:data-hologram:block group-data-material/foil:not-data-hologram:invisible" aria-hidden="true"></canvas>
+      group-data-material/foil:data-hologram:block group-data-material/foil:not-data-hologram:invisible" inert></canvas>
     <button data-foil-control class="pointer-events-auto absolute inset-0 size-full cursor-grab touch-none border-0 bg-transparent p-0 select-none
       focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dotted focus-visible:outline-amber-100 active:cursor-grabbing"
       type="button" aria-label="Move or curl Pud" aria-describedby="foil-help"
@@ -26,8 +26,9 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
   import { dampAxis, motionAxis, restingRate, trackingRate } from "../lib/masthead-motion";
   import { createFoilMesh, createPudFoil } from "../lib/pud-foil";
   import { createHologram } from "../lib/pud-holo";
+  import { mountRouteElement } from "../lib/mount-route-element";
 
-  async function mountFoil(wrapper: HTMLElement) {
+  async function mountFoil(wrapper: HTMLElement, signal: AbortSignal) {
     const print = wrapper.querySelector<HTMLImageElement>("[data-foil-print]")!;
     const canvas = wrapper.querySelector<HTMLCanvasElement>("[data-foil-surface]")!;
     const button = wrapper.querySelector<HTMLButtonElement>("[data-foil-control]")!;
@@ -35,6 +36,7 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     try { await print.decode(); } catch { return; }
+    if (signal.aborted) return;
     const w = print.naturalWidth, h = print.naturalHeight;
     canvas.width = w; canvas.height = h;
     ctx.drawImage(print, 0, 0);
@@ -179,10 +181,10 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       hover = 0;
       wake();
     }
-    mast.addEventListener("pointerenter", followLight);
-    mast.addEventListener("pointermove", followLight);
-    mast.addEventListener("pointerleave", settleLight);
-    mast.addEventListener("pointercancel", settleLight);
+    mast.addEventListener("pointerenter", followLight, { signal });
+    mast.addEventListener("pointermove", followLight, { signal });
+    mast.addEventListener("pointerleave", settleLight, { signal });
+    mast.addEventListener("pointercancel", settleLight, { signal });
     button.addEventListener("pointermove", event => {
       if (!event.isPrimary || (pointer !== null && event.pointerId !== pointer) ||
           (pointer === null && event.pointerType === "touch")) return;
@@ -194,8 +196,8 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
         hover = 0.23 + 0.26 * aimAt(event);
       }
       wake();
-    });
-    button.addEventListener("pointerleave", () => { hover = 0; wake(); });
+    }, { signal });
+    button.addEventListener("pointerleave", () => { hover = 0; wake(); }, { signal });
     button.addEventListener("pointerdown", event => {
       if (!event.isPrimary || event.button !== 0 || pointer !== null) return;
       pointer = event.pointerId;
@@ -206,7 +208,7 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       aimAt(event);
       button.setPointerCapture(pointer);
       wake();
-    });
+    }, { signal });
     button.addEventListener("pointerup", event => {
       if (event.pointerId !== pointer) return;
       pointer = null;
@@ -215,13 +217,13 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       } else {
         wake();
       }
-    });
+    }, { signal });
     function cancelPointer(event: PointerEvent) {
       if (event.pointerId === pointer) { pointer = null; hover = 0; wake(); }
     }
-    button.addEventListener("pointercancel", cancelPointer);
-    button.addEventListener("lostpointercapture", cancelPointer);
-    button.addEventListener("click", event => { if (event.detail === 0) touchFoil(1, 420); });
+    button.addEventListener("pointercancel", cancelPointer, { signal });
+    button.addEventListener("lostpointercapture", cancelPointer, { signal });
+    button.addEventListener("click", event => { if (event.detail === 0) touchFoil(1, 420); }, { signal });
     button.addEventListener("keydown", event => {
       if (pointer !== null) return;
       if (event.key === "Home") {
@@ -240,32 +242,44 @@ const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel
       place(rect.left + direction[0] * step, rect.top + direction[1] * step);
       aim = Math.atan2(direction[1], direction[0]);
       touchFoil(0.48, 140);
-    });
-    window.addEventListener("blur", rest);
-    document.addEventListener("visibilitychange", () => { if (document.hidden) rest(); });
-    motion.addEventListener("change", rest);
+    }, { signal });
+    window.addEventListener("blur", rest, { signal });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) rest(); }, { signal });
+    motion.addEventListener("change", rest, { signal });
     button.hidden = false;
     if (!motion.matches) touchFoil(0.47, 280);
 
     function uncoat() {
+      if (signal.aborted) return;
       material = undefined;
       wrapper.removeAttribute("data-material");
       paint();
     }
-    window.addEventListener("pagehide", event => { if (!event.persisted) { resize.disconnect(); material?.destroy(); } });
-    window.addEventListener("pageshow", paint);
+    function dispose() {
+      rest();
+      resize.disconnect();
+      material?.destroy();
+    }
+    signal.addEventListener("abort", dispose, { once: true });
+    window.addEventListener("pagehide", event => { if (!event.persisted) dispose(); }, { signal });
+    window.addEventListener("pageshow", paint, { signal });
     try {
-      material = await createHologram(coated, sprite, mesh, uncoat);
+      const renderer = await createHologram(coated, sprite, mesh, uncoat);
+      if (signal.aborted) {
+        renderer?.destroy();
+        return;
+      }
+      material = renderer;
       if (material) {
         wrapper.dataset.material = material.hdr ? "hdr" : "sdr";
         paint();
       }
     } catch (error) {
+      if (signal.aborted) return;
       console.warn("Pud foil is using the canvas renderer.", error);
       uncoat();
     }
   }
 
-  const foil = document.querySelector<HTMLElement>("[data-foil]");
-  if (foil) void mountFoil(foil);
+  mountRouteElement<HTMLElement>("[data-foil]", mountFoil);
 </script>

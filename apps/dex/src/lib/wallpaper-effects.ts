@@ -17,7 +17,7 @@ function exposedGutter(point: Point, viewport: Area, wiki: Area): Area {
   return { ...viewport, left: wiki.right };
 }
 
-export function mountWallpaperEffects(backdrop: HTMLElement, picker: HTMLFieldSetElement, desktop: HTMLElement) {
+export function mountWallpaperEffects(backdrop: HTMLElement, picker: HTMLFieldSetElement) {
   const canvas = backdrop.querySelector("canvas")!;
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   const scenes = new Map<string, Scene>();
@@ -79,7 +79,8 @@ export function mountWallpaperEffects(backdrop: HTMLElement, picker: HTMLFieldSe
     if (event.button !== 0 || !event.detail || event.defaultPrevented) return;
     const theme = selected();
     const react = reactions[theme];
-    if (!react) return;
+    const desktop = document.querySelector<HTMLElement>("[data-dex-window]");
+    if (!react || !desktop) return;
     context ??= canvas.getContext("2d");
     if (!context) return;
 

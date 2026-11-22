@@ -1,6 +1,6 @@
 ---
-import Shell from "../../layouts/Shell.astro";
-import Listing from "../../components/Listing.astro";
+import Shell from "../../layouts/site-shell.astro";
+import Listing from "../../components/entry-list.astro";
 import { vault } from "../../lib/content";
 export function getStaticPaths() {
   return vault.folders.map(folder => ({ params: { id: folder.id }, props: { folder } }));
