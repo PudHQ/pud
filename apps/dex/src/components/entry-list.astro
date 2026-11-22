@@ -4,6 +4,7 @@ import Breadcrumbs from "./breadcrumb-nav.astro";
 import NoteIcon from "./note-icon.astro";
 import { vault } from "../lib/content";
 import { formatNoteDate } from "../lib/note-date";
+import { teletextNumbers } from "../lib/teletext-pages";
 import { outboundAttributes } from "../lib/web-links";
 import { activeBar, contentPanel, favicon, link } from "../lib/styles";
 import type { Note, SavedLink } from "../lib/vault";
@@ -13,42 +14,50 @@ const total = links ? links.length : notes.length;
 const noun = links ? "link" : "entry";
 const plural = links ? "links" : "entries";
 const row = `grid grid-cols-entry items-start gap-2.25 border-t border-zinc-200 py-2.5 first:border-t-0
-  stacked:grid-cols-entry-stacked stacked:gap-x-2 stacked:gap-y-px stacked:py-2.25`;
-const entryTitle = `${link} text-entry font-bold wrap-anywhere decoration-1`;
-const description = "mt-0.5 max-w-summary text-small/normal wrap-anywhere text-slate-600";
+  stacked:grid-cols-entry-stacked stacked:gap-x-2 stacked:gap-y-px stacked:py-2.25
+  teletext:flex teletext:flex-col teletext:items-stretch teletext:gap-0 teletext:border-blue-950 teletext:py-0.5`;
+const entryTitle = `${link} text-entry font-bold wrap-anywhere decoration-1
+  teletext:flex teletext:min-h-9 teletext:items-baseline teletext:justify-between teletext:gap-2 teletext:px-2.5 teletext:py-1.5
+  teletext:font-pixel teletext:text-lg/none teletext:font-normal teletext:no-underline teletext:focus-visible:bg-blue-800 teletext:focus-visible:-outline-offset-2`;
+const description = `mt-0.5 max-w-summary text-small/normal wrap-anywhere text-slate-600
+  teletext:mt-0 teletext:max-w-none teletext:px-2.5 teletext:pb-1.5 teletext:text-xs/relaxed teletext:text-zinc-300`;
 const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere text-slate-600
-  stacked:col-start-2 stacked:max-w-none stacked:justify-self-start stacked:text-left`;
+  stacked:col-start-2 stacked:max-w-none stacked:justify-self-start stacked:text-left teletext:hidden`;
 ---
 <section class={contentPanel}>
   <div class={activeBar}>
-    <Icon name={links ? "link" : "open"} />
+    <span class="inline-flex teletext:hidden"><Icon name={links ? "link" : "open"} /></span>
     <Heading class="font-section wrap-anywhere">{title}</Heading>
-    <span class="ml-auto shrink-0 font-mono text-caption font-normal text-slate-200" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
+    <span class="ml-auto shrink-0 font-mono text-caption font-normal text-slate-200 teletext:text-cyan-100" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
   </div>
-  <div class:list={["border-b border-line bg-zinc-200 px-2.5 py-1.75", !folderPath && "noscript:hidden"]}>
+  <div class:list={["border-b border-line bg-zinc-200 px-2.5 py-1.75 teletext:border-blue-800 teletext:bg-black", !folderPath && "noscript:hidden teletext:hidden"]}>
     {folderPath && <Breadcrumbs folder={folderPath} class="mt-px mb-1.5" current />}
     <label class="flex min-h-7.5 items-center gap-2 border border-t-chrome-edge border-r-white border-b-white border-l-chrome-edge
-      bg-white px-1.75 text-slate-600 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-link noscript:hidden">
+      bg-white px-1.75 text-slate-600 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-link noscript:hidden
+      teletext:hidden">
       <Icon name="search" size={16} />
       <input data-filter disabled class="h-7.25 min-w-0 flex-1 cursor-text text-ui text-ink placeholder:text-slate-500 focus:outline-none"
         type="search" aria-label={links ? "Search links" : "Search entries"} placeholder={links ? "Search links…" : "Search entries…"} aria-keyshortcuts="/" />
       <kbd class="border border-line px-1 font-mono text-caption/tight text-slate-600" aria-hidden="true">/</kbd>
     </label>
   </div>
-  <ul class="px-3.25 phone:px-2.5">
+  <ul class="px-3.25 phone:px-2.5 teletext:px-0">
     {links ? links.map(saved => <li class:list={[row, "relative"]} data-entry>
       <div class="col-start-2 min-w-0">
-        <a class:list={[entryTitle, favicon, "outbound:before:absolute outbound:before:top-3 outbound:before:left-0.5"]}
-          href={saved.href} {...outboundAttributes(saved.href)}>{saved.title} <span aria-hidden="true">↗</span></a>
+        <a data-teletext-entry class:list={[entryTitle, favicon, "outbound:before:absolute outbound:before:top-3 outbound:before:left-0.5 teletext:before:hidden"]}
+          href={saved.href} {...outboundAttributes(saved.href)}><span>{saved.title}</span> <span aria-hidden="true">↗</span></a>
         <p class={description}>Saved in {saved.sources.map((note, i) => <>{i > 0 && ", "}<a class={link} href={note.href}>{note.title}</a></>)}</p>
       </div>
       <span class:list={[kind, "max-w-link-host"]}>{saved.host}</span>
     </li>) : notes.map(note => {
       const folder = vault.folders.find(group => group.path === note.folder);
       return <li class={row} data-entry data-keywords={[...note.tags, ...note.aliases, note.folder].join(" ")}>
-        <span class="flex h-5.5 items-center justify-center"><NoteIcon note={note} size={20} /></span>
+        <span class="flex h-5.5 items-center justify-center teletext:hidden"><NoteIcon note={note} size={20} /></span>
         <div class="min-w-0">
-          <a class={entryTitle} href={note.href}>{note.title}</a>
+          <a data-teletext-entry class={entryTitle} href={note.href}>
+            <span>{note.title}</span>
+            <span class="hidden shrink-0 text-amber-200 teletext:inline">{teletextNumbers.get(note.href)}</span>
+          </a>
           {note.summary && <p class={description}>{note.summary}</p>}
         </div>
         {(folder || note.date) && <div class:list={[kind, "flex flex-col items-end gap-y-0.5 stacked:flex-row stacked:flex-wrap stacked:items-baseline stacked:gap-x-2"]}>
@@ -58,10 +67,11 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
       </li>;
     })}
   </ul>
-  <p class="p-4 text-ui text-slate-600" hidden={total > 0} data-empty>{total ? "No matches." : links ? "No links yet." : "No entries yet."}</p>
+  <p class="p-4 text-ui text-slate-600 teletext:text-zinc-300" hidden={total > 0} data-empty>{total ? "No matches." : links ? "No links yet." : "No entries yet."}</p>
 </section>
 <script>
   import { mountRouteElement } from "../lib/mount-route-element";
+  import { teletextAttribute, teletextChange } from "../lib/teletext";
 
   mountRouteElement<HTMLInputElement>("[data-filter]", (input, signal) => {
     const count = document.querySelector<HTMLElement>("[data-count]");
@@ -70,8 +80,9 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
       row, text: (row.textContent + " " + (row.dataset.keywords ?? "")).toLocaleLowerCase(),
     }));
     const empty = document.querySelector<HTMLElement>("[data-empty]")!;
+    const inTeletext = () => document.documentElement.hasAttribute(teletextAttribute);
     const update = () => {
-      const words = input.value.trim().toLocaleLowerCase().split(/\s+/);
+      const words = inTeletext() ? [] : input.value.trim().toLocaleLowerCase().split(/\s+/);
       let shown = 0;
       for (const { row, text } of entries) {
         row.hidden = !words.every(word => text.includes(word));
@@ -88,11 +99,13 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
     };
     input.addEventListener("input", update, { signal });
     input.addEventListener("change", saveSearch, { signal });
+    document.addEventListener(teletextChange, update, { signal });
     window.addEventListener("pageshow", update, { signal });
     document.addEventListener("astro:before-preparation", ({ navigationType }) => {
       if (navigationType !== "traverse") saveSearch();
     }, { signal });
     document.addEventListener("keydown", event => {
+      if (inTeletext()) return;
       if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && !(event.target instanceof HTMLInputElement)) {
         event.preventDefault();
         input.focus();

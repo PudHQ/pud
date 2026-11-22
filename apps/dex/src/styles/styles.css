@@ -180,6 +180,7 @@
 @custom-variant small-phone (@media (width <= 355px));
 @custom-variant expanded (details[open] > &);
 @custom-variant outbound (&[target="_blank"]);
+@custom-variant teletext (&:where([data-dex-teletext], [data-dex-teletext] *));
 
 @layer base {
   /* Each cursor image includes its separator so controls can supply their own native fallback. */
@@ -195,6 +196,8 @@
   @media (forced-colors: active) {
     :root { --active-wallpaper-cursor: initial; }
   }
+
+  :root[data-dex-teletext] { --active-wallpaper-cursor: initial; }
 
   :root:has(#wallpaper-brick:checked) {
     --wallpaper-tile: url("/wallpapers/brick.png");
@@ -279,4 +282,13 @@
   .footnote-ref a { @apply underline-offset-2; }
   .footnotes { @apply mt-6 border-t border-line pt-1.5 text-ui text-slate-600; }
   .footnote-item, .footnote-ref a { @apply scroll-my-4 target:bg-slate-100; }
+
+  [data-dex-teletext] {
+    & .prose :is(h1, h2, h3, h4, h5, h6) { @apply font-pixel text-yellow-300; }
+    & :is(.prose, .footnote-ref) a { @apply text-cyan-300 visited:text-fuchsia-300 hover:text-yellow-200; }
+    & .prose :is(hr, blockquote, td, th), & .footnotes { @apply border-blue-800; }
+    & .prose :is(pre, :not(pre) > code) { @apply bg-blue-950 text-cyan-100; }
+    & .prose :is(.unresolved, .footnotes) { @apply text-zinc-300; }
+    & .prose :is(.footnote-item, .footnote-ref a):target { @apply bg-blue-950; }
+  }
 }

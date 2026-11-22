@@ -1,22 +1,13 @@
 ---
 import Icon from "./dex-icon.astro";
-import { bar, panel, summary } from "../lib/styles";
+import { bar, panel } from "../lib/styles";
 
 interface Props { label: string; icon: "folder" | "link" }
 const { label, icon } = Astro.props;
 ---
 <nav class={panel} aria-label={label}>
-  <details data-sidebar-disclosure={label} open>
-    <summary class:list={[bar, summary, "bg-panel-bar text-slate-800 phone:min-h-8",
-      "after:ml-auto after:font-mono after:text-base/ui after:font-normal after:content-(--disclosure-closed) expanded:after:content-(--disclosure-open)"]}>
-      <Icon name={icon} /> {label}
-    </summary>
-    <script is:inline>
-      // Set the phone default while parsing the first page.
-      if (document.readyState === "loading" && matchMedia("(max-width: 640px)").matches) {
-        document.currentScript.parentElement.open = false;
-      }
-    </script>
-    <slot />
-  </details>
+  <h2 class:list={[bar, "bg-panel-bar text-slate-800 phone:min-h-8"]}>
+    <Icon name={icon} /> {label}
+  </h2>
+  <slot />
 </nav>

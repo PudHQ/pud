@@ -1,0 +1,59 @@
+---
+import Icon from "./dex-icon.astro";
+import { teletextNumbers, teletextPages } from "../lib/teletext-pages";
+
+const { pathname } = Astro.url;
+const index = teletextPages.findIndex(page => page.href === pathname);
+const number = teletextPages[index]?.number ?? 404;
+const previous = teletextPages.at(index < 0 ? -1 : index - 1)!;
+const next = teletextPages[(index + 1) % teletextPages.length];
+const isNote = pathname.startsWith("/notes/");
+const pageDirectory = JSON.stringify(Object.fromEntries(teletextPages.map(({ number, href }) => [number, href])));
+const action = "flex min-h-7 items-center justify-center gap-1 rounded-xs border border-white/15 bg-linear-to-b px-1 font-pixel text-sm leading-none font-bold uppercase inset-shadow-xs inset-shadow-white/25";
+const key = "rounded-xs border border-sky-800 bg-slate-950 px-1 font-pixel font-bold text-cyan-100";
+---
+<nav data-teletext-controls data-page={number} data-pages={pageDirectory} aria-label="Teletext controls"
+  class="pointer-events-none sticky bottom-3 z-5 mb-3 hidden w-76 max-w-full self-end rounded-sm border border-sky-800
+    border-t-sky-400/80 bg-linear-to-br from-sky-950 via-slate-950 to-black p-2 shadow-lg shadow-black
+    inset-shadow-sm inset-shadow-cyan-300/10 ring-1 ring-cyan-300/15 phone:bottom-2 phone:mb-2 teletext:block">
+  <span aria-hidden="true" class="absolute -top-px inset-x-3 h-px bg-linear-to-r from-transparent via-sky-200/75 to-transparent">
+    <span class="absolute -top-1 right-3 inline-flex text-cyan-100 motion-safe:animate-widget-glint"><Icon name="spark" size={10} /></span>
+  </span>
+  <div class="mb-1.5 flex items-center justify-between gap-2">
+    <p class="inline-flex min-w-15 items-center justify-center gap-1 rounded-xs border border-sky-800
+      bg-black px-1.5 py-0.5 font-pixel text-base leading-none font-bold tracking-wide text-amber-200">
+      <span class="sr-only">Channel </span><span aria-hidden="true" class="text-cyan-300">P</span><span data-teletext-number>{number}</span>
+    </p>
+    <span class="flex items-center gap-1.5 text-xs text-slate-200"><kbd class={key}>0–9</kbd> Tune</span>
+  </div>
+  <div class="grid grid-cols-4 gap-1">
+    <a href="/" data-teletext-index class:list={[action, "from-orange-300 to-vermilion text-black"]}
+      aria-current={pathname === "/" ? "page" : undefined} aria-label="Index, channel 100" aria-keyshortcuts="I">
+      <kbd class="rounded-xs bg-black/15 px-0.75">I</kbd> Index
+    </a>
+    <a href="/links/" data-teletext-links class:list={[action, "from-amber-100 to-amber-400 text-black"]}
+      aria-current={pathname === "/links/" ? "page" : undefined} aria-label={`Links, channel ${teletextNumbers.get("/links/")}`} aria-keyshortcuts="L">
+      <kbd class="rounded-xs bg-black/15 px-0.75">L</kbd> Links
+    </a>
+    <a href={previous.href} data-teletext-previous class:list={[action, "from-blue-600 to-blue-900 text-white"]} aria-keyshortcuts="ArrowLeft"
+      aria-label={`Previous page, ${previous.title}`} title={previous.title}><kbd aria-hidden="true">←</kbd> {previous.number}</a>
+    <a href={next.href} data-teletext-next class:list={[action, "from-cyan-200 to-cyan-500 text-black"]} aria-keyshortcuts="ArrowRight"
+      aria-label={`Next page, ${next.title}`} title={next.title}>{next.number} <kbd aria-hidden="true">→</kbd></a>
+  </div>
+  <p class="mt-1.5 flex flex-wrap justify-between gap-x-2 gap-y-1 text-xs leading-normal text-slate-200">
+    <span><kbd class={key}>↑↓</kbd> {isNote ? "Scroll" : "Select"}</span>
+    {!isNote && <span><kbd class={key}>Enter</kbd> Open</span>}
+    <span><kbd class={key}>←→</kbd> Page</span>
+  </p>
+  <p data-teletext-status role="status" class="mt-1.5 border-t border-sky-800 pt-1.5 text-xs text-amber-200 empty:hidden"></p>
+</nav>
+
+<script>
+  import { mountRouteElement } from "../lib/mount-route-element";
+  import { mountTeletext, teletextAttribute } from "../lib/teletext";
+
+  document.addEventListener("astro:before-swap", ({ newDocument }) => {
+    newDocument.documentElement.toggleAttribute(teletextAttribute, document.documentElement.hasAttribute(teletextAttribute));
+  });
+  mountRouteElement<HTMLElement>("[data-teletext-controls]", mountTeletext);
+</script>

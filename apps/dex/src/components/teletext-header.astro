@@ -1,0 +1,40 @@
+---
+import { vault } from "../lib/content";
+import { getTeletextArt } from "../lib/teletext-art";
+import { teletextNumbers } from "../lib/teletext-pages";
+
+const { pathname } = Astro.url;
+const number = teletextNumbers.get(pathname) ?? 404;
+const folders = pathname === "/" ? vault.roots : vault.folders.find(folder => folder.href === pathname)?.children ?? [];
+const art = await getTeletextArt();
+---
+<header class="hidden min-w-0 teletext:block">
+  <div class="flex min-h-9 items-center justify-between gap-4 border-b border-sky-700 font-pixel text-lg leading-none font-bold text-cyan-300">
+    <p><span class="sr-only">Teletext channel </span><span aria-hidden="true">P</span><span class="ml-1 text-amber-50">{number}</span></p>
+    <span class="tracking-wider">TELETEXT</span>
+  </div>
+
+  <div class="relative isolate flex items-center justify-between gap-2.5 overflow-hidden bg-(image:--background-masthead) px-4 py-1.5 phone:px-2.5">
+    <div class="absolute inset-0 -z-1 bg-(image:--background-stars) bg-right opacity-55" aria-hidden="true"></div>
+    <img src={art.stamp} alt="PudDex" width="62" height="14" class="h-auto w-7/12 max-w-104 [image-rendering:var(--rendering-pixel)]" />
+    <img src={art.globe} alt="" width="36" height="20" class="h-auto w-2/5 max-w-57.5 [image-rendering:var(--rendering-pixel)]" />
+    <div class="pointer-events-none absolute inset-0 bg-(image:--background-sponsor-scanlines)" aria-hidden="true"></div>
+  </div>
+  <div class="grid h-1 grid-cols-4 gap-px" aria-hidden="true">
+    <span class="bg-vermilion"></span><span class="bg-amber-200"></span>
+    <span class="bg-blue-500"></span><span class="bg-cyan-300"></span>
+  </div>
+
+  {folders.length > 0 && <nav aria-label="Folders" class="mt-4 mb-2">
+    <h2 class="border-b border-cyan-500 px-2 pb-1 font-pixel text-xl uppercase text-cyan-300">Folders</h2>
+    <ul class="grid grid-cols-2 gap-x-4 gap-y-px py-1 stacked:grid-cols-1">
+      {folders.map(folder => <li>
+        <a data-teletext-entry href={folder.href} class="flex min-h-9 items-center justify-between gap-2 px-2 font-pixel text-lg/none text-cyan-100
+          focus-visible:bg-blue-800 focus-visible:outline-amber-100">
+          <span class="wrap-anywhere">{folder.name}</span>
+          <span class="shrink-0 text-amber-200">{teletextNumbers.get(folder.href)}</span>
+        </a>
+      </li>)}
+    </ul>
+  </nav>}
+</header>

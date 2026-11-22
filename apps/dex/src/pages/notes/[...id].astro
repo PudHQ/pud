@@ -15,25 +15,25 @@ const author = note.author ? authors.get(note.author) : undefined;
 ---
 <Shell title={note.title} description={note.summary || undefined} folder={note.folder} author={author?.name ?? note.author}>
   <article class={contentPanel}>
-    <div class={activeBar}><Icon name="note" /><Breadcrumbs folder={note.folder} /></div>
+    <div class={activeBar}><span class="inline-flex teletext:hidden"><Icon name="note" /></span><Breadcrumbs folder={note.folder} /></div>
     <div class={reading}>
       <h1 class:list={[readingTitle, "has-[+[data-byline]]:mb-1.25"]} id={note.headingId}>{note.title}<Fragment set:html={note.titleFootnotes} /></h1>
-      {(note.author || note.date) && <div class="mb-4 flex flex-col items-start gap-1.25 text-small text-slate-600" data-byline>
+      {(note.author || note.date) && <div class="mb-4 flex flex-col items-start gap-1.25 text-small text-slate-600 teletext:text-cyan-100" data-byline>
         {note.author && <p class="flex min-w-0 items-center gap-1.25">By {author
           ? <a class:list={[link, "inline-flex items-center gap-1.75"]} href={author.href} rel="author">
-            <span class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-vermilion">
+            <span class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-vermilion teletext:rounded-none teletext:bg-blue-800">
               <img class="[image-rendering:var(--rendering-pixel)]" src={author.avatar} width="32" height="32" alt="" />
             </span>{author.name}
           </a>
           : note.author}</p>}
         {note.date && <time class="font-mono text-xs whitespace-nowrap" datetime={note.date}>{formatNoteDate(note.date)}</time>}
       </div>}
-      {note.url && <a class:list={[link, favicon, "inline-flex min-h-7 items-center gap-1.5 bg-slate-100 px-2 py-0.5 font-mono text-small/normal"]}
+      {note.url && <a class:list={[link, favicon, "inline-flex min-h-7 items-center gap-1.5 bg-slate-100 px-2 py-0.5 font-mono text-small/normal teletext:bg-blue-950"]}
         href={note.url} {...outboundAttributes(note.url)}>Visit {new URL(note.url).hostname} ↗</a>}
       <div class="prose text-note" set:html={note.html}></div>
-      {note.tags.length > 0 && <p class="my-3 flex flex-wrap gap-2 font-mono text-xs/normal font-label text-slate-600">{note.tags.map(tag => <span>#{tag}</span>)}</p>}
-      <section class="mt-6 border-t border-line" aria-label="Backlinks">
-        <h2 class="mt-4.5 mb-1.75 flex items-center gap-1.75 text-entry/tight font-panel text-navy"><Icon name="link" /> Linked from</h2>
+      {note.tags.length > 0 && <p class="my-3 flex flex-wrap gap-2 font-mono text-xs/normal font-label text-slate-600 teletext:text-green-300">{note.tags.map(tag => <span>#{tag}</span>)}</p>}
+      <section class="mt-6 border-t border-line teletext:border-blue-800" aria-label="Backlinks">
+        <h2 class="mt-4.5 mb-1.75 flex items-center gap-1.75 text-entry/tight font-panel text-navy teletext:font-pixel teletext:text-yellow-300"><Icon name="link" /> Linked from</h2>
         {note.backlinks.length
           ? <ul class="my-4 list-disc pl-5.25 text-ui/relaxed">{note.backlinks.map(source => <li><a class={link} href={source.href}>{source.title}</a></li>)}</ul>
           : <p class="my-3.5 text-ui/relaxed">No incoming links yet.</p>}

@@ -15,6 +15,8 @@ import FolderTree from "../components/folder-tree.astro";
 import PageMelt from "../components/page-melt.astro";
 import SidebarPanel from "../components/sidebar-panel.astro";
 import SponsorBadge from "../components/sponsor-badge.astro";
+import TeletextControls from "../components/teletext-controls.astro";
+import TeletextHeader from "../components/teletext-header.astro";
 import WallpaperPicker from "../components/wallpaper-picker.astro";
 import WidgetBar from "../components/widget-bar.astro";
 
@@ -25,7 +27,8 @@ const { notes, roots, links } = vault;
 ---
 <!doctype html>
 <html lang="en" data-dex-home={home ? "" : undefined}
-  class="scrollbar-gutter-stable bg-desktop font-sans leading-ui text-ink [font-synthesis:var(--font-synthesis-ui)]"
+  class="scrollbar-gutter-stable bg-desktop font-sans leading-ui text-ink [font-synthesis:var(--font-synthesis-ui)]
+    teletext:scroll-pt-12 teletext:scroll-pb-32 teletext:bg-black teletext:scheme-dark"
   transition:animate="none">
   <head>
     <meta charset="utf-8" />
@@ -37,26 +40,39 @@ const { notes, roots, links } = vault;
     <link rel="icon" href="/pud-chrome.png" type="image/png" />
     <link rel="preload" href={readingFont} as="font" type="font/woff2" crossorigin />
     <title>{home ? "PudDex" : title + " · PudDex"}</title>
+    <script is:inline>
+      try {
+        if (sessionStorage.getItem("puddex:teletext") === "on") document.documentElement.setAttribute("data-dex-teletext", "");
+      } catch {}
+    </script>
     <ClientRouter fallback="swap" />
   </head>
   <body class="isolate flex min-h-dvh min-w-70 flex-col px-6 narrow:px-3 phone:px-1.5
-    [&_:where(:focus-visible)]:outline-2 [&_:where(:focus-visible)]:outline-focus [&_:where(:focus-visible)]:outline-offset-2">
-    <a class:list={[link, "sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-2 focus:z-3 focus:bg-white focus:p-2.25"]} href="#content">Skip to content</a>
-    <div class="pointer-events-none mx-auto mt-1 mb-window-margin flex w-full max-w-window grow flex-col gap-0.5 phone:mb-1.5">
-      <div class="flex min-h-13 flex-wrap items-end gap-1">
+    [&_:where(:focus-visible)]:outline-2 [&_:where(:focus-visible)]:outline-focus [&_:where(:focus-visible)]:outline-offset-2
+    teletext:pointer-events-none teletext:min-w-0 teletext:px-3 teletext:font-mono teletext:text-zinc-100 teletext:[&_:where(:focus-visible)]:outline-amber-100">
+    <a class:list={[link, "sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-2 focus:z-7 focus:bg-white focus:p-2.25 teletext:focus:bg-blue-950"]} href="#content">Skip to content</a>
+    <a data-teletext-exit data-astro-reload href={Astro.url.pathname} aria-keyshortcuts="Escape" class="sticky top-0 z-6 hidden min-h-11 w-fit items-center gap-2 self-start
+      bg-black px-2 font-pixel text-sm font-bold text-amber-200 teletext:flex">
+      <kbd class="bg-amber-200 px-1 text-black" aria-hidden="true">ESC</kbd> Back to the real world
+    </a>
+    <div class="pointer-events-none mx-auto mt-1 mb-window-margin flex w-full max-w-window grow flex-col gap-0.5
+      phone:mb-1.5 teletext:mb-5 teletext:max-w-3xl">
+      <div class="flex min-h-13 flex-wrap items-end gap-1 teletext:hidden">
         <WallpaperPicker />
         <SponsorBadge />
       </div>
       <div data-dex-window class="pointer-events-auto flex grow flex-col border border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
-        bg-chrome p-1 shadow-window phone:p-0.75">
-        <div class="relative">
+        bg-chrome p-1 shadow-window phone:p-0.75 teletext:pointer-events-none teletext:border-0 teletext:bg-black teletext:p-0 teletext:shadow-none">
+        <div class="relative teletext:hidden">
           <header transition:persist="dex-masthead">
             <Masthead />
           </header>
           <WidgetBar />
         </div>
-        <div class="my-2 grid grow grid-cols-workspace gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:flex phone:flex-col phone:gap-1.5">
-          <aside class="grid min-w-0">
+        <TeletextHeader />
+        <div class="my-2 grid grow grid-cols-workspace gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:flex phone:flex-col phone:gap-1.5
+          teletext:my-1.5 teletext:flex teletext:flex-col">
+          <aside class="grid min-w-0 teletext:hidden">
             <SidebarPanel label="Entries" icon="folder">
               <div class="p-1.25 text-small">
                 <FolderTree folders={roots} notes={notes.filter(note => !note.folder)} active={folder} />
@@ -65,14 +81,26 @@ const { notes, roots, links } = vault;
           </aside>
           <main id="content" class="flex min-w-0 flex-col focus:outline-none phone:grow" tabindex="-1"><slot /></main>
         </div>
-        <footer class="flex min-h-6.25 items-center border border-t-slate-400 border-r-chrome-highlight border-b-chrome-highlight border-l-slate-400 px-1.75 py-0.5">
+        <footer class="flex min-h-6.25 items-center border border-t-slate-400 border-r-chrome-highlight border-b-chrome-highlight border-l-slate-400 px-1.75 py-0.5 teletext:hidden">
           <span class="inline-flex items-center gap-1.5 font-mono text-caption/normal text-slate-700">
             <Icon name="disk" /> {notes.length} {notes.length === 1 ? "entry" : "entries"} <b class="text-slate-500">·</b> {links.length} {links.length === 1 ? "link" : "links"}
           </span>
         </footer>
       </div>
-      <PageMelt />
+      <div class="flex items-end justify-end gap-2 teletext:hidden">
+        <button data-teletext-launch type="button" class="pointer-events-auto flex min-h-6 items-center gap-2 border border-t-slate-400
+          border-r-slate-950 border-b-slate-950 border-l-slate-400 bg-black px-2.5 font-pixel text-sm leading-none font-bold tracking-wide
+          text-cyan-100 uppercase shadow-window hover:bg-blue-950 focus-visible:outline-cyan-200 active:translate-y-px noscript:hidden">
+          <span aria-hidden="true" class="grid grid-cols-2 gap-px">
+            <span class="size-1.5 bg-vermilion"></span><span class="size-1.5 bg-amber-200"></span>
+            <span class="size-1.5 bg-blue-500"></span><span class="size-1.5 bg-cyan-300"></span>
+          </span>
+          Teletext
+        </button>
+        <PageMelt />
+      </div>
     </div>
+    <TeletextControls />
   </body>
 </html>
 <script>
