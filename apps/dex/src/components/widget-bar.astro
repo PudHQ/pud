@@ -1,0 +1,156 @@
+---
+import Icon from "./dex-icon.astro";
+import { summary } from "../lib/styles";
+
+const widgets = [
+  { id: "stocks", label: "Nasdaq stock prices", icon: "quotes", color: "text-cyan-200", tint: "from-cyan-400/16" },
+  { id: "markets", label: "Polymarket top ten", icon: "markets", color: "text-fuchsia-200", tint: "from-violet-500/22" },
+  { id: "weather", label: "Weather around the world", icon: "weather", color: "text-amber-200", tint: "from-amber-400/16" },
+  { id: "runner", label: "Pud Runner", icon: null, color: "text-slate-100", tint: "from-slate-300/15" },
+] as const;
+const control = "grid h-full w-8 shrink-0 place-items-center border-l border-sky-200/15 bg-black text-cyan-100 hover:bg-sky-950 focus-visible:outline-cyan-200 focus-visible:-outline-offset-3 phone:w-9";
+const item = "relative isolate mr-1 flex h-6.5 shrink-0 items-center gap-2 self-center rounded-sm border px-2.5 text-xs leading-none whitespace-nowrap";
+---
+<section data-widget-bar data-widget-off aria-label="Widget bar" transition:persist="dex-widget-bar"
+  class="group/bar relative isolate z-4 flex h-8 min-w-0 items-center border border-t-0 border-r-chrome-highlight
+    border-b-chrome-highlight border-l-chrome-edge bg-black font-mono text-slate-100 phone:h-9
+    data-widget-off:absolute data-widget-off:right-px data-widget-off:bottom-px data-widget-off:border-0">
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-1 bg-(image:--background-stars) bg-size-(--background-size-stars)
+    bg-right opacity-25 group-data-widget-off/bar:hidden"></div>
+  {widgets.map(({ id, label, icon, color, tint }) => (
+    <div data-widget-heading={id} title={label} hidden class:list={[
+      "relative grid h-full w-8 shrink-0 place-items-center border-r border-current/30 bg-linear-to-br to-black",
+      color, tint,
+    ]}>
+      {icon
+        ? <Icon name={icon} size={17} />
+        : <img src="/pud-chrome.png" alt="" width="17" height="17" class="size-4.25 object-contain grayscale [image-rendering:var(--rendering-pixel)]" />}
+      <span class="sr-only">{label}</span>
+      <span aria-hidden="true" class="pointer-events-none absolute top-1 right-0.5 motion-safe:animate-widget-glint">
+        <Icon name="spark" size={7} />
+      </span>
+    </div>
+  ))}
+
+  <div data-widget-data class="relative h-full min-w-0 grow" hidden>
+    <div data-widget-scroll class="h-full overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-none">
+      <div data-widget-track class="flex h-full w-max">
+        <ul data-widget-items class="flex h-full shrink-0"></ul>
+        <div data-widget-repeat aria-hidden="true" class="flex h-full shrink-0"></div>
+      </div>
+    </div>
+    <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 left-0 w-3 bg-linear-to-r from-black/80 to-transparent"></span>
+    <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-5 bg-linear-to-l from-black to-transparent"></span>
+    <div data-widget-status role="status" class="pointer-events-none absolute inset-0 flex items-center px-3 text-xs text-slate-200" hidden></div>
+  </div>
+
+  <div data-widget-runner class="relative h-full min-w-0 grow overflow-hidden" hidden>
+    <canvas data-runner-board class="size-full [image-rendering:var(--rendering-pixel)]" aria-hidden="true" width="1" height="1"></canvas>
+    <button data-runner-jump type="button" aria-label="Jump in Pud Runner" class="absolute inset-0 size-full touch-manipulation
+      after:absolute after:inset-x-1 after:bottom-0 after:h-px after:bg-cyan-300/70 after:opacity-0
+      focus-visible:outline-none focus-visible:after:opacity-100"></button>
+    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-2 bg-linear-to-l from-black via-black/95 to-transparent
+      pr-2 pl-5 text-caption whitespace-nowrap text-slate-300">
+      <span data-runner-status role="status" class="empty:hidden"></span>
+      <span data-runner-hint class="flex items-center gap-1 text-slate-300"><kbd class="rounded-xs border border-slate-600 px-1">Space</kbd> or tap</span>
+      <output aria-label="Pud Runner score" aria-live="off" data-runner-score class="font-pixel text-xs tabular-nums text-cyan-100">000</output>
+    </div>
+    <img data-runner-sprite src="/pud-chrome.png" alt="" hidden />
+  </div>
+
+  <button data-widget-pause type="button" class:list={[control, "text-xs"]} aria-label="Pause ticker" title="Pause ticker" hidden>Ⅱ</button>
+  <button data-runner-action type="button" aria-label="Start Pud Runner" title="Start Pud Runner"
+    class="flex h-full w-16 shrink-0 items-center justify-center gap-1 border-l border-sky-200/15 px-1.5 font-pixel text-xs text-cyan-100
+      hover:bg-sky-950 focus-visible:bg-sky-950 focus-visible:outline-cyan-200 focus-visible:-outline-offset-2" hidden>
+    <span data-runner-action-icon class="text-caption" aria-hidden="true">▶</span>
+    <span data-runner-action-label>Play</span>
+  </button>
+
+  <details data-widget-picker class="relative h-full w-9 shrink-0 phone:w-10">
+    <summary class:list={[summary, control, "w-full expanded:bg-sky-300/18 expanded:text-white"]} aria-label="Choose widget" title="Choose widget">
+      <Icon name="cog" size={16} />
+    </summary>
+    <div class="absolute top-full right-0 mt-2 w-64 overflow-hidden rounded-lg border border-sky-200/25 bg-slate-950 p-2
+      font-sans text-slate-100 shadow-xl shadow-black/60">
+      <div class="pointer-events-none absolute inset-0 bg-(image:--background-stars) bg-right opacity-30" aria-hidden="true"></div>
+      <div id="widget-picker-title" class="relative flex items-center justify-between border-b border-sky-200/15 px-2 py-1.5
+        font-pixel text-lg leading-none text-cyan-100">
+        Widgets
+        <span class="text-cyan-300 motion-safe:animate-widget-glint"><Icon name="spark" size={15} /></span>
+      </div>
+      <fieldset class="relative grid min-w-0 gap-0.5 pt-1.5" aria-labelledby="widget-picker-title">
+        {widgets.map(({ id, label, icon, color, tint }) => (
+          <button data-widget-choice={id} type="button" aria-pressed="false"
+            class="group flex min-h-10 items-center gap-2.5 rounded-sm border border-transparent px-2 py-1 text-left text-small
+              hover:bg-slate-800/70 focus-visible:outline-cyan-200 focus-visible:-outline-offset-2 aria-pressed:border-cyan-300/35
+              aria-pressed:bg-sky-950/65 phone:min-h-11">
+            <span class:list={["grid size-7 shrink-0 place-items-center rounded-sm border border-current/20 bg-linear-to-br to-slate-900", color, tint]}>
+              {icon
+                ? <Icon name={icon} size={18} />
+                : <img src="/pud-chrome.png" alt="" width="20" height="20" class="size-5 object-contain grayscale [image-rendering:var(--rendering-pixel)]" />}
+            </span>
+            <span class="grow">{label}</span>
+            <span class:list={["invisible group-aria-pressed:visible", color]}><Icon name="spark" size={11} /></span>
+          </button>
+        ))}
+      </fieldset>
+      <button data-widget-choice="off" type="button" class="relative mt-1.5 block w-full border-t border-sky-200/15 px-2 py-1.5 text-left
+        text-caption text-slate-300 hover:text-cyan-100" hidden>Hide widget</button>
+    </div>
+  </details>
+
+  <template data-widget-market>
+    <li class:list={[item, "max-w-86 border-violet-400/35 bg-linear-to-r from-violet-950 via-fuchsia-950/50 to-black phone:max-w-59"]}>
+      <span aria-hidden="true" class="pointer-events-none absolute -top-px right-3 h-px w-9 bg-linear-to-l from-fuchsia-300/90 to-transparent
+        motion-safe:animate-widget-glint"></span>
+      <a data-widget-link href="https://polymarket.com/" class="flex h-full min-w-0 items-center gap-2 focus-visible:outline-cyan-200 focus-visible:-outline-offset-2"
+        target="_blank" rel="noopener noreferrer">
+        <span class="flex shrink-0 items-center gap-1 text-violet-200">
+          <Icon name="markets" size={17} />
+          <span data-widget-rank class="font-pixel tabular-nums"></span>
+        </span>
+        <span data-widget-primary class="truncate text-violet-50 hover:underline hover:underline-offset-3"></span>
+        <span data-widget-secondary class="shrink-0 rounded-xs bg-fuchsia-400/15 px-1 py-0.5 font-bold text-fuchsia-200 empty:hidden"></span>
+      </a>
+    </li>
+  </template>
+  <template data-widget-weather>
+    <li class:list={[item, "border-sky-400/35 bg-linear-to-r from-sky-950 via-indigo-950/70 to-black"]}>
+      <span aria-hidden="true" class="pointer-events-none absolute -top-px right-2 h-px w-7 bg-linear-to-l from-amber-200/85 to-transparent
+        motion-safe:animate-widget-glint"></span>
+      <span data-weather-icon="sun" hidden><Icon name="sun" size={16} /></span>
+      <span data-weather-icon="cloud" hidden><Icon name="cloud" size={16} /></span>
+      <span data-weather-icon="rain" hidden><Icon name="rain" size={16} /></span>
+      <span data-weather-icon="weather" hidden><Icon name="weather" size={16} /></span>
+      <span data-widget-primary class="text-cyan-50"></span>
+      <span data-widget-secondary class="rounded-xs bg-amber-300/15 px-1 py-0.5 font-bold text-amber-200"></span>
+      <span data-widget-condition class="text-sky-200"></span>
+    </li>
+  </template>
+  <template data-widget-source>
+    <li class:list={[item, "border-cyan-400/25 bg-cyan-950/45 text-cyan-300"]}>
+      <span class="motion-safe:animate-widget-glint"><Icon name="spark" size={15} /></span>
+      <a href="https://www.tradingview.com/markets/" class="text-slate-300 underline-offset-3 hover:underline focus-visible:outline-cyan-200
+        focus-visible:-outline-offset-2" target="_blank" rel="noopener noreferrer">Ticker tape by TradingView</a>
+    </li>
+  </template>
+  <template data-widget-stock>
+    <li data-widget-quotes class="relative h-full w-522 shrink-0 overflow-hidden bg-linear-to-r from-emerald-950/55 via-cyan-950/25 to-emerald-950/50
+      [--tv-widget-background-color:transparent] [--tv-widget-font-family:var(--font-mono)] [--tv-widget-text-color:var(--color-cyan-50)]
+      [--tv-widget-positive-color:var(--color-emerald-200)] [--tv-widget-negative-color:var(--color-rose-300)]">
+      <div class="absolute -top-2.25 left-0 h-14 w-669 origin-top-left scale-x-78 scale-y-84 phone:-top-1.75">
+        <tv-ticker-tape symbols="NASDAQ:NVDA,NASDAQ:AAPL,NASDAQ:MSFT,NASDAQ:AMZN,NASDAQ:GOOGL,NASDAQ:META,NASDAQ:TSLA,NASDAQ:AMD"
+          item-size="compact" theme="dark" hide-chart></tv-ticker-tape>
+      </div>
+      <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-cyan-400/40
+        via-emerald-200/65 to-transparent motion-safe:animate-widget-glint"></span>
+    </li>
+  </template>
+</section>
+
+<script>
+  import { mountRouteElement } from "../lib/mount-route-element";
+  import { mountWidgetBar } from "../lib/widget-bar";
+
+  mountRouteElement<HTMLElement>("[data-widget-bar]", mountWidgetBar);
+</script>

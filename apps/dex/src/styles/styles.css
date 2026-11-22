@@ -79,6 +79,7 @@
   --animate-orbit-sheen: orbit-sheen 8s linear infinite;
   --animate-sponsor-sheen: sponsor-sheen 620ms steps(18, end) both;
   --animate-sponsor-spark: sponsor-spark 620ms steps(5, end) both;
+  --animate-widget-glint: widget-glint 4.2s steps(8, end) infinite;
   --animate-wallpaper-embers: wallpaper-embers 17s ease-in-out infinite;
   --animate-wallpaper-cork: wallpaper-cork 26s ease-in-out infinite alternate;
   --animate-wallpaper-twinkle: wallpaper-twinkle 13s ease-in-out infinite;
@@ -117,6 +118,12 @@
     0%, 18%, 100% { opacity: 0; scale: .4; }
     30% { opacity: 1; scale: 1; }
     54% { opacity: .35; scale: .6; }
+  }
+
+  @keyframes widget-glint {
+    0%, 62%, 100% { opacity: .28; }
+    69%, 78% { opacity: 1; }
+    73%, 88% { opacity: .45; }
   }
 
   @keyframes wallpaper-embers {

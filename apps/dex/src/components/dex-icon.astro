@@ -1,5 +1,6 @@
 ---
-type Kind = "folder" | "open" | "disk" | "book" | "note" | "idea" | "link" | "search";
+type Kind = "folder" | "open" | "disk" | "book" | "note" | "idea" | "link" | "search" | "cog"
+  | "quotes" | "markets" | "weather" | "sun" | "cloud" | "rain" | "spark";
 interface Props { name: Kind; size?: number }
 const { name, size = 18 } = Astro.props;
 const art: Record<Kind, [string, string][]> = {
@@ -33,6 +34,41 @@ const art: Record<Kind, [string, string][]> = {
   ],
   search: [
     ["currentColor", "M4 1h5v1h2v2h1v5h-1v1l5 4-2 2-5-5H4v-1H2V8H1V4h1V2h2zM4 3v1H3v4h1v1h5V8h1V4H9V3z"],
+  ],
+  cog: [
+    ["currentColor", "M7 0h4v2h2V1h2v2h2v2h-2v1h3v4h-3v1h2v2h-2v2h-2v-1h-2v2H7v-2H5v1H3v-2H1v-2h2v-1H0V6h3V5H1V3h2V1h2v1h2zM7 5v1H6v4h1v1h4v-1h1V6h-1V5z"],
+  ],
+  quotes: [
+    ["var(--color-sky-700)", "M1 2h1v12h15v1H1z"],
+    ["var(--color-sky-400)", "M4 10h2v3H4zM8 7h2v6H8zM12 4h2v9h-2z"],
+    ["var(--color-cyan-100)", "M13 1h4v4h-1V3h-3zM10 5h2v1h-2zM7 7h2v1H7zM4 9h2v1H4z"],
+  ],
+  markets: [
+    ["var(--color-violet-500)", "M2 8 9 1l7 7-7 7z"],
+    ["var(--color-fuchsia-300)", "M3 8 9 2l3 3-6 6z"],
+    ["var(--color-violet-950)", "M3 8h3V7h2v1h2v1h2V7h3v1h-2v2h-4V9H7V8H6v1H3z"],
+    ["var(--color-violet-100)", "M13 2h1V1h1v1h1v1h-1v1h-1V3h-1z"],
+  ],
+  weather: [
+    ["var(--color-amber-300)", "M7 0h1v2H7zM1 6h2v1H1zM2 2h2v2H2zM11 2h2v2h-2zM5 3h5v1h1v5h-1v1H5V9H4V4h1z"],
+    ["var(--color-sky-400)", "M7 9h2V7h4v1h2v2h2v3h-1v1H5v-1H4v-3h3z"],
+    ["var(--color-sky-100)", "M8 10h2V8h3v1h2v2h1v1H5v-1h3z"],
+  ],
+  sun: [
+    ["var(--color-amber-300)", "M8 0h2v2H8zM8 14h2v2H8zM1 7h2v2H1zM15 7h2v2h-2zM3 2h2v2H3zM13 2h2v2h-2zM3 12h2v2H3zM13 12h2v2h-2zM6 4h6v1h1v6h-1v1H6v-1H5V5h1z"],
+    ["var(--color-amber-100)", "M7 5h4v1H7v3H6V6h1z"],
+  ],
+  cloud: [
+    ["var(--color-sky-400)", "M4 7h2V5h2V3h5v2h2v2h2v5h-1v1H3v-1H1V9h1V7z"],
+    ["var(--color-sky-100)", "M4 8h3V6h2V4h3v2h2v2h2v2H2V9h2z"],
+  ],
+  rain: [
+    ["var(--color-indigo-400)", "M4 5h2V3h2V1h5v2h2v2h2v5H2V7h2z"],
+    ["var(--color-indigo-200)", "M7 4h2V2h3v2h2v2h2v1H4V6h3z"],
+    ["var(--color-cyan-300)", "M5 11h2v2H5zM9 13h2v2H9zM13 11h2v2h-2z"],
+  ],
+  spark: [
+    ["currentColor", "M8 1h2v4h2v2h4v2h-4v2h-2v4H8v-4H6V9H2V7h4V5h2z"],
   ],
 };
 ---

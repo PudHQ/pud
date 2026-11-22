@@ -16,6 +16,7 @@ import PageMelt from "../components/page-melt.astro";
 import SidebarPanel from "../components/sidebar-panel.astro";
 import SponsorBadge from "../components/sponsor-badge.astro";
 import WallpaperPicker from "../components/wallpaper-picker.astro";
+import WidgetBar from "../components/widget-bar.astro";
 
 interface Props { title: string; description?: string; author?: string; home?: boolean; folder?: string }
 const { title, description = "The Pud company wiki, work log, and collection of links.", author, home, folder } = Astro.props;
@@ -48,9 +49,12 @@ const { notes, roots, links } = vault;
       </div>
       <div data-dex-window class="pointer-events-auto flex grow flex-col border border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
         bg-chrome p-1 shadow-window phone:p-0.75">
-        <header transition:persist="dex-masthead">
-          <Masthead />
-        </header>
+        <div class="relative">
+          <header transition:persist="dex-masthead">
+            <Masthead />
+          </header>
+          <WidgetBar />
+        </div>
         <div class="my-2 grid grow grid-cols-workspace gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:flex phone:flex-col phone:gap-1.5">
           <aside class="grid min-w-0">
             <SidebarPanel label="Entries" icon="folder">
