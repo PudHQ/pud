@@ -3,11 +3,11 @@
 import meltedTitle from "../assets/melted-title.png";
 ---
 
-<button data-page-melt type="button" aria-haspopup="dialog" class="pointer-events-auto mt-1 min-h-11 min-w-16 self-end border
+<button data-page-melt type="button" aria-haspopup="dialog" class="pointer-events-auto mt-1 min-h-6 min-w-16 self-end border
   border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
-  bg-chrome px-3 font-mono text-caption font-bold text-ink shadow-window hover:bg-chrome-highlight focus-visible:outline-cyan-200
+  bg-zinc-400 px-3 font-mono text-caption font-bold text-ink shadow-window hover:bg-chrome-highlight focus-visible:outline-cyan-200
   active:translate-y-px active:border-t-chrome-shadow active:border-r-chrome-highlight
-  active:border-b-chrome-highlight active:border-l-chrome-shadow">melt</button>
+  active:border-b-chrome-highlight active:border-l-chrome-shadow">Melt (at own risk)</button>
 
 <dialog data-melt-dialog aria-labelledby="dex-melt-title" aria-describedby="dex-melt-copy"
   class="pointer-events-auto fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none place-items-center overflow-auto
@@ -20,10 +20,10 @@ import meltedTitle from "../assets/melted-title.png";
         class="h-auto w-1/4 max-w-sm min-w-36 drop-shadow-md drop-shadow-black" />
     </h2>
     <div class="absolute inset-x-0 top-full grid justify-items-center gap-3 px-3 pt-3">
-      <p id="dex-melt-copy" class="bg-black/75 px-2.5 py-1 font-mono text-sm text-zinc-100 phone:text-xs">You melted the page... Did you mean to?</p>
+      <p id="dex-melt-copy" class="bg-black/75 px-2.5 py-1 font-mono text-sm text-zinc-100 phone:text-xs">You melted the page.</p>
       <form method="dialog">
         <button type="submit" class="min-h-11 border border-white/50 bg-zinc-950/80 px-7 font-mono text-sm font-bold text-white
-          hover:bg-white hover:text-black focus-visible:outline-white">Continue</button>
+          hover:bg-white hover:text-black focus-visible:outline-white">Restart</button>
       </form>
     </div>
   </div>
