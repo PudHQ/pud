@@ -1,0 +1,14 @@
+---
+import Icon from "./dex-icon.astro";
+import type { Note } from "../lib/vault";
+import { faviconUrl } from "../lib/web-links";
+
+interface Props { note: Note; size?: number }
+const { note, size } = Astro.props;
+const icons = { Handbook: "book", Log: "disk", "Captain's Log": "disk", Ideas: "idea", Bookmarks: "link" } as const;
+const root = note.folder.split("/")[0] as keyof typeof icons;
+const iconUrl = root === "Bookmarks" ? faviconUrl(note.url) : undefined;
+---
+{iconUrl
+  ? <img src={iconUrl} alt="" width="16" height="16" class="shrink-0 [image-rendering:var(--rendering-pixel)]" />
+  : <Icon name={icons[root] ?? "note"} size={size} />}
