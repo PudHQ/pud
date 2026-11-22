@@ -170,14 +170,8 @@ export function buildVault(files: Record<string, string>, assets: Record<string,
   for (const link of links.values()) link.sources.sort(byTitle);
   notes.sort(byTitle);
   roots.sort(byFolder);
-  const bookmarks = roots.find(folder => folder.id === "bookmarks");
-  const bookmarkNotes = new Set(bookmarks?.notes);
   return {
-    notes, roots, bookmarks,
-    directory: {
-      notes: notes.filter(note => !bookmarkNotes.has(note)),
-      folders: roots.filter(folder => folder !== bookmarks),
-    },
+    notes, roots,
     folders: [...folders.values()].sort((a, b) => a.path.localeCompare(b.path, "en")),
     links: [...links.values()].sort(byTitle),
   };

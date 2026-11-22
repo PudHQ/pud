@@ -1,10 +1,10 @@
 ---
 import Shell from "../layouts/site-shell.astro";
 import Icon from "../components/dex-icon.astro";
-import { activeBar, link, panel, reading, readingTitle } from "../lib/styles";
+import { activeBar, contentPanel, link, reading, readingTitle } from "../lib/styles";
 ---
 <Shell title="Page not found">
-  <div class={panel}>
+  <div class={contentPanel}>
     <div class={activeBar}><Icon name="note" /> 404</div>
     <div class={reading}>
       <h1 class={readingTitle}>Page not found</h1>

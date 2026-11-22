@@ -6,7 +6,7 @@ import { vault } from "../../lib/content";
 import { authors } from "../../lib/authors";
 import { formatNoteDate } from "../../lib/note-date";
 import { outboundAttributes } from "../../lib/web-links";
-import { activeBar, favicon, link, panel, reading, readingTitle } from "../../lib/styles";
+import { activeBar, contentPanel, favicon, link, reading, readingTitle } from "../../lib/styles";
 export function getStaticPaths() {
   return vault.notes.map(note => ({ params: { id: note.id }, props: { note } }));
 }
@@ -14,7 +14,7 @@ const { note } = Astro.props;
 const author = note.author ? authors.get(note.author) : undefined;
 ---
 <Shell title={note.title} description={note.summary || undefined} folder={note.folder} author={author?.name ?? note.author}>
-  <article class={panel}>
+  <article class={contentPanel}>
     <div class={activeBar}><Icon name="note" /><Breadcrumbs folder={note.folder} /></div>
     <div class={reading}>
       <h1 class:list={[readingTitle, "has-[+[data-byline]]:mb-1.25"]} id={note.headingId}>{note.title}<Fragment set:html={note.titleFootnotes} /></h1>

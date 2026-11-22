@@ -133,24 +133,24 @@ describe("Markdown vault", () => {
     expect(vault.notes[1].summary).toBe("Saved for later.");
   });
 
-  test("the sidebar owns the root Bookmarks folder and its descendants", () => {
+  test("bookmarks appear in the folder tree and the full entry list", () => {
     const vault = buildVault({
       "Bookmarks/Tools/Manual.md": "---\nurl: https://manual.example/\n---\n# Manual",
       "Bookmarks/Reading list.md": "# Reading list",
       "Handbook/Bookmarks/Guide.md": "Read [[Manual]] and [this reference](https://reference.example/).",
     });
-    expect(vault.bookmarks?.notes.map(note => note.url ?? note.href)).toEqual([
-      "https://manual.example/", "/notes/bookmarks/reading-list/",
-    ]);
-    expect(vault.directory.folders.map(folder => folder.name)).toEqual(["Handbook"]);
-    expect(vault.directory.notes.map(note => note.file)).toEqual(["Handbook/Bookmarks/Guide.md"]);
-    expect(vault.directory.notes[0].html).toContain('href="/notes/bookmarks/tools/manual/"');
+    const [bookmarks, handbook] = vault.roots;
+    expect(bookmarks.href).toBe("/folders/bookmarks/");
+    expect(bookmarks.notes.map(note => note.title)).toEqual(["Manual", "Reading list"]);
+    expect(bookmarks.children.map(folder => folder.name)).toEqual(["Tools"]);
+    expect(handbook.children[0].href).toBe("/folders/handbook/bookmarks/");
+    expect(vault.notes.map(note => note.title)).toEqual(["Guide", "Manual", "Reading list"]);
+    expect(vault.notes[0].html).toContain('href="/notes/bookmarks/tools/manual/"');
     expect(vault.links.map(link => link.host).sort()).toEqual(["manual.example", "reference.example"]);
   });
 
   test("an empty vault works and colliding public URLs identify both files", () => {
     expect(buildVault({}).roots).toEqual([]);
-    expect(buildVault({}).bookmarks).toBeUndefined();
     expect(() => buildVault({ "Déjà vu.md": "One", "Déjà-vu.md": "Two" })).toThrow("Déjà-vu.md");
   });
 });

@@ -38,6 +38,6 @@ Write `A claim.[^source]` and add `[^source]: The source for the claim.` on its 
 
 Keep images in the vault and refer to them with `![[image.png]]` or `![description](image.png)`. PNG, JPEG, GIF, WebP, and AVIF are supported. The link index gathers HTTP and HTTPS links from note bodies and optional `url` properties, with a link back to every source note.
 
-Files under [content/Bookmarks](content/Bookmarks), including subfolders, appear in the Bookmarks sidebar. A bookmark with a `url` property opens that address directly. Other bookmarks open their Markdown page.
+Files under [content/Bookmarks](content/Bookmarks), including subfolders, appear in the Bookmarks folder under Entries. The note page shows a Visit link when the note has a `url` property.
 
 Outbound web links open in a new tab. PudDex fetches one favicon per hostname, maps it to a 16×16 pixel grid and a 16-colour palette, and serves the PNG from the wiki. The build reuses cached icons for a week. When a lookup fails, it uses the last good icon or a small globe.

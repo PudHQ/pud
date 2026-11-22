@@ -17,6 +17,6 @@ Type `[[Reading a proof result]]` to link to [[Reading a proof result]]. Use a p
 
 ## Save a link
 
-Put a Markdown link in a paragraph. The link index collects the address and remembers which note it came from. To add a sidebar bookmark, create a note under `Bookmarks/`. Put the address in its `url` property to open the site directly. [[Cameron's World]] is an example.
+Put a Markdown link in a paragraph. The link index collects the address and remembers which note it came from. To add a bookmark, create a note under `Bookmarks/`. Set its `url` property to show a Visit link on the note page. [[Dafny reference manual]] is an example.
 
 Obsidian can update links when you rename a file in the vault. [Obsidian’s guide to internal links](https://obsidian.md/help/links)

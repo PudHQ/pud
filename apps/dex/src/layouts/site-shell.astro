@@ -8,8 +8,7 @@ import readingFont from "@fontsource-variable/atkinson-hyperlegible-next/files/a
 import "../styles/styles.css";
 import { ClientRouter } from "astro:transitions";
 import { vault } from "../lib/content";
-import { outboundAttributes } from "../lib/web-links";
-import { favicon, folderCount, folderLink, link } from "../lib/styles";
+import { link } from "../lib/styles";
 import Masthead from "../components/site-masthead.astro";
 import Icon from "../components/dex-icon.astro";
 import FolderTree from "../components/folder-tree.astro";
@@ -21,7 +20,7 @@ import WallpaperPicker from "../components/wallpaper-picker.astro";
 interface Props { title: string; description?: string; author?: string; home?: boolean; folder?: string }
 const { title, description = "The Pud company wiki, work log, and collection of links.", author, home, folder } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const { bookmarks, directory } = vault;
+const { notes, roots, links } = vault;
 ---
 <!doctype html>
 <html lang="en" data-dex-home={home ? "" : undefined}
@@ -39,44 +38,32 @@ const { bookmarks, directory } = vault;
     <title>{home ? "PudDex" : title + " · PudDex"}</title>
     <ClientRouter fallback="swap" />
   </head>
-  <body class="isolate flow-root min-h-svh min-w-70 px-6 narrow:px-3 phone:px-1.5
+  <body class="isolate flex min-h-dvh min-w-70 flex-col px-6 narrow:px-3 phone:px-1.5
     [&_:where(:focus-visible)]:outline-2 [&_:where(:focus-visible)]:outline-focus [&_:where(:focus-visible)]:outline-offset-2">
     <a class:list={[link, "sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-2 focus:z-3 focus:bg-white focus:p-2.25"]} href="#content">Skip to content</a>
-    <div class="pointer-events-none mx-auto mt-1 mb-window-margin grid max-w-window grid-cols-1 gap-0.5 phone:mb-1.5">
+    <div class="pointer-events-none mx-auto mt-1 mb-window-margin flex w-full max-w-window grow flex-col gap-0.5 phone:mb-1.5">
       <div class="flex min-h-13 flex-wrap items-end gap-1">
         <WallpaperPicker />
         <SponsorBadge />
       </div>
-      <div data-dex-window class="pointer-events-auto border border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
+      <div data-dex-window class="pointer-events-auto flex grow flex-col border border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
         bg-chrome p-1 shadow-window phone:p-0.75">
         <header transition:persist="dex-masthead">
           <Masthead />
         </header>
-        <div class="my-2 grid grid-cols-workspace items-start gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:grid-cols-1 phone:gap-1.5">
-          <aside class="grid min-w-0 gap-2">
-            <SidebarPanel label="Folders" icon="folder">
+        <div class="my-2 grid grow grid-cols-workspace gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:flex phone:flex-col phone:gap-1.5">
+          <aside class="grid min-w-0">
+            <SidebarPanel label="Entries" icon="folder">
               <div class="p-1.25 text-small">
-                <a class:list={[folderLink, "font-bold"]} href="/" aria-current={home ? "page" : undefined} data-selected={home ? "" : undefined}>
-                  <Icon name="open" /> All entries <span class:list={[folderCount, "font-normal"]}>{directory.notes.length}</span>
-                </a>
-                <FolderTree folders={directory.folders} active={folder} />
+                <FolderTree folders={roots} notes={notes.filter(note => !note.folder)} active={folder} />
               </div>
             </SidebarPanel>
-            {bookmarks && <SidebarPanel label="Bookmarks" icon="link">
-              <ul class="px-2.75 py-0.5">
-                {bookmarks.notes.map(note => <li class="border-t border-zinc-200 py-1.75 wrap-anywhere first:border-t-0 has-[a[target]]:relative has-[a[target]]:pl-5.5">
-                  <a class:list={[link, favicon, "text-small/snug outbound:before:absolute outbound:before:top-2 outbound:before:left-0"]}
-                    href={note.url ?? note.href} {...outboundAttributes(note.url)}>{note.title}{note.url && <span aria-hidden="true"> ↗</span>}</a>
-                  {note.url && <small class="block font-mono text-caption/relaxed text-slate-600">{new URL(note.url).hostname}</small>}
-                </li>)}
-              </ul>
-            </SidebarPanel>}
           </aside>
-          <main id="content" class="min-w-0 focus:outline-none" tabindex="-1"><slot /></main>
+          <main id="content" class="flex min-w-0 flex-col focus:outline-none phone:grow" tabindex="-1"><slot /></main>
         </div>
         <footer class="flex min-h-6.25 items-center border border-t-slate-400 border-r-chrome-highlight border-b-chrome-highlight border-l-slate-400 px-1.75 py-0.5">
           <span class="inline-flex items-center gap-1.5 font-mono text-caption/normal text-slate-700">
-            <Icon name="disk" /> {directory.notes.length} {directory.notes.length === 1 ? "entry" : "entries"} <b class="text-slate-500">·</b> {vault.links.length} {vault.links.length === 1 ? "link" : "links"}
+            <Icon name="disk" /> {notes.length} {notes.length === 1 ? "entry" : "entries"} <b class="text-slate-500">·</b> {links.length} {links.length === 1 ? "link" : "links"}
           </span>
         </footer>
       </div>
@@ -97,7 +84,7 @@ const { bookmarks, directory } = vault;
     const currentPanels = new Map(Array.from(document.querySelectorAll<HTMLDetailsElement>(disclosures),
       panel => [panel.dataset.sidebarDisclosure, panel.open]));
     for (const panel of newDocument.querySelectorAll<HTMLDetailsElement>(disclosures)) {
-      panel.open = currentPanels.get(panel.dataset.sidebarDisclosure) ?? panel.open;
+      panel.open = panel.hasAttribute("data-contains-current-note") || (currentPanels.get(panel.dataset.sidebarDisclosure) ?? panel.open);
     }
   });
 </script>

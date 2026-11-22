@@ -1,4 +1,5 @@
 export const panel = "min-w-0 border border-t-chrome-edge border-r-chrome-highlight border-b-chrome-highlight border-l-chrome-edge bg-paper";
+export const contentPanel = `${panel} grow`;
 export const bar = "flex min-h-7.25 items-center gap-1.75 px-2.25 py-1 text-ui/snug font-panel";
 export const activeBar = `${bar} bg-navy text-white [&_:focus-visible]:outline-orange-300`;
 
@@ -7,7 +8,7 @@ export const favicon = `outbound:before:inline-block outbound:before:size-4 outb
   outbound:before:bg-(image:--site-icon) outbound:before:bg-contain outbound:before:bg-center outbound:before:bg-no-repeat
   outbound:before:align-(--align-favicon) outbound:before:[image-rendering:var(--rendering-pixel)]`;
 
-export const folderLink = `group flex min-h-7.25 items-center gap-1.5 px-1.25 py-1 wrap-anywhere text-ink
+export const treeLink = `group ml-branch-label flex min-h-7.25 items-center gap-1.5 px-1.25 py-1 wrap-anywhere text-ink
   not-data-selected:hover:bg-slate-100 not-data-selected:hover:text-link data-selected:bg-selected data-selected:text-white phone:min-h-8`;
 export const folderCount = "ml-auto font-mono text-caption text-slate-600 group-data-selected:text-slate-200";
 export const summary = "list-none [&::-webkit-details-marker]:hidden";

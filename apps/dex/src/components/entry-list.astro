@@ -1,17 +1,17 @@
 ---
 import Icon from "./dex-icon.astro";
 import Breadcrumbs from "./breadcrumb-nav.astro";
+import NoteIcon from "./note-icon.astro";
 import { vault } from "../lib/content";
 import { formatNoteDate } from "../lib/note-date";
 import { outboundAttributes } from "../lib/web-links";
-import { activeBar, favicon, link, panel } from "../lib/styles";
+import { activeBar, contentPanel, favicon, link } from "../lib/styles";
 import type { Note, SavedLink } from "../lib/vault";
 interface Props { title: string; notes?: Note[]; links?: SavedLink[]; heading?: "h1" | "h2"; folderPath?: string }
 const { title, notes = [], links, heading: Heading = "h1", folderPath } = Astro.props;
 const total = links ? links.length : notes.length;
 const noun = links ? "link" : "entry";
 const plural = links ? "links" : "entries";
-const icons = { Handbook: "book", Log: "disk", "Captain's Log": "disk", Ideas: "idea", Bookmarks: "link" } as const;
 const row = `grid grid-cols-entry items-start gap-2.25 border-t border-zinc-200 py-2.5 first:border-t-0
   stacked:grid-cols-entry-stacked stacked:gap-x-2 stacked:gap-y-px stacked:py-2.25`;
 const entryTitle = `${link} text-entry font-bold wrap-anywhere decoration-1`;
@@ -19,7 +19,7 @@ const description = "mt-0.5 max-w-summary text-small/normal wrap-anywhere text-s
 const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere text-slate-600
   stacked:col-start-2 stacked:max-w-none stacked:justify-self-start stacked:text-left`;
 ---
-<section class={panel}>
+<section class={contentPanel}>
   <div class={activeBar}>
     <Icon name={links ? "link" : "open"} />
     <Heading class="font-section wrap-anywhere">{title}</Heading>
@@ -46,7 +46,7 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
     </li>) : notes.map(note => {
       const folder = vault.folders.find(group => group.path === note.folder);
       return <li class={row} data-entry data-keywords={[...note.tags, ...note.aliases, note.folder].join(" ")}>
-        <span class="flex h-5.5 items-center justify-center"><Icon name={icons[note.folder.split("/")[0] as keyof typeof icons] ?? "note"} size={20} /></span>
+        <span class="flex h-5.5 items-center justify-center"><NoteIcon note={note} size={20} /></span>
         <div class="min-w-0">
           <a class={entryTitle} href={note.href}>{note.title}</a>
           {note.summary && <p class={description}>{note.summary}</p>}

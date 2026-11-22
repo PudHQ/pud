@@ -3,6 +3,7 @@ author: rorz
 url: https://dafny.org/dafny/DafnyRef/DafnyRef
 summary: The language reference behind Pud’s automatic proof checks.
 tags: [verification, reference]
+date: 2026-11-21
 ---
 # Dafny reference manual
 
