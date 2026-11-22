@@ -1,6 +1,7 @@
 import MarkdownIt, { type Token } from "markdown-it";
 import footnote from "markdown-it-footnote";
 import { parse as parseYaml } from "yaml";
+import { parseNoteDate } from "./note-date";
 
 export const markdown = new MarkdownIt({ html: false, linkify: true }).use(footnote);
 
@@ -93,5 +94,6 @@ export function parseNote(source: string, filename: string) {
   const strings = (value: unknown): string[] =>
     typeof value === "string" ? [value] : Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
   const author = typeof meta.author === "string" ? meta.author.trim() || undefined : undefined;
-  return { title, titleFootnotes, headingId, summary, tokens, author, aliases: strings(meta.aliases), tags: strings(meta.tags), url: meta.url };
+  const date = parseNoteDate(meta.date);
+  return { title, titleFootnotes, headingId, summary, tokens, author, date, aliases: strings(meta.aliases), tags: strings(meta.tags), url: meta.url };
 }

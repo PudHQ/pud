@@ -2,6 +2,7 @@
 import Icon from "./Icon.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import { vault } from "../lib/content";
+import { formatNoteDate } from "../lib/note-date";
 import { outboundAttributes } from "../lib/web-links";
 import { activeBar, favicon, link, panel } from "../lib/styles";
 import type { Note, SavedLink } from "../lib/vault";
@@ -50,7 +51,10 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
           <a class={entryTitle} href={note.href}>{note.title}</a>
           {note.summary && <p class={description}>{note.summary}</p>}
         </div>
-        {folder && <a class:list={[kind, "max-w-entry-kind hover:text-link hover:underline"]} href={folder.href} title={folder.path}>{folder.name}</a>}
+        {(folder || note.date) && <div class:list={[kind, "flex flex-col items-end gap-y-0.5 stacked:flex-row stacked:flex-wrap stacked:items-baseline stacked:gap-x-2"]}>
+          {folder && <a class="max-w-entry-kind hover:text-link hover:underline stacked:max-w-none" href={folder.href} title={folder.path}>{folder.name}</a>}
+          {note.date && <time class="whitespace-nowrap" datetime={note.date}>{formatNoteDate(note.date)}</time>}
+        </div>}
       </li>;
     })}
   </ul>

@@ -11,6 +11,17 @@ describe("Markdown vault", () => {
     expect(vault.notes[0].html).toBe("<p>A note.</p>\n");
   });
 
+  test("frontmatter dates keep valid calendar dates and omit invalid values", () => {
+    const { notes } = buildVault({
+      "Bare.md": "---\ndate: 2026-11-21\n---\nA note.",
+      "Impossible.md": "---\ndate: 2025-02-29\n---\nA note.",
+      "Quoted.md": "---\ndate: '2024-02-29'\n---\nA note.",
+      "Timestamp.md": "---\ndate: 2026-11-21T01:00:00Z\n---\nA note.",
+      "Undated.md": "A note.",
+    });
+    expect(notes.map(note => note.date)).toEqual(["2026-11-21", undefined, "2024-02-29", undefined, undefined]);
+  });
+
   test("nested directories retain their children, full paths and descendant entries", () => {
     const vault = buildVault({
       "Handbook/Overview.md": "# First steps",

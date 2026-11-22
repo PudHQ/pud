@@ -13,6 +13,7 @@ export interface Note {
   headingId: string;
   summary: string;
   author?: string;
+  date?: string;
   tags: string[];
   aliases: string[];
   url?: string;
@@ -53,7 +54,8 @@ export function buildVault(files: Record<string, string>, assets: Record<string,
     const note: Note = {
       file, folder, id, href: "/notes/" + id + "/", title: parsed.title,
       titleFootnotes: parsed.titleFootnotes, headingId: parsed.headingId,
-      summary: parsed.summary, author: parsed.author, aliases: parsed.aliases, tags: parsed.tags,
+      summary: parsed.summary, author: parsed.author, date: parsed.date,
+      aliases: parsed.aliases, tags: parsed.tags,
       url: httpUrl(parsed.url)?.href, html: "", backlinks: [],
     };
     claim(note.href, file);

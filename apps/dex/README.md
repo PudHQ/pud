@@ -10,6 +10,7 @@ Start a `.md` file anywhere in the vault. The first H1 supplies its title, with 
 ---
 title: A useful reference
 author: rorz
+date: 2026-11-21
 summary: What to read this for.
 aliases: [Reference]
 tags: [reading]
@@ -20,6 +21,8 @@ This relates to [[Keeping the context of a link]].
 ```
 
 Use an author’s handle in the `author` property. PudDex looks up the name and avatar in [authors.json](authors.json) and links the byline to their entries.
+
+Use `date` with a calendar date in `YYYY-MM-DD` format. It appears under the note title and in entry lists.
 
 Use `[[Note]]`, `[[folder/Note|label]]`, `[[Note#Heading]]`, or relative Markdown links such as `[label](../Handbook/Note.md)`. The note page shows its backlinks. Qualify a wikilink with its folder when filenames repeat. An unresolved wikilink appears with a dashed underline.
 
