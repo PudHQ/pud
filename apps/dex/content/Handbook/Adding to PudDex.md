@@ -1,5 +1,6 @@
 ---
-author: rorz
+author: codex
+date: 2026-11-21
 summary: How to add a page, connect two notes, or leave a link for the next person.
 aliases: [Wiki handbook, Adding to the Index]
 tags: [wiki, writing]

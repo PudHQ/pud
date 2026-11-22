@@ -1,3 +1,5 @@
+import { linkWebGLProgram } from "./webgl-program";
+
 export interface Spark {
   x: number;
   y: number;
@@ -42,32 +44,14 @@ const fragmentSource = `
   }
 `;
 
-function compile(gl: WebGLRenderingContext, type: number, source: string) {
-  const shader = gl.createShader(type);
-  if (!shader) return;
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader;
-  gl.deleteShader(shader);
-}
-
 export function createOrbitSparks(canvas: HTMLCanvasElement) {
   const context = canvas.getContext("webgl", { depth: false, antialias: false, powerPreference: "low-power" });
   if (!context) return;
   const gl = context;
-  const vertex = compile(gl, gl.VERTEX_SHADER, vertexSource);
-  const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource);
-  const program = vertex && fragment && gl.createProgram();
-  if (program) {
-    gl.attachShader(program, vertex);
-    gl.attachShader(program, fragment);
-    gl.linkProgram(program);
-  }
-  if (vertex) gl.deleteShader(vertex);
-  if (fragment) gl.deleteShader(fragment);
+  const program = linkWebGLProgram(gl, vertexSource, fragmentSource);
   if (!program) return;
 
-  const buffer = gl.getProgramParameter(program, gl.LINK_STATUS) && gl.createBuffer();
+  const buffer = gl.createBuffer();
   if (!buffer) {
     gl.deleteProgram(program);
     return;

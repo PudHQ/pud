@@ -1,5 +1,6 @@
 ---
 author: rorz
+date: 2026-11-21
 ---
 
 I know this is technically "sales" but I'd like to treat it more as marketing-research...

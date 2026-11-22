@@ -1,0 +1,252 @@
+---
+// The Pricedown desktop license permits the finished title as fixed artwork.
+import meltedTitle from "../assets/melted-title.png";
+---
+
+<button data-page-melt type="button" aria-haspopup="dialog" class="pointer-events-auto mt-1 min-h-11 min-w-16 justify-self-end border
+  border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
+  bg-chrome px-3 font-mono text-caption font-bold text-ink shadow-window hover:bg-chrome-highlight focus-visible:outline-cyan-200
+  active:translate-y-px active:border-t-chrome-shadow active:border-r-chrome-highlight
+  active:border-b-chrome-highlight active:border-l-chrome-shadow">melt</button>
+
+<dialog data-melt-dialog aria-labelledby="dex-melt-title" aria-describedby="dex-melt-copy"
+  class="pointer-events-auto fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none place-items-center overflow-auto
+    bg-transparent text-center backdrop:bg-transparent focus:outline-none open:grid">
+  <div data-melt-shade class="pointer-events-none absolute inset-0 bg-radial from-transparent from-42% via-black/30
+    via-76% to-black/95" aria-hidden="true"></div>
+  <div data-melt-message class="relative grid w-full place-items-center" inert>
+    <h2 id="dex-melt-title" class="grid w-full place-items-center bg-black/50 px-3 py-6 phone:py-4">
+      <img src={meltedTitle.src} width={meltedTitle.width} height={meltedTitle.height} alt="Melted" draggable="false"
+        class="h-auto w-1/4 max-w-sm min-w-36 drop-shadow-md drop-shadow-black" />
+    </h2>
+    <div class="absolute inset-x-0 top-full grid justify-items-center gap-3 px-3 pt-3">
+      <p id="dex-melt-copy" class="bg-black/75 px-2.5 py-1 font-mono text-sm text-zinc-100 phone:text-xs">You melted the page... Did you mean to?</p>
+      <form method="dialog">
+        <button type="submit" class="min-h-11 border border-white/50 bg-zinc-950/80 px-7 font-mono text-sm font-bold text-white
+          hover:bg-white hover:text-black focus-visible:outline-white">Continue</button>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<svg data-melt-filter class="pointer-events-none absolute size-0" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="dex-melt" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence baseFrequency="0.009 0.018" numOctaves="1" seed="5" result="noise" />
+      <feComponentTransfer in="noise" result="fallback">
+        <feFuncA type="linear" slope="0" intercept="1" />
+      </feComponentTransfer>
+      <feFlood flood-color="white" result="solid" />
+      <feImage preserveAspectRatio="none" result="geometry" />
+      <feColorMatrix in="geometry" values="0 0 1 0 0  0 0 1 0 0  0 0 1 0 0  0 0 0 1 0" result="lighting" />
+      <feGaussianBlur in="SourceGraphic" result="smeared" />
+      <feDisplacementMap in="smeared" in2="fallback" xChannelSelector="R" yChannelSelector="G" result="warped" />
+      <feComposite in="warped" in2="solid" operator="arithmetic" k1="1" />
+      <feGaussianBlur data-melt-outline />
+      <feColorMatrix data-melt-tone type="matrix" result="graded" />
+      <feFlood flood-color="var(--color-desktop)" result="desk" />
+      <feComposite in="graded" in2="desk" operator="over" />
+    </filter>
+  </defs>
+</svg>
+
+<script>
+  import { createMeltScene } from "../lib/melt-scene";
+  import { meltDuration, meltFrame } from "../lib/melt-timeline";
+  import { mountRouteElement } from "../lib/mount-route-element";
+
+  mountRouteElement<HTMLButtonElement>("[data-page-melt]", (button, signal) => {
+    const root = document.documentElement;
+    const dialog = document.querySelector<HTMLDialogElement>("[data-melt-dialog]")!;
+    const shade = dialog.querySelector<HTMLElement>("[data-melt-shade]")!;
+    const message = dialog.querySelector<HTMLElement>("[data-melt-message]")!;
+    const continueButton = message.querySelector("button")!;
+    const filter = document.querySelector<SVGFilterElement>("#dex-melt")!;
+    const geometry = filter.querySelector("feImage")!;
+    const displacement = filter.querySelector("feDisplacementMap")!;
+    const shading = filter.querySelector("feComposite[operator='arithmetic']")!;
+    const tone = filter.querySelector("[data-melt-tone]")!;
+    const blur = filter.querySelector("feGaussianBlur[in='SourceGraphic']")!;
+    const outline = filter.querySelector("[data-melt-outline]")!;
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    let playback: AbortController | undefined;
+    let scene: ReturnType<typeof createMeltScene> | null;
+    const ambient: { animation: Animation; start: number; rate: number }[] = [];
+    let frame = 0, elapsed = 0, reduced = false;
+    let width = 0, height = 0, showingMesh = false, loadingMesh = false;
+
+    function fit() {
+      width = root.clientWidth;
+      height = root.clientHeight;
+      for (const region of [filter, geometry]) {
+        region.setAttribute("x", String(window.scrollX));
+        region.setAttribute("y", String(window.scrollY));
+        region.setAttribute("width", String(width));
+        region.setAttribute("height", String(height));
+      }
+      paint();
+    }
+
+    function setFallbackScale(travel: number) {
+      const strength = Math.min(width, height) * (reduced ? .025 : .18 * travel);
+      displacement.setAttribute("scale", strength.toFixed(2));
+    }
+
+    function useFallback(travel = 0) {
+      showingMesh = false;
+      displacement.setAttribute("in2", "fallback");
+      shading.setAttribute("in2", "solid");
+      geometry.removeAttribute("href");
+      setFallbackScale(travel);
+    }
+
+    function drawMesh(travel: number) {
+      if (loadingMesh || reduced || travel < .006 || !width || !height || !playback) return;
+      if (scene === undefined) scene = createMeltScene() ?? null;
+      if (!scene) return;
+      const mapWidth = width, mapHeight = height;
+      const map = scene.draw(travel, mapWidth, mapHeight);
+      if (!map) {
+        scene.destroy();
+        scene = null;
+        useFallback(travel);
+        return;
+      }
+
+      const { signal: playing } = playback;
+      loadingMesh = true;
+      const image = new Image();
+      image.src = map.href;
+      void image.decode().then(() => {
+        if (playing.aborted || reduced || mapWidth !== width || mapHeight !== height) return;
+        geometry.setAttribute("href", map.href);
+        displacement.setAttribute("scale", String(map.scale));
+        if (!showingMesh) {
+          showingMesh = true;
+          displacement.setAttribute("in2", "geometry");
+          shading.setAttribute("in2", "lighting");
+        }
+      }).catch(() => {
+        if (playing.aborted) return;
+        scene?.destroy();
+        scene = null;
+        useFallback(meltFrame(elapsed).travel);
+      }).finally(() => {
+        if (playing.aborted) return;
+        loadingMesh = false;
+        if (elapsed === meltDuration && (travel < 1 || mapWidth !== width || mapHeight !== height)) drawMesh(1);
+      });
+    }
+
+    function paintFilter(travel: number, speed: number, gray: number) {
+      if (!showingMesh) setFallbackScale(travel);
+      const smear = Math.max(0, (travel - .48) / .52) ** 2;
+      const xBlur = Math.min(7, width * .006) * smear + .40 * speed;
+      const yBlur = Math.min(2, height * .0035) * smear + .32 * speed;
+      blur.setAttribute("stdDeviation", `${xBlur.toFixed(2)} ${yBlur.toFixed(2)}`);
+      outline.setAttribute("stdDeviation", (.86 * travel).toFixed(2));
+
+      const brightness = 1 - .21 * gray;
+      const [r, g, b] = [0.2126, 0.7152, 0.0722].map(luma => luma * gray * brightness);
+      const color = (1 - gray) * brightness;
+      tone.setAttribute("values", `${r + color} ${g} ${b} 0 0  ${r} ${g + color} ${b} 0 0  ${r} ${g} ${b + color} 0 0  0 0 0 1 0`);
+    }
+
+    function paint() {
+      const { travel, sceneTime, reveal, speed } = meltFrame(elapsed);
+      const gray = travel * travel * (3 - 2 * travel);
+      paintFilter(travel, speed, gray);
+      drawMesh(travel);
+
+      shade.style.opacity = String(gray);
+      message.style.opacity = String(reveal);
+      message.style.translate = `0 ${8 * (1 - reveal)}px`;
+      if (message.inert && reveal >= .65) {
+        message.inert = false;
+        if (dialog.open) continueButton.focus({ preventScroll: true });
+      }
+      if (reduced) return;
+      for (const { animation, start, rate } of ambient) {
+        if (animation.playState === "paused") animation.currentTime = start + sceneTime * rate;
+      }
+    }
+
+    function restore() {
+      if (!playback) return;
+      playback.abort();
+      playback = undefined;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      scene?.destroy();
+      scene = undefined;
+      loadingMesh = false;
+      useFallback();
+      for (const { animation } of ambient) {
+        if (animation.playState === "paused") animation.play();
+      }
+      ambient.length = 0;
+      root.style.removeProperty("filter");
+      root.classList.remove("overflow-hidden");
+      if (dialog.open) dialog.close();
+    }
+
+    function settleWithoutMotion() {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      reduced = true;
+      elapsed = meltDuration;
+      paint();
+    }
+
+    function melt() {
+      if (playback) return;
+      playback = new AbortController();
+      const playing = playback.signal;
+      reduced = motion.matches;
+      elapsed = reduced ? meltDuration : 0;
+      message.inert = true;
+      for (const animation of document.getAnimations()) {
+        const start = animation.currentTime;
+        if (animation.playState === "running" && typeof start === "number" && animation.effect?.getTiming().iterations === Infinity) {
+          ambient.push({ animation, start, rate: animation.playbackRate });
+          animation.pause();
+        }
+      }
+      root.classList.add("overflow-hidden");
+      fit();
+      root.style.filter = 'url("#dex-melt")';
+      dialog.showModal();
+      window.addEventListener("resize", fit, { signal: playing });
+      window.addEventListener("scroll", fit, { passive: true, signal: playing });
+      if (reduced) return;
+
+      const started = performance.now();
+      let last = -Infinity;
+
+      function animate(now: number) {
+        const age = now - started;
+        if (age >= meltDuration || now - last >= 1000 / 30) {
+          elapsed = Math.min(meltDuration, Math.max(0, age));
+          paint();
+          last = now;
+        }
+        frame = elapsed < meltDuration ? requestAnimationFrame(animate) : 0;
+      }
+
+      frame = requestAnimationFrame(animate);
+    }
+
+    button.addEventListener("click", melt, { signal });
+    dialog.addEventListener("cancel", event => event.preventDefault(), { signal });
+    dialog.addEventListener("submit", event => {
+      event.preventDefault();
+      restore();
+    }, { signal });
+    dialog.addEventListener("close", restore, { signal });
+    window.addEventListener("pagehide", restore, { signal });
+    motion.addEventListener("change", () => {
+      if (motion.matches && dialog.open) settleWithoutMotion();
+    }, { signal });
+    signal.addEventListener("abort", restore, { once: true });
+  });
+</script>

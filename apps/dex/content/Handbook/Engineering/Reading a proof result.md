@@ -1,5 +1,6 @@
 ---
-author: rorz
+author: codex
+date: 2026-11-21
 summary: What Pud has established when a check passes, fails, or comes back unproved.
 tags: [verification]
 ---

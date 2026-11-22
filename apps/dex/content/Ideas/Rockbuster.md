@@ -2,6 +2,7 @@
 summary: (Or, Coqbuster; Rocqbuster) -- How best to demo Pud
 tags: [design, bookmarks]
 author: rorz
+date: 2026-11-21
 ---
 # Rockbuster™
 

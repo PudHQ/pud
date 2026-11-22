@@ -13,6 +13,7 @@ import { favicon, folderCount, folderLink, link } from "../lib/styles";
 import Masthead from "../components/site-masthead.astro";
 import Icon from "../components/dex-icon.astro";
 import FolderTree from "../components/folder-tree.astro";
+import PageMelt from "../components/page-melt.astro";
 import SidebarPanel from "../components/sidebar-panel.astro";
 import SponsorBadge from "../components/sponsor-badge.astro";
 import WallpaperPicker from "../components/wallpaper-picker.astro";
@@ -23,7 +24,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 const { bookmarks, directory } = vault;
 ---
 <!doctype html>
-<html lang="en" class="scrollbar-gutter-stable bg-desktop font-sans leading-ui text-ink [font-synthesis:var(--font-synthesis-ui)]"
+<html lang="en" data-dex-home={home ? "" : undefined}
+  class="scrollbar-gutter-stable bg-desktop font-sans leading-ui text-ink [font-synthesis:var(--font-synthesis-ui)]"
   transition:animate="none">
   <head>
     <meta charset="utf-8" />
@@ -47,8 +49,8 @@ const { bookmarks, directory } = vault;
       </div>
       <div data-dex-window class="pointer-events-auto border border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
         bg-chrome p-1 shadow-window phone:p-0.75">
-        <header transition:persist={home ? "dex-home-masthead" : "dex-compact-masthead"}>
-          <Masthead compact={!home} />
+        <header transition:persist="dex-masthead">
+          <Masthead />
         </header>
         <div class="my-2 grid grid-cols-workspace items-start gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:grid-cols-1 phone:gap-1.5">
           <aside class="grid min-w-0 gap-2">
@@ -78,16 +80,24 @@ const { bookmarks, directory } = vault;
           </span>
         </footer>
       </div>
+      <PageMelt />
     </div>
   </body>
 </html>
 <script>
-  const phone = matchMedia("(max-width: 640px)");
+  import { initAnalytics } from "@pud/analytics";
+
+  const analytics = initAnalytics(window.location.hostname, "dex.pud.dev");
+  if (analytics) {
+    document.addEventListener("astro:page-load", () => analytics.capture("$pageview"));
+  }
+
+  const disclosures = "[data-sidebar-disclosure]";
   document.addEventListener("astro:before-swap", ({ newDocument }) => {
-    const currentPanels = new Map(Array.from(document.querySelectorAll<HTMLDetailsElement>("[data-sidebar-panel]"),
-      panel => [panel.dataset.sidebarPanel, panel.open]));
-    for (const panel of newDocument.querySelectorAll<HTMLDetailsElement>("[data-sidebar-panel]")) {
-      panel.open = phone.matches ? false : currentPanels.get(panel.dataset.sidebarPanel) ?? panel.open;
+    const currentPanels = new Map(Array.from(document.querySelectorAll<HTMLDetailsElement>(disclosures),
+      panel => [panel.dataset.sidebarDisclosure, panel.open]));
+    for (const panel of newDocument.querySelectorAll<HTMLDetailsElement>(disclosures)) {
+      panel.open = currentPanels.get(panel.dataset.sidebarDisclosure) ?? panel.open;
     }
   });
 </script>

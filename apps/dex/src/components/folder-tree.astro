@@ -11,7 +11,8 @@ const { folders, active, level = 0 } = Astro.props;
     <a href={folder.href} class:list={[folderLink, "ml-branch-label"]} data-selected={active === folder.path ? "" : undefined} aria-current={Astro.url.pathname === folder.href ? "page" : undefined}>
       <Icon name={active === folder.path ? "open" : "folder"} /> {folder.name} <span class={folderCount}>{folder.notes.length}</span>
     </a>
-    {folder.children.length > 0 && <details open={level === 0 || active === folder.path || active?.startsWith(folder.path + "/")}>
+    {folder.children.length > 0 && <details data-sidebar-disclosure={folder.href}
+      open={level === 0 || active === folder.path || active?.startsWith(folder.path + "/")}>
       <summary class:list={[summary, `absolute top-0.25 left-branch-toggle z-1 grid h-6.75 w-3.75 place-items-center
         before:grid before:size-2.75 before:place-items-center before:border before:border-chrome-edge before:bg-paper before:font-mono before:text-caption before:leading-none
         before:content-(--disclosure-closed) expanded:before:content-(--disclosure-open)`]}

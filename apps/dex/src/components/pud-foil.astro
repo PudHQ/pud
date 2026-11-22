@@ -1,25 +1,22 @@
 ---
-const { compact = false } = Astro.props;
 const sprite = "/pud-chrome.png";
 const printClasses = `block h-auto w-full [image-rendering:var(--rendering-pixel)]
   group-data-raised/foil:invisible group-data-material/foil:invisible`;
 ---
-<span data-foil={compact ? undefined : ""} class="group/foil absolute bottom-orbiter-rise left-3/25 w-orbiter-width drop-shadow-orbiter
+<span data-foil class="group/foil absolute bottom-orbiter-rise left-3/25 z-2 w-orbiter-width min-w-11 drop-shadow-orbiter
   not-data-placed:translate-x-orbit-x not-data-placed:translate-y-orbit-y data-placed:translate-x-foil-x data-placed:translate-y-foil-y
-  data-foil:z-2 data-foil:min-w-11 data-raised:not-data-material:drop-shadow-foil-raised data-material:filter-none">
+  data-raised:not-data-material:drop-shadow-foil-raised data-material:filter-none">
   <img data-foil-print class={printClasses} src={sprite} alt="" width="76" height="77" draggable="false" />
-  {!compact && <>
-    <img class:list={[printClasses, "absolute inset-0 mask-(--mask-cap) mask-size-(--mask-size-cap) mask-top-right mask-no-repeat opacity-0 brightness-245 [clip-path:var(--clip-cap)] motion-safe:animate-cap-sheen"]}
-      src={sprite} alt="" width="76" height="77" draggable="false" />
-    <canvas data-foil-surface class="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-1/2
-      [image-rendering:var(--rendering-pixel)] group-data-raised/foil:not-data-hologram:block
-      group-data-material/foil:data-hologram:block group-data-material/foil:not-data-hologram:invisible" inert></canvas>
-    <button data-foil-control class="pointer-events-auto absolute inset-0 size-full cursor-grab touch-none border-0 bg-transparent p-0 select-none
-      focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dotted focus-visible:outline-amber-100 active:cursor-grabbing"
-      type="button" aria-label="Move or curl Pud" aria-describedby="foil-help"
-      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Home Enter Space" title="Drag to move and curl Pud" hidden></button>
-    <span class="sr-only" id="foil-help">Hold and drag to move Pud. Arrow keys move, Space curls, and Home returns Pud to the globe.</span>
-  </>}
+  <img class:list={[printClasses, "absolute inset-0 mask-(--mask-cap) mask-size-(--mask-size-cap) mask-top-right mask-no-repeat opacity-0 brightness-245 [clip-path:var(--clip-cap)] motion-safe:animate-cap-sheen"]}
+    src={sprite} alt="" width="76" height="77" draggable="false" />
+  <canvas data-foil-surface class="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-1/2
+    [image-rendering:var(--rendering-pixel)] group-data-raised/foil:not-data-hologram:block
+    group-data-material/foil:data-hologram:block group-data-material/foil:not-data-hologram:invisible" inert></canvas>
+  <button data-foil-control class="pointer-events-auto absolute inset-0 size-full cursor-grab touch-none border-0 bg-transparent p-0 select-none
+    focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dotted focus-visible:outline-amber-100 active:cursor-grabbing"
+    type="button" aria-label="Move or curl Pud" aria-describedby="foil-help"
+    aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Home Enter Space" title="Drag to move and curl Pud" hidden></button>
+  <span class="sr-only" id="foil-help">Hold and drag to move Pud. Arrow keys move, Space curls, and Home returns Pud to the globe.</span>
 </span>
 
 <script>

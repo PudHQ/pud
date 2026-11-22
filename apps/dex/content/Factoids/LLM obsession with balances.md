@@ -1,5 +1,6 @@
 ---
 author: rorz
+date: 2026-11-21
 summary: Why do all LLMs seem to talk about non-negative balances when asked to explain formal verification?
 aliases: Non-negative balances
 ---

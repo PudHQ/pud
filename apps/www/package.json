@@ -16,8 +16,8 @@
     "alpha:list": "cf d1 raw 00000000-0000-4000-8000-000000004901 --local --sql \"SELECT email, joined_at FROM alpha_signups ORDER BY joined_at DESC, email\""
   },
   "dependencies": {
+    "@pud/analytics": "workspace:*",
     "@vinext/cloudflare": "catalog:",
-    "posthog-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-server-dom-webpack": "catalog:",

@@ -14,30 +14,33 @@ const wallpapers = [
   <div class="pointer-events-none absolute inset-0 -bottom-6 bg-(image:--wallpaper-accent) opacity-35 motion-safe:animate-(--wallpaper-accent-motion)"></div>
   <canvas class="pointer-events-none absolute inset-0 size-full [image-rendering:var(--rendering-pixel)]" width="1" height="1"></canvas>
 </div>
-<fieldset data-wallpaper-picker class="pointer-events-auto min-w-0" transition:persist="dex-wallpaper-picker">
-  <legend class="sr-only">Desktop wallpaper</legend>
-  <div class="flex items-end gap-0.75 small-phone:gap-0.25">
-    {wallpapers.map(({ id, label }) => (
-      <label class="group grid h-11 w-10 shrink-0 items-end phone:w-8 small-phone:w-7" title={label}>
-        <input class="peer sr-only" type="radio" name="wallpaper" id={`wallpaper-${id}`} value={id}
-          checked={id === "starfield"} aria-label={label} />
-        <span class="pointer-events-none relative block h-7.75 border-2 border-t-slate-400 border-r-slate-950 border-b-slate-950 border-l-slate-400
-          bg-slate-900 p-0.5 shadow-window after:absolute after:top-px after:right-px after:hidden after:size-1 after:bg-amber-200
-          peer-checked:border-amber-200 peer-checked:after:block peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
-          peer-focus-visible:outline-cyan-200 group-active:translate-y-px" aria-hidden="true">
-          {id === "plain"
-            ? <span class="grid size-full place-items-center bg-desktop">
-                <span class="grid h-3.5 w-4 place-items-center border border-slate-500">
-                  <span class="h-0.5 w-4 -rotate-45 bg-slate-300"></span>
+<!-- The form keeps the live and incoming radio groups independent during a route swap. -->
+<form class="contents" transition:persist="dex-wallpaper-picker">
+  <fieldset data-wallpaper-picker class="pointer-events-auto min-w-0">
+    <legend class="sr-only">Desktop wallpaper</legend>
+    <div class="flex items-end gap-0.75 small-phone:gap-0.25">
+      {wallpapers.map(({ id, label }) => (
+        <label class="group grid h-11 w-10 shrink-0 items-end phone:w-8 small-phone:w-7" title={label}>
+          <input class="peer sr-only" type="radio" name="wallpaper" id={`wallpaper-${id}`} value={id}
+            checked={id === "starfield"} aria-label={label} />
+          <span class="pointer-events-none relative block h-7.75 border-2 border-t-slate-400 border-r-slate-950 border-b-slate-950 border-l-slate-400
+            bg-slate-900 p-0.5 shadow-window after:absolute after:top-px after:right-px after:hidden after:size-1 after:bg-amber-200
+            peer-checked:border-amber-200 peer-checked:after:block peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
+            peer-focus-visible:outline-cyan-200 group-active:translate-y-px" aria-hidden="true">
+            {id === "plain"
+              ? <span class="grid size-full place-items-center bg-desktop">
+                  <span class="grid h-3.5 w-4 place-items-center border border-slate-500">
+                    <span class="h-0.5 w-4 -rotate-45 bg-slate-300"></span>
+                  </span>
                 </span>
-              </span>
-            : <span class="block size-full bg-(image:--wallpaper-preview) bg-center brightness-160 group-hover:brightness-200"
-                style={`--wallpaper-preview: url('/wallpapers/${id}.png')`}></span>}
-        </span>
-      </label>
-    ))}
-  </div>
-</fieldset>
+              : <span class="block size-full bg-(image:--wallpaper-preview) bg-center brightness-160 group-hover:brightness-200"
+                  style={`--wallpaper-preview: url('/wallpapers/${id}.png')`}></span>}
+          </span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+</form>
 
 <script is:inline>
   (() => {
@@ -63,6 +66,7 @@ const wallpapers = [
     }
 
     restorePreference();
+    picker.form.addEventListener("submit", event => event.preventDefault());
     picker.addEventListener("change", event => {
       const choice = event.target;
       if (!(choice instanceof HTMLInputElement) || !choice.checked) return;
