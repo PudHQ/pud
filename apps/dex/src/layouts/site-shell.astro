@@ -8,7 +8,7 @@ import readingFont from "@fontsource-variable/atkinson-hyperlegible-next/files/a
 import "../styles/styles.css";
 import { ClientRouter } from "astro:transitions";
 import { vault } from "../lib/content";
-import { link } from "../lib/styles";
+import { link, teletextKey, teletextKeyFace } from "../lib/styles";
 import Masthead from "../components/site-masthead.astro";
 import Icon from "../components/dex-icon.astro";
 import FolderTree from "../components/folder-tree.astro";
@@ -28,7 +28,8 @@ const { notes, roots, links } = vault;
 <!doctype html>
 <html lang="en" data-dex-home={home ? "" : undefined}
   class="scrollbar-gutter-stable bg-desktop font-sans leading-ui text-ink [font-synthesis:var(--font-synthesis-ui)]
-    teletext:scroll-pt-12 teletext:scroll-pb-32 teletext:bg-black teletext:scheme-dark"
+    teletext:scroll-pt-16 teletext:scroll-pb-88 teletext:bg-black teletext:scheme-dark
+    phone:portrait:teletext:overflow-hidden landscape:not-stacked:pointer-coarse:teletext:scroll-pb-6"
   transition:animate="none">
   <head>
     <meta charset="utf-8" />
@@ -49,14 +50,24 @@ const { notes, roots, links } = vault;
   </head>
   <body class="isolate flex min-h-dvh min-w-70 flex-col px-6 narrow:px-3 phone:px-1.5
     [&_:where(:focus-visible)]:outline-2 [&_:where(:focus-visible)]:outline-focus [&_:where(:focus-visible)]:outline-offset-2
-    teletext:pointer-events-none teletext:min-w-0 teletext:px-3 teletext:font-mono teletext:text-zinc-100 teletext:[&_:where(:focus-visible)]:outline-amber-100">
+    teletext:min-w-0 teletext:px-3 teletext:pt-16 teletext:pb-6 teletext:font-mono teletext:text-zinc-100
+    teletext:[&_:where(:focus-visible)]:outline-amber-100 phone:teletext:pb-5 phone:portrait:teletext:h-dvh">
     <a class:list={[link, "sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-2 focus:z-7 focus:bg-white focus:p-2.25 teletext:focus:bg-blue-950"]} href="#content">Skip to content</a>
-    <a data-teletext-exit data-astro-reload href={Astro.url.pathname} aria-keyshortcuts="Escape" class="sticky top-0 z-6 hidden min-h-11 w-fit items-center gap-2 self-start
-      bg-black px-2 font-pixel text-sm font-bold text-amber-200 teletext:flex">
-      <kbd class="bg-amber-200 px-1 text-black" aria-hidden="true">ESC</kbd> Back to the real world
+    <a data-teletext-exit data-astro-reload href={Astro.url.pathname} aria-keyshortcuts="Escape"
+      class:list={[teletextKey, "fixed top-3 left-3 z-6 hidden w-fit rounded-lg text-sm teletext:grid"]}>
+      <span class:list={[teletextKeyFace, "gap-2 rounded-lg border-b-amber-800 from-amber-100 via-amber-200 to-amber-400 px-3 text-slate-950"]}>
+        Back to the real world
+        <kbd class="hidden rounded-sm bg-amber-950/15 px-1.25 py-0.5 text-xs sm:pointer-fine:inline" aria-hidden="true">Esc</kbd>
+      </span>
     </a>
-    <div class="pointer-events-none mx-auto mt-1 mb-window-margin flex w-full max-w-window grow flex-col gap-0.5
-      phone:mb-1.5 teletext:mb-5 teletext:max-w-3xl">
+    <div data-teletext-reading class="pointer-events-none mx-auto mt-1 mb-window-margin flex w-full max-w-window grow flex-col gap-0.5
+      phone:mb-1.5 teletext:mb-5 teletext:max-w-3xl
+      phone:portrait:teletext:pointer-events-auto phone:portrait:teletext:mb-2 phone:portrait:teletext:min-h-0
+      phone:portrait:teletext:overflow-y-auto phone:portrait:teletext:overscroll-contain phone:portrait:teletext:scroll-pb-5
+      phone:portrait:teletext:mask-b-from-94% phone:portrait:teletext:mask-b-to-100% phone:portrait:teletext:pb-8
+      small-phone:portrait:teletext:pb-5
+      landscape:not-stacked:pointer-coarse:teletext:mr-82 landscape:not-stacked:pointer-coarse:teletext:ml-0
+      landscape:not-stacked:pointer-coarse:teletext:w-auto">
       <div class="flex min-h-13 flex-wrap items-end gap-1 teletext:hidden">
         <WallpaperPicker />
         <SponsorBadge />
@@ -90,7 +101,8 @@ const { notes, roots, links } = vault;
       <div class="flex items-end justify-end gap-2 teletext:hidden">
         <button data-teletext-launch type="button" class="pointer-events-auto flex min-h-6 items-center gap-2 border border-t-slate-400
           border-r-slate-950 border-b-slate-950 border-l-slate-400 bg-black px-2.5 font-pixel text-sm leading-none font-bold tracking-wide
-          text-cyan-100 uppercase shadow-window hover:bg-blue-950 focus-visible:outline-cyan-200 active:translate-y-px noscript:hidden">
+          text-cyan-100 uppercase shadow-window hover:bg-blue-950 focus-visible:outline-cyan-200 active:translate-y-px
+          phone:min-h-11 pointer-coarse:min-h-11 noscript:hidden">
           <span aria-hidden="true" class="grid grid-cols-2 gap-px">
             <span class="size-1.5 bg-vermilion"></span><span class="size-1.5 bg-amber-200"></span>
             <span class="size-1.5 bg-blue-500"></span><span class="size-1.5 bg-cyan-300"></span>

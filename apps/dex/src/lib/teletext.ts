@@ -3,26 +3,34 @@ import { navigate } from "astro:transitions/client";
 export const teletextAttribute = "data-dex-teletext";
 export const teletextChange = "dex:teletext";
 const preferenceKey = "puddex:teletext";
+const entrySelector = "[data-teletext-entry]";
+const keySelector = "[data-teletext-key]";
+const pressableSelector = `${keySelector}, [data-teletext-exit]`;
 let launch: { pathname: string; x: number; y: number } | undefined;
 
 export function mountTeletext(controls: HTMLElement, signal: AbortSignal) {
   const root = document.documentElement;
   const launcher = document.querySelector<HTMLButtonElement>("[data-teletext-launch]")!;
   const exit = document.querySelector<HTMLAnchorElement>("[data-teletext-exit]")!;
+  const reading = document.querySelector<HTMLElement>("[data-teletext-reading]")!;
   const main = document.getElementById("content")!;
   const channel = controls.querySelector<HTMLElement>("[data-teletext-number]")!;
   const status = controls.querySelector<HTMLElement>("[data-teletext-status]")!;
-  const shortcuts: Record<string, HTMLAnchorElement> = {
-    ArrowLeft: controls.querySelector<HTMLAnchorElement>("[data-teletext-previous]")!,
-    ArrowRight: controls.querySelector<HTMLAnchorElement>("[data-teletext-next]")!,
-    i: controls.querySelector<HTMLAnchorElement>("[data-teletext-index]")!,
-    l: controls.querySelector<HTMLAnchorElement>("[data-teletext-links]")!,
-  };
+  const shortcuts = new Map(Array.from(controls.querySelectorAll<HTMLAnchorElement>(`a${keySelector}`),
+    link => [link.dataset.teletextKey!, link]));
   const pages: Record<string, string> = JSON.parse(controls.dataset.pages!);
   const pageNumbers = Object.keys(pages);
   const active = () => root.hasAttribute(teletextAttribute);
   let digits = "";
   let timeout = 0;
+  let selected: HTMLAnchorElement | null = null;
+  let pressed: { key: HTMLElement; pointerId: number } | undefined;
+
+  function releaseTouch(pointerId?: number) {
+    if (!pressed || (pointerId !== undefined && pressed.pointerId !== pointerId)) return;
+    pressed.key.removeAttribute("data-teletext-pressed");
+    pressed = undefined;
+  }
 
   function resetChannel() {
     clearTimeout(timeout);
@@ -51,6 +59,8 @@ export function mountTeletext(controls: HTMLElement, signal: AbortSignal) {
 
   function setView(enabled: boolean) {
     resetChannel();
+    highlight(null);
+    releaseTouch();
     if (enabled) launch = { pathname: location.pathname, x: window.scrollX, y: window.scrollY };
     root.toggleAttribute(teletextAttribute, enabled);
     document.dispatchEvent(new Event(teletextChange));
@@ -71,17 +81,67 @@ export function mountTeletext(controls: HTMLElement, signal: AbortSignal) {
     }
   }
 
-  function selectEntry(direction: number) {
-    const entries = [...document.querySelectorAll<HTMLAnchorElement>("[data-teletext-entry]")]
+  function highlight(entry: HTMLAnchorElement | null) {
+    if (selected === entry) return;
+    selected?.removeAttribute("data-teletext-selected");
+    selected = entry;
+    selected?.setAttribute("data-teletext-selected", "");
+  }
+
+  function move(direction: number, keyboard: boolean) {
+    const entries = [...document.querySelectorAll<HTMLAnchorElement>(entrySelector)]
       .filter(entry => entry.getClientRects().length > 0);
-    if (!entries.length) return false;
-    const index = entries.indexOf(document.activeElement as HTMLAnchorElement);
-    const target = index < 0
+    if (!entries.length) {
+      const docked = getComputedStyle(reading).overflowY === "auto";
+      const height = docked ? reading.clientHeight : window.innerHeight;
+      const distance = keyboard ? 40 : Math.min(144, height * 0.6);
+      (docked ? reading : window).scrollBy({ top: direction * distance, behavior: "instant" });
+      return;
+    }
+    const index = selected ? entries.indexOf(selected) : -1;
+    const entry = index < 0
       ? (direction > 0 ? entries[0] : entries.at(-1)!)
       : entries[Math.max(0, Math.min(index + direction, entries.length - 1))];
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "nearest", inline: "nearest" });
-    return true;
+    highlight(entry);
+    if (keyboard) entry.focus({ preventScroll: true });
+    entry.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  function useKey(key: string, keyboard: boolean, repeat = false) {
+    if (key === "Escape") {
+      setView(false);
+      return true;
+    }
+    if (/^\d$/.test(key)) {
+      if (!repeat) {
+        digits += key;
+        updateChannel();
+      }
+      return true;
+    }
+    if (digits && key === "Backspace") {
+      digits = digits.slice(0, -1);
+      if (digits) updateChannel();
+      else resetChannel();
+      return true;
+    }
+    if (key === "Enter") {
+      if (digits) tune();
+      else if (!keyboard) selected?.click();
+      else return false;
+      return true;
+    }
+    if (key === "ArrowDown" || key === "ArrowUp") {
+      move(key === "ArrowDown" ? 1 : -1, keyboard);
+      return true;
+    }
+    const shortcut = shortcuts.get(key);
+    if (shortcut) {
+      resetChannel();
+      if (!repeat && shortcut.pathname !== location.pathname) void navigate(shortcut.href);
+      return true;
+    }
+    return false;
   }
 
   launcher.addEventListener("click", () => setView(true), { signal });
@@ -91,49 +151,41 @@ export function mountTeletext(controls: HTMLElement, signal: AbortSignal) {
     setView(false);
   }, { signal });
 
-  document.addEventListener("wheel", event => {
-    if (active() && !event.ctrlKey) event.preventDefault();
-  }, { passive: false, signal });
-  document.addEventListener("touchmove", event => {
-    if (active() && event.touches.length === 1) event.preventDefault();
-  }, { passive: false, signal });
+  controls.addEventListener("click", event => {
+    if (!active() || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const key = event.target instanceof Element ? event.target.closest<HTMLElement>(keySelector)?.dataset.teletextKey : undefined;
+    if (!key) return;
+    event.preventDefault();
+    useKey(key, false);
+  }, { signal });
+
+  document.addEventListener("pointerdown", event => {
+    if (!active() || event.pointerType === "mouse" || !event.isPrimary || event.button !== 0 || !(event.target instanceof Element)) return;
+    const key = event.target.closest<HTMLElement>(pressableSelector);
+    if (!key) return;
+    releaseTouch();
+    pressed = { key, pointerId: event.pointerId };
+    key.setAttribute("data-teletext-pressed", "");
+  }, { signal });
+  document.addEventListener("pointerup", event => releaseTouch(event.pointerId), { signal });
+  document.addEventListener("pointercancel", event => releaseTouch(event.pointerId), { signal });
+  window.addEventListener("blur", () => releaseTouch(), { signal });
+
+  document.addEventListener("focusin", event => {
+    if (active() && event.target instanceof HTMLAnchorElement && event.target.matches(entrySelector)) highlight(event.target);
+  }, { signal });
 
   document.addEventListener("keydown", event => {
     if (!active() || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setView(false);
-      return;
+    const target = event.target;
+    if (target instanceof Element) {
+      if (event.key === "Enter" && target.closest(keySelector)) return;
+      if (event.key !== "Escape" && target.closest("input, textarea, select, [contenteditable]")) return;
     }
-    if (/^\d$/.test(event.key)) {
-      event.preventDefault();
-      if (!event.repeat) {
-        digits += event.key;
-        updateChannel();
-      }
-      return;
-    }
-    if (digits && (event.key === "Backspace" || event.key === "Enter")) {
-      event.preventDefault();
-      if (event.key === "Enter") tune();
-      else {
-        digits = digits.slice(0, -1);
-        if (digits) updateChannel();
-        else resetChannel();
-      }
-      return;
-    }
-    if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable]")) return;
-    const shortcut = shortcuts[event.key];
-    if (shortcut) {
-      event.preventDefault();
-      resetChannel();
-      if (!event.repeat && shortcut.pathname !== location.pathname) void navigate(shortcut.href);
-      return;
-    }
-    if ((event.key === "ArrowDown" || event.key === "ArrowUp") && selectEntry(event.key === "ArrowDown" ? 1 : -1)) {
-      event.preventDefault();
-    }
+    if (useKey(event.key, true, event.repeat)) event.preventDefault();
   }, { capture: true, signal });
-  signal.addEventListener("abort", () => clearTimeout(timeout), { once: true });
+  signal.addEventListener("abort", () => {
+    clearTimeout(timeout);
+    releaseTouch();
+  }, { once: true });
 }

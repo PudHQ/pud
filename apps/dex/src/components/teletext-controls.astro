@@ -1,5 +1,6 @@
 ---
 import Icon from "./dex-icon.astro";
+import { teletextKey, teletextKeyFace } from "../lib/styles";
 import { teletextNumbers, teletextPages } from "../lib/teletext-pages";
 
 const { pathname } = Astro.url;
@@ -9,43 +10,86 @@ const previous = teletextPages.at(index < 0 ? -1 : index - 1)!;
 const next = teletextPages[(index + 1) % teletextPages.length];
 const isNote = pathname.startsWith("/notes/");
 const pageDirectory = JSON.stringify(Object.fromEntries(teletextPages.map(({ number, href }) => [number, href])));
-const action = "flex min-h-7 items-center justify-center gap-1 rounded-xs border border-white/15 bg-linear-to-b px-1 font-pixel text-sm leading-none font-bold uppercase inset-shadow-xs inset-shadow-white/25";
-const key = "rounded-xs border border-sky-800 bg-slate-950 px-1 font-pixel font-bold text-cyan-100";
+const key = `${teletextKey} grid rounded-md`;
+const face = `${teletextKeyFace} rounded-md`;
+const numberFace = `${face} from-slate-600 to-slate-900 text-2xl text-white tabular-nums`;
+const directionFace = `${face} from-blue-700 to-blue-950 text-xl text-cyan-100`;
+const hintKey = "rounded-xs bg-sky-950/70 px-1 font-sans font-bold text-cyan-100";
 ---
 <nav data-teletext-controls data-page={number} data-pages={pageDirectory} aria-label="Teletext controls"
-  class="pointer-events-none sticky bottom-3 z-5 mb-3 hidden w-76 max-w-full self-end rounded-sm border border-sky-800
-    border-t-sky-400/80 bg-linear-to-br from-sky-950 via-slate-950 to-black p-2 shadow-lg shadow-black
-    inset-shadow-sm inset-shadow-cyan-300/10 ring-1 ring-cyan-300/15 phone:bottom-2 phone:mb-2 teletext:block">
-  <span aria-hidden="true" class="absolute -top-px inset-x-3 h-px bg-linear-to-r from-transparent via-sky-200/75 to-transparent">
-    <span class="absolute -top-1 right-3 inline-flex text-cyan-100 motion-safe:animate-widget-glint"><Icon name="spark" size={10} /></span>
+  class="pointer-events-none sticky bottom-6 z-5 hidden w-80 max-w-full shrink-0 self-end rounded-2xl
+    border border-sky-900/50 border-t-cyan-200/60 border-b-4 border-l-sky-500/45
+    bg-transparent p-2 font-sans shadow-lg shadow-black/45 inset-shadow-sm inset-shadow-sky-200/25 ring-1 ring-sky-400/25
+    phone:bottom-5 small-phone:px-1 teletext:block
+    landscape:not-stacked:pointer-coarse:fixed landscape:not-stacked:pointer-coarse:right-3">
+  <span aria-hidden="true" class="pointer-events-none absolute inset-0 -z-1 rounded-2xl bg-linear-to-br from-sky-200/14 via-sky-900/12 to-sky-950/8"></span>
+  <span aria-hidden="true" class="pointer-events-none absolute -top-px inset-x-5 h-px bg-linear-to-r from-transparent via-sky-100 to-transparent">
+    <span class="absolute -top-1 right-5 inline-flex text-cyan-100 motion-safe:animate-widget-glint"><Icon name="spark" size={10} /></span>
   </span>
-  <div class="mb-1.5 flex items-center justify-between gap-2">
-    <p class="inline-flex min-w-15 items-center justify-center gap-1 rounded-xs border border-sky-800
-      bg-black px-1.5 py-0.5 font-pixel text-base leading-none font-bold tracking-wide text-amber-200">
-      <span class="sr-only">Channel </span><span aria-hidden="true" class="text-cyan-300">P</span><span data-teletext-number>{number}</span>
+  <div class="relative mb-1.5 flex min-h-9 items-center justify-between gap-2 rounded-lg border
+    border-sky-950 border-b-sky-300/30 bg-linear-to-br from-black to-sky-950 px-2 shadow-inner shadow-black">
+    <span aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-lg bg-(image:--background-sponsor-scanlines)"></span>
+    <p class="relative flex shrink-0 items-baseline gap-1.5 text-3xl leading-none font-extrabold tracking-wide text-amber-200 tabular-nums">
+      <span class="sr-only">Channel </span><span aria-hidden="true" class="text-sm text-cyan-300">P</span><span data-teletext-number>{number}</span>
     </p>
-    <span class="flex items-center gap-1.5 text-xs text-slate-200"><kbd class={key}>0–9</kbd> Tune</span>
+    <p data-teletext-status role="status" class="peer relative text-right text-caption text-amber-200 empty:sr-only"></p>
+    <span aria-hidden="true" class="relative hidden items-center gap-1 peer-empty:flex">
+      <span class="h-2 w-3 rounded-xs border-t border-white/45 bg-vermilion"></span>
+      <span class="h-2 w-3 rounded-xs border-t border-white/45 bg-amber-200"></span>
+      <span class="h-2 w-3 rounded-xs border-t border-white/45 bg-blue-500"></span>
+      <span class="h-2 w-3 rounded-xs border-t border-white/45 bg-cyan-300"></span>
+    </span>
   </div>
-  <div class="grid grid-cols-4 gap-1">
-    <a href="/" data-teletext-index class:list={[action, "from-orange-300 to-vermilion text-black"]}
-      aria-current={pathname === "/" ? "page" : undefined} aria-label="Index, channel 100" aria-keyshortcuts="I">
-      <kbd class="rounded-xs bg-black/15 px-0.75">I</kbd> Index
-    </a>
-    <a href="/links/" data-teletext-links class:list={[action, "from-amber-100 to-amber-400 text-black"]}
-      aria-current={pathname === "/links/" ? "page" : undefined} aria-label={`Links, channel ${teletextNumbers.get("/links/")}`} aria-keyshortcuts="L">
-      <kbd class="rounded-xs bg-black/15 px-0.75">L</kbd> Links
-    </a>
-    <a href={previous.href} data-teletext-previous class:list={[action, "from-blue-600 to-blue-900 text-white"]} aria-keyshortcuts="ArrowLeft"
-      aria-label={`Previous page, ${previous.title}`} title={previous.title}><kbd aria-hidden="true">←</kbd> {previous.number}</a>
-    <a href={next.href} data-teletext-next class:list={[action, "from-cyan-200 to-cyan-500 text-black"]} aria-keyshortcuts="ArrowRight"
-      aria-label={`Next page, ${next.title}`} title={next.title}>{next.number} <kbd aria-hidden="true">→</kbd></a>
+  <div class="grid grid-cols-2 gap-2 small-phone:gap-1">
+    <fieldset class="grid min-w-0 grid-cols-3 gap-1 small-phone:gap-0.75">
+      <legend class="sr-only">Channel keypad</legend>
+      {Array.from({ length: 9 }, (_, i) => i + 1).map(digit => (
+        <button type="button" data-teletext-key={digit} class={key}><span class={numberFace}>{digit}</span></button>
+      ))}
+      <button type="button" data-teletext-key="0" class:list={[key, "col-span-2"]}><span class={numberFace}>0</span></button>
+      <button type="button" data-teletext-key="Backspace" class={key} aria-label="Delete last digit"><span class={numberFace}>⌫</span></button>
+    </fieldset>
+    <fieldset class="relative isolate grid min-w-0 grid-cols-3 grid-rows-4 gap-1 small-phone:gap-0.75">
+      <legend class="sr-only">Page navigation</legend>
+      <span aria-hidden="true" class="pointer-events-none absolute inset-x-0.5 top-0.5 bottom-12 -z-1 rounded-xl border
+        border-sky-800/55 bg-sky-950/20 shadow-inner shadow-black/50"></span>
+      <a href="/" data-teletext-key="i" class={key}
+        aria-current={pathname === "/" ? "page" : undefined} aria-label="Index, channel 100" aria-keyshortcuts="I">
+        <span class:list={[face, "from-orange-300 to-vermilion text-xs text-black uppercase"]}>Index</span>
+      </a>
+      <button type="button" data-teletext-key="ArrowUp" class={key} aria-keyshortcuts="ArrowUp"
+        aria-label={isNote ? "Scroll up" : "Move up"}><span class={directionFace}>↑</span></button>
+      <a href="/links/" data-teletext-key="l" class={key}
+        aria-current={pathname === "/links/" ? "page" : undefined} aria-label={`Links, channel ${teletextNumbers.get("/links/")}`} aria-keyshortcuts="L">
+        <span class:list={[face, "from-amber-100 to-amber-400 text-xs text-black uppercase"]}>Links</span>
+      </a>
+      <a href={previous.href} data-teletext-key="ArrowLeft" class={key}
+        aria-keyshortcuts="ArrowLeft" aria-label={`Previous channel, ${previous.title}`}>
+        <span class:list={[directionFace, "flex-col"]}><span aria-hidden="true">←</span><span class="text-xs tabular-nums">{previous.number}</span></span>
+      </a>
+      <button type="button" data-teletext-key="Enter" class:list={[teletextKey, "grid rounded-full"]} aria-label="OK, open selection or tune channel">
+        <span class:list={[teletextKeyFace, "rounded-full from-cyan-200 to-cyan-500 text-base text-slate-950"]}>OK</span>
+      </button>
+      <a href={next.href} data-teletext-key="ArrowRight" class={key}
+        aria-keyshortcuts="ArrowRight" aria-label={`Next channel, ${next.title}`}>
+        <span class:list={[directionFace, "flex-col"]}><span aria-hidden="true">→</span><span class="text-xs tabular-nums">{next.number}</span></span>
+      </a>
+      <button type="button" data-teletext-key="ArrowDown" class:list={[key, "col-start-2 row-start-3"]} aria-keyshortcuts="ArrowDown"
+        aria-label={isNote ? "Scroll down" : "Move down"}><span class={directionFace}>↓</span></button>
+      <button type="button" data-teletext-key="Escape" aria-keyshortcuts="Escape"
+        class:list={[teletextKey, "col-span-3 row-start-4 grid rounded-lg"]}>
+        <span class:list={[teletextKeyFace, "rounded-lg border-b-red-950 from-vermilion to-red-700 text-xl tracking-wider text-white"]}>EXIT</span>
+      </button>
+    </fieldset>
   </div>
-  <p class="mt-1.5 flex flex-wrap justify-between gap-x-2 gap-y-1 text-xs leading-normal text-slate-200">
-    <span><kbd class={key}>↑↓</kbd> {isNote ? "Scroll" : "Select"}</span>
-    {!isNote && <span><kbd class={key}>Enter</kbd> Open</span>}
-    <span><kbd class={key}>←→</kbd> Page</span>
+  <p class="mt-2 hidden grid-cols-3 gap-x-2 gap-y-1 border-t border-sky-800/70 pt-1.5 text-caption text-slate-200 sm:pointer-fine:grid">
+    <span><kbd class={hintKey}>0–9</kbd> Tune</span>
+    <span><kbd class={hintKey}>↑↓</kbd> {isNote ? "Scroll" : "Select"}</span>
+    <span><kbd class={hintKey}>←→</kbd> Page</span>
+    <span><kbd class={hintKey}>Enter</kbd> OK</span>
+    <span><kbd class={hintKey}>I</kbd> Index</span>
+    <span><kbd class={hintKey}>L</kbd> Links</span>
   </p>
-  <p data-teletext-status role="status" class="mt-1.5 border-t border-sky-800 pt-1.5 text-xs text-amber-200 empty:hidden"></p>
 </nav>
 
 <script>

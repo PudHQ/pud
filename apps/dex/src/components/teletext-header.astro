@@ -10,7 +10,7 @@ const art = await getTeletextArt();
 ---
 <header class="hidden min-w-0 teletext:block">
   <div class="flex min-h-9 items-center justify-between gap-4 border-b border-sky-700 font-pixel text-lg leading-none font-bold text-cyan-300">
-    <p><span class="sr-only">Teletext channel </span><span aria-hidden="true">P</span><span class="ml-1 text-amber-50">{number}</span></p>
+    <p class="font-sans font-extrabold tabular-nums"><span class="sr-only">Teletext channel </span><span aria-hidden="true">P</span><span class="ml-1 text-amber-50">{number}</span></p>
     <span class="tracking-wider">TELETEXT</span>
   </div>
 
@@ -30,9 +30,9 @@ const art = await getTeletextArt();
     <ul class="grid grid-cols-2 gap-x-4 gap-y-px py-1 stacked:grid-cols-1">
       {folders.map(folder => <li>
         <a data-teletext-entry href={folder.href} class="flex min-h-9 items-center justify-between gap-2 px-2 font-pixel text-lg/none text-cyan-100
-          focus-visible:bg-blue-800 focus-visible:outline-amber-100">
+          focus-visible:bg-blue-800 focus-visible:outline-amber-100 data-teletext-selected:bg-blue-800">
           <span class="wrap-anywhere">{folder.name}</span>
-          <span class="shrink-0 text-amber-200">{teletextNumbers.get(folder.href)}</span>
+          <span class="shrink-0 font-sans font-extrabold text-amber-200 tabular-nums">{teletextNumbers.get(folder.href)}</span>
         </a>
       </li>)}
     </ul>

@@ -181,6 +181,7 @@
 @custom-variant expanded (details[open] > &);
 @custom-variant outbound (&[target="_blank"]);
 @custom-variant teletext (&:where([data-dex-teletext], [data-dex-teletext] *));
+@custom-variant teletext-key-pressed (&:is(:where(.group\/teletext-key):is(:active, [data-teletext-pressed]) *));
 
 @layer base {
   /* Each cursor image includes its separator so controls can supply their own native fallback. */

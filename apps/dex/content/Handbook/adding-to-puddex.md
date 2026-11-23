@@ -13,10 +13,10 @@ For a byline, add an `author` text property in Obsidian. Use `rorz` for Rory McM
 
 ## Connect two notes
 
-Type `[[Reading a proof result]]` to link to [[Reading a proof result]]. Use a pipe to choose the words readers see, as in `[[Reading a proof result|proof verdicts]]`. The destination page lists the notes that link to it.
+Type `[[reading-a-proof-result]]` to link to [[reading-a-proof-result|Reading a proof result]]. Use a pipe to choose the words readers see, as in `[[reading-a-proof-result|proof verdicts]]`. The destination page lists the notes that link to it.
 
 ## Save a link
 
-Put a Markdown link in a paragraph. The link index collects the address and remembers which note it came from. To add a bookmark, create a note under `Bookmarks/`. Set its `url` property to show a Visit link on the note page. [[Dafny reference manual]] is an example.
+Put a Markdown link in a paragraph. The link index collects the address and remembers which note it came from. To add a bookmark, create a note under `Bookmarks/`. Set its `url` property to show a Visit link on the note page. [[dafny-reference-manual|Dafny reference manual]] is an example.
 
 Obsidian can update links when you rename a file in the vault. [Obsidian’s guide to internal links](https://obsidian.md/help/links)
