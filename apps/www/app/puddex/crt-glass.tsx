@@ -51,10 +51,10 @@ export function CrtGlass({ lit, src, children }: { lit: boolean; src?: string; c
             <>
               <div className="absolute inset-0 bg-crt-scanlines" aria-hidden="true" />
               <div className="absolute inset-0 bg-crt-phosphor" aria-hidden="true" />
-              <div className="absolute inset-0 bg-linear-to-b from-transparent from-36% via-white/5 via-50% to-transparent to-64% motion-safe:animate-crt-refresh motion-reduce:hidden" aria-hidden="true" />
             </>
           )}
         </div>
+        {lit && <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-36% via-white/5 via-50% to-transparent to-64% motion-safe:animate-crt-refresh motion-reduce:hidden" aria-hidden="true" />}
         <div className="pointer-events-none absolute inset-0 bg-crt-glare shadow-crt-glass" aria-hidden="true" />
       </div>
     </>

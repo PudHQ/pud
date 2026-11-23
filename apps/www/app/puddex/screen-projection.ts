@@ -19,6 +19,7 @@ export function makeScreenProjection() {
     ref, left: new Vector3(x - width / 2, y, z), right: new Vector3(x + width / 2, y, z),
   }));
   const projected = new Vector3();
+  let raster: { viewport: Viewport; width: number; height: number } | undefined;
 
   function project(point: Vector3, camera: Camera, { width, height }: Viewport): Point {
     projected.copy(point).project(camera);
@@ -29,15 +30,19 @@ export function makeScreenProjection() {
     const screen = controls.screen.current;
     if (screen) {
       const [a, b, c, d] = glass.map(corner => project(corner, camera, viewport));
-      const projectedWidth = (b.x - a.x + c.x - d.x) / 2;
-      const cssWidth = Math.max(320, Math.round(projectedWidth / 8) * 8);
-      const cssHeight = Math.round(cssWidth * display.height / display.width);
-      const transform = projectRectangle(a, b, c, d, cssWidth, cssHeight);
+      // Update the layout only on resize. Camera motion changes the transform without resizing the live iframe.
+      if (raster?.viewport.width !== viewport.width || raster.viewport.height !== viewport.height) {
+        const projectedWidth = (b.x - a.x + c.x - d.x) / 2;
+        const width = Math.max(320, Math.round(projectedWidth / 8) * 8);
+        raster = { viewport, width, height: Math.round(width * display.height / display.width) };
+      }
+      const { width, height } = raster;
+      const transform = projectRectangle(a, b, c, d, width, height);
       if (transform) {
         screen.style.left = "0px";
         screen.style.top = "0px";
-        screen.style.width = `${cssWidth}px`;
-        screen.style.height = `${cssHeight}px`;
+        screen.style.width = `${width}px`;
+        screen.style.height = `${height}px`;
         screen.style.transform = transform;
       }
     }

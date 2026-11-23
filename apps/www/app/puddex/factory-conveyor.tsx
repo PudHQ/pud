@@ -1,7 +1,10 @@
 import { Instance, Instances } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
-import { Color, Float32BufferAttribute, LatheGeometry, Object3D, Vector2, type InstancedMesh } from "three";
+import {
+  Color, DataTexture, DynamicDrawUsage, Float32BufferAttribute, LatheGeometry,
+  LinearFilter, LinearSRGBColorSpace, Object3D, Vector2, type InstancedMesh,
+} from "three";
 import { Block } from "../scenes/props";
 import { useSurfaceGrain } from "./surface-grain";
 
@@ -54,17 +57,56 @@ function pourCaramel() {
   return geometry;
 }
 
+function bakeFinish(glossy: boolean) {
+  const size = 64;
+  const pixels = new Uint8Array(size * size * 4);
+  for (let row = 0; row < size; row++) {
+    const y = (row + 0.5) * 2 / size - 1;
+    for (let column = 0; column < size; column++) {
+      const x = (column + 0.5) * 2 / size - 1;
+      const z = Math.sqrt(Math.max(0, 1 - x * x - y * y));
+      const key = Math.max(0, -0.28 * x + 0.81 * y + 0.51 * z);
+      const fill = Math.max(0, 0.8 * x + 0.3 * y + 0.51 * z);
+      const distance = ((x + 0.34) / 0.32) ** 2 + ((y - 0.47) / 0.15) ** 2;
+      const reflection = glossy ? 0.55 * Math.exp(-distance) : 0;
+      const shade = 0.20 + key * 0.43 + fill * 0.16 + reflection;
+      const offset = (row * size + column) * 4;
+      pixels[offset] = Math.min(shade + key * 0.065, 1) * 255;
+      pixels[offset + 1] = Math.min(shade + key * 0.031, 1) * 255;
+      pixels[offset + 2] = Math.min(shade + fill * 0.040, 1) * 255;
+      pixels[offset + 3] = 255;
+    }
+  }
+  const texture = new DataTexture(pixels, size, size);
+  texture.colorSpace = LinearSRGBColorSpace;
+  texture.minFilter = texture.magFilter = LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function updateFrequently(mesh: InstancedMesh) {
+  mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+}
+
 export function Conveyor({ animate }: { animate: boolean }) {
   const slats = useRef<InstancedMesh>(null);
   const plates = useRef<InstancedMesh>(null);
   const puddings = useRef<InstancedMesh>(null);
   const caramel = useRef<InstancedMesh>(null);
   const cursor = useRef(0);
+  const lastPlacement = useRef(-1);
   const placement = useMemo(() => new Object3D(), []);
   const flan = useMemo(moldFlan, []);
   const glaze = useMemo(pourCaramel, []);
   const brushed = useSurfaceGrain(4, 2, true);
-  useEffect(() => () => { flan.dispose(); glaze.dispose(); }, [flan, glaze]);
+  const steelLight = useMemo(() => bakeFinish(false), []);
+  const glazeLight = useMemo(() => bakeFinish(true), []);
+  useEffect(() => () => {
+    flan.dispose();
+    glaze.dispose();
+    steelLight.dispose();
+    glazeLight.dispose();
+  }, [flan, glaze, steelLight, glazeLight]);
 
   useFrame((_, delta) => {
     const slatMesh = slats.current;
@@ -73,6 +115,8 @@ export function Conveyor({ animate }: { animate: boolean }) {
     const caramelMesh = caramel.current;
     if (!slatMesh || !plateMesh || !puddingMesh || !caramelMesh) return;
     if (animate) cursor.current = (cursor.current + Math.min(delta, 0.083) * rate) % length;
+    if (cursor.current === lastPlacement.current) return;
+    lastPlacement.current = cursor.current;
     placement.rotation.y = 0;
     for (let index = 0; index < slatCount; index++) {
       const x = conveyor.start + (index * length / slatCount + cursor.current) % length;
@@ -106,17 +150,17 @@ export function Conveyor({ animate }: { animate: boolean }) {
             <Block size={[length, 0.164, 0.16]} radius={0.017} color="#686e70" position={[0, conveyor.y + 0.012, z]} metalness={0.65} roughness={0.38} castShadow receiveShadow />
             <Block size={[length, 0.036, 0.11]} radius={0.008} color="#a9adab" position={[0, conveyor.y + 0.108, z]} metalness={0.61} roughness={0.35} />
             <Block size={[length, 0.05, 0.106]} radius={0.009} color="#40484a" position={[0, conveyor.y - 0.126, z]} metalness={0.22} />
-            <Instances limit={supports.length} range={supports.length}>
+            <Instances limit={supports.length} range={supports.length} frames={1}>
               <boxGeometry args={[0.106, span - 0.15, 0.126]} />
               <meshStandardMaterial color="#596264" metalness={0.51} roughness={0.55} />
               {supports.map(x => <Instance key={x} position={[x, factoryFloor + (span - 0.15) / 2 + 0.044, z]} />)}
             </Instances>
-            <Instances limit={supports.length * 2} range={supports.length * 2}>
+            <Instances limit={supports.length * 2} range={supports.length * 2} frames={1}>
               <boxGeometry args={[0.248, 0.059, 0.242]} />
               <meshStandardMaterial color="#7e8583" metalness={0.52} roughness={0.49} />
               {supports.flatMap(x => [factoryFloor + 0.037, conveyor.y - 0.153].map(y => <Instance key={`${x}/${y}`} position={[x, y, z]} />))}
             </Instances>
-            <Instances limit={supports.length} range={supports.length}>
+            <Instances limit={supports.length} range={supports.length} frames={1}>
               <cylinderGeometry args={[0.044, 0.044, 0.044, 10]} />
               <meshStandardMaterial color="#202729" metalness={0.58} roughness={0.43} />
               {supports.map(x => <Instance key={x} position={[x + 0.33, conveyor.y - 0.018, z + side * 0.083]} rotation={[Math.PI / 2, 0, 0]} />)}
@@ -124,26 +168,24 @@ export function Conveyor({ animate }: { animate: boolean }) {
           </group>
         );
       })}
-      <Instances limit={supports.length} range={supports.length}>
+      <Instances limit={supports.length} range={supports.length} frames={1}>
         <boxGeometry args={[0.094, 0.096, sideDistance * 2]} />
         <meshStandardMaterial color="#545d60" metalness={0.51} roughness={0.59} />
         {supports.map(x => <Instance key={x} position={[x, conveyor.y - 0.39, conveyor.z]} />)}
       </Instances>
-      <instancedMesh ref={slats} args={[undefined, undefined, slatCount]} frustumCulled={false} receiveShadow>
+      <instancedMesh ref={slats} args={[undefined, undefined, slatCount]} frustumCulled={false} onUpdate={updateFrequently}>
         <boxGeometry args={[length / slatCount - 0.011, 0.036, conveyor.width]} />
-        <meshStandardMaterial color="#343b3c" roughness={0.84} bumpMap={brushed} bumpScale={0.008} />
+        <meshMatcapMaterial color="#626b6b" matcap={steelLight} bumpMap={brushed} bumpScale={0.008} />
       </instancedMesh>
-      <instancedMesh ref={plates} args={[undefined, undefined, puddingCount]} frustumCulled={false}>
+      <instancedMesh ref={plates} args={[undefined, undefined, puddingCount]} frustumCulled={false} onUpdate={updateFrequently}>
         <latheGeometry args={[plateProfile, 20]} />
-        <meshPhysicalMaterial color="#b6beb7" metalness={0.29} roughness={0.44} clearcoat={0.32} />
+        <meshMatcapMaterial color="#aeb6ad" matcap={steelLight} />
       </instancedMesh>
-      <instancedMesh ref={puddings} args={[flan, undefined, puddingCount]} frustumCulled={false}>
-        <meshPhysicalMaterial vertexColors roughness={0.24} transmission={0.23} ior={1.37} thickness={0.16}
-          attenuationColor="#f69d37" attenuationDistance={0.25} clearcoat={0.92} clearcoatRoughness={0.14}
-          emissive="#d27115" emissiveIntensity={0.12} />
+      <instancedMesh ref={puddings} args={[flan, undefined, puddingCount]} frustumCulled={false} onUpdate={updateFrequently}>
+        <meshMatcapMaterial vertexColors matcap={glazeLight} />
       </instancedMesh>
-      <instancedMesh ref={caramel} args={[glaze, undefined, puddingCount]} frustumCulled={false}>
-        <meshPhysicalMaterial color="#b55012" roughness={0.22} clearcoat={1} clearcoatRoughness={0.115} />
+      <instancedMesh ref={caramel} args={[glaze, undefined, puddingCount]} frustumCulled={false} onUpdate={updateFrequently}>
+        <meshMatcapMaterial color="#b55012" matcap={glazeLight} />
       </instancedMesh>
     </group>
   );

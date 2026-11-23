@@ -1,6 +1,6 @@
 import { BakeShadows, Environment, Lightformer } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { MathUtils, Object3D, PCFShadowMap, Vector3, type Vector3Tuple } from "three";
 import { display, type ScreenControls } from "./desk-layout";
 import { DeskPeripherals } from "./desk-peripherals";
@@ -14,6 +14,17 @@ import { SystemUnit } from "./system-unit";
 
 const zero: Vector3Tuple = [0, 0, 0];
 const sceneEye: Vector3Tuple = [0, 2.61, 4.58];
+const maxRenderPixels = 2_250_000;
+
+function trackViewport(onResize: () => void) {
+  window.addEventListener("resize", onResize);
+  return () => window.removeEventListener("resize", onResize);
+}
+
+function renderPixelRatio() {
+  const area = window.innerWidth * window.innerHeight;
+  return Math.min(window.devicePixelRatio, 1.55, Math.sqrt(maxRenderPixels / area));
+}
 
 function View({ controls, animate }: { controls: ScreenControls; animate: boolean }) {
   const { camera, gl, size, invalidate } = useThree();
@@ -23,6 +34,7 @@ function View({ controls, animate }: { controls: ScreenControls; animate: boolea
   const last = useRef<{ w: number; h: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
+    if (!animate) return;
     const surface = gl.domElement;
     function move(event: PointerEvent) {
       if (event.pointerType !== "mouse") return;
@@ -40,8 +52,9 @@ function View({ controls, animate }: { controls: ScreenControls; animate: boolea
     return () => {
       surface.removeEventListener("pointermove", move);
       surface.removeEventListener("pointerleave", reset);
+      reset();
     };
-  }, [gl, invalidate]);
+  }, [animate, gl, invalidate]);
 
   useEffect(() => () => {
     last.current = null;
@@ -90,6 +103,17 @@ function DeskLighting() {
   );
 }
 
+const StaticOffice = memo(function StaticOffice() {
+  return (
+    <>
+      <DeskLighting />
+      <Office />
+      <Keyboard />
+      <DeskPeripherals />
+    </>
+  );
+});
+
 export default function DexScene({ controls, animate, power, fallback }: {
   controls: ScreenControls;
   animate: boolean;
@@ -98,9 +122,10 @@ export default function DexScene({ controls, animate, power, fallback }: {
 }) {
   const moving = animate || diskDurations[power.disk] > 0;
   const lit = power.on;
+  const dpr = useSyncExternalStore(trackViewport, renderPixelRatio, () => 1);
   return (
     <Canvas camera={{ position: sceneEye, fov: 48, near: 0.06, far: 56 }} shadows={{ type: PCFShadowMap }}
-      gl={{ transmissionResolutionScale: 0.52, toneMappingExposure: 0.99 }} dpr={[1, 1.55]} frameloop={moving ? "always" : "demand"} fallback={fallback}>
+      gl={{ toneMappingExposure: 0.99 }} dpr={dpr} frameloop={moving ? "always" : "demand"} fallback={fallback}>
       <color attach="background" args={["#303736"]} />
       <fogExp2 attach="fog" args={["#4c5857", 0.049]} />
       <View controls={controls} animate={animate} />
@@ -110,14 +135,11 @@ export default function DexScene({ controls, animate, power, fallback }: {
         <Lightformer position={[1.9, 5.0, 0.5]} scale={[3.91, 0.76]} target={zero} color="#c8d2d0" intensity={0.83} />
         <Lightformer position={[2.21, 3.04, -5.18]} scale={[1.51, 0.61]} target={zero} color="#ffeccb" intensity={1.87} />
       </Environment>
-      <DeskLighting />
+      <StaticOffice />
       <pointLight position={[0, display.position[1] - 0.19, 1.62]} intensity={lit ? 0.53 : 0.025} color="#aecce1" distance={2} decay={2} />
-      <Office />
       <Factory animate={animate} />
       <SystemUnit power={power} />
       <Monitor on={lit} />
-      <Keyboard />
-      <DeskPeripherals />
       <BakeShadows />
     </Canvas>
   );

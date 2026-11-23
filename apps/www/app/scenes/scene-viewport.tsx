@@ -29,32 +29,45 @@ export function SceneViewport({ artwork, children }: {
   children: (animate: boolean) => ReactNode;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
-  const [nearby, setNearby] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const reduced = useReducedMotion();
 
   useEffect(() => {
     const element = viewport.current;
     if (!element) return;
-    if (!window.IntersectionObserver) {
-      setMounted(true);
-      setNearby(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      setNearby(entry.isIntersecting);
-      if (entry.isIntersecting) setMounted(true);
+    let inView = !window.IntersectionObserver;
+    const update = () => setVisible(inView && !document.hidden);
+    const preload = window.IntersectionObserver && new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setMounted(true);
+        preload?.disconnect();
+      }
     }, { rootMargin: "180px" });
-    observer.observe(element);
-    return () => observer.disconnect();
+    const observer = window.IntersectionObserver && new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting;
+      update();
+    });
+    if (preload && observer) {
+      preload.observe(element);
+      observer.observe(element);
+    } else {
+      setMounted(true);
+      update();
+    }
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      preload?.disconnect();
+      observer?.disconnect();
+      document.removeEventListener("visibilitychange", update);
+    };
   }, []);
 
   return (
     <div ref={viewport} className="absolute inset-0" aria-hidden="true">
       {mounted ? (
         <SceneBoundary artwork={artwork}>
-          <Suspense fallback={artwork}>{children(nearby && !reduced)}</Suspense>
+          <Suspense fallback={artwork}>{children(visible && !reduced)}</Suspense>
         </SceneBoundary>
       ) : artwork}
     </div>

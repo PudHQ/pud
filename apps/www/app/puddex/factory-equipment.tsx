@@ -1,6 +1,5 @@
-import { Instance, Instances } from "@react-three/drei";
 import { useMemo } from "react";
-import { CatmullRomCurve3, Vector2, Vector3, type Texture, type Vector3Tuple } from "three";
+import { CatmullRomCurve3, Vector2, Vector3, type Vector3Tuple } from "three";
 import { Block } from "../scenes/props";
 
 const quarter = Math.PI / 2;
@@ -37,7 +36,7 @@ export function Flange({ position, rotation, radius }: { position: Vector3Tuple;
   );
 }
 
-export function Vat({ position, yaw, grain }: { position: Vector3Tuple; yaw: number; grain: Texture }) {
+export function Vat({ position, yaw }: { position: Vector3Tuple; yaw: number }) {
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       {[-0.72, 0.72].flatMap(x => [-0.59, 0.59].map(z => (
@@ -51,11 +50,11 @@ export function Vat({ position, yaw, grain }: { position: Vector3Tuple; yaw: num
       )))}
       <mesh castShadow receiveShadow>
         <latheGeometry args={[vessel, 42]} />
-        <meshStandardMaterial color={steel} metalness={0.66} roughness={0.48} bumpMap={grain} bumpScale={0.009} />
+        <meshStandardMaterial color={steel} metalness={0.66} roughness={0.48} />
       </mesh>
       <mesh castShadow receiveShadow>
         <latheGeometry args={[lids, 42]} />
-        <meshStandardMaterial color="#8d9494" metalness={0.68} roughness={0.45} bumpMap={grain} bumpScale={0.006} />
+        <meshStandardMaterial color="#8d9494" metalness={0.68} roughness={0.45} />
       </mesh>
       {[1.029, 2.82, 3.112].map((height, index) => (
         <mesh key={height} position={[0, height, 0]} rotation={[quarter, 0, 0]}>
@@ -63,11 +62,12 @@ export function Vat({ position, yaw, grain }: { position: Vector3Tuple; yaw: num
           <meshStandardMaterial color={index === 1 ? "#a6a9a4" : galvanised} metalness={0.72} roughness={0.4} />
         </mesh>
       ))}
-      <Instances limit={boltRing.length} range={boltRing.length}>
-        <cylinderGeometry args={[0.028, 0.028, 0.059, 6]} />
-        <meshStandardMaterial color="#626c6d" roughness={0.43} metalness={0.69} />
-        {boltRing.map(angle => <Instance key={angle} position={[Math.cos(angle) * 1.073, 3.147, Math.sin(angle) * 1.073]} />)}
-      </Instances>
+      {boltRing.map(angle => (
+        <mesh key={angle} position={[Math.cos(angle) * 1.073, 3.147, Math.sin(angle) * 1.073]}>
+          <cylinderGeometry args={[0.028, 0.028, 0.059, 6]} />
+          <meshStandardMaterial color="#626c6d" roughness={0.43} metalness={0.69} />
+        </mesh>
+      ))}
       <mesh position={[0, 3.55, 0]}>
         <cylinderGeometry args={[0.313, 0.37, 0.145, 30]} />
         <meshStandardMaterial color="#555f62" roughness={0.57} metalness={0.56} />
@@ -91,7 +91,7 @@ export function Vat({ position, yaw, grain }: { position: Vector3Tuple; yaw: num
         </mesh>
         <mesh position={[0, 0, 0.041]} rotation={[quarter, 0, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[0.309, 0.322, 0.077, 36]} />
-          <meshStandardMaterial color="#9ba09d" metalness={0.64} roughness={0.46} bumpMap={grain} bumpScale={0.006} />
+          <meshStandardMaterial color="#9ba09d" metalness={0.64} roughness={0.46} />
         </mesh>
         <Block size={[0.058, 0.32, 0.087]} radius={0.016} color="#6e7978" position={[-0.24, 0, 0.077]} roughness={0.36} metalness={0.64} />
         <Block size={[0.162, 0.066, 0.103]} radius={0.018} color="#565e5f" position={[0.227, 0, 0.082]} roughness={0.45} metalness={0.52} />

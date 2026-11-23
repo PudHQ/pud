@@ -1,23 +1,19 @@
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
-import { Color, DoubleSide, Object3D, RepeatWrapping, type ShaderMaterial, type Vector3Tuple } from "three";
+import { memo, useEffect, useMemo, useRef } from "react";
+import {
+  Color, DataTexture, DoubleSide, LinearFilter, RedFormat, RepeatWrapping,
+  type ShaderMaterial, type Texture, type Vector3Tuple,
+} from "three";
 import { Block, usePrint } from "../scenes/props";
 import { Conveyor, conveyor, factoryFloor } from "./factory-conveyor";
 import { ControlsCabinet, Flange, Pipe, Vat } from "./factory-equipment";
+import { BakedFactory, fixtures } from "./factory-lighting";
 import { useBakedLighting, type LightingBake } from "./lightmaps";
-import { useSurfaceGrain } from "./surface-grain";
 
 const quarter = Math.PI / 2;
 const ceiling = 4.30;
 const girder = "#4d5658";
 const vesselRows = [{ x: -6.72, z: -12.87, yaw: 0.27 }, { x: 6.44, z: -13.21, yaw: -0.22 }];
-const lights = [
-  { position: [-5.62, 1.65, -10.20], color: "#ffe0ad", power: 48, task: true },
-  { position: [5.58, 1.69, -10.40], color: "#e5ede2", power: 53, task: true },
-  { position: [-9.63, 2.49, -17.71], color: "#c0dbda", power: 33, task: false },
-  { position: [8.69, 2.61, -18.1], color: "#c7ddd9", power: 34, task: false },
-] satisfies { position: Vector3Tuple; color: string; power: number; task: boolean }[];
-
 const floorBake: LightingBake = {
   position: [0, factoryFloor, -14.25],
   area: [43.4, 27.6],
@@ -30,7 +26,7 @@ const floorBake: LightingBake = {
     { position: [10.97, factoryFloor + 1.65, -17.72], size: [2.04, 3.28, 2.02], contact: 0.55 },
     { position: [0, -0.45, -19.72], size: [29.1, 0.23, 1.28], contact: 0.45 },
   ],
-  bounces: lights.map(({ position, color, power }) => ({ position, color, power: power * 0.26, radius: 1.25 })),
+  bounces: fixtures.map(({ position, color, power }) => ({ position, color, power: power * 0.36, radius: 1.25 })),
 };
 
 const steamVertex = `
@@ -45,37 +41,72 @@ uniform float elapsed;
 uniform float seed;
 uniform vec3 tint;
 uniform float density;
+uniform sampler2D clouds;
 varying vec2 vUv;
 
-float hash(vec2 cell) {
-  return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
-}
-float noise(vec2 uv) {
-  vec2 i = floor(uv);
-  vec2 f = fract(uv);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y);
-}
 void main() {
-  vec2 uv = vUv - 0.5;
-  float edge = 1.0 - smoothstep(0.10, 0.58, length(uv));
-  vec2 drift = vec2(elapsed * 0.058 + seed, -elapsed * 0.13);
-  vec2 p = vUv * vec2(4.2, 3.5) + drift;
-  float cloud = noise(p) * 0.67 + noise(p * 2.17) * 0.23 + noise(p * 4.1) * 0.10;
-  gl_FragColor = vec4(tint, edge * smoothstep(0.19, 0.79, cloud) * density);
+  float edge = 1.0 - smoothstep(0.10, 0.58, length(vUv - 0.5));
+  vec2 drift = vec2(seed * 0.125 + elapsed * 0.00725, -elapsed * 0.01625);
+  float cloud = texture2D(clouds, vUv * vec2(0.525, 0.4375) + drift).r;
+  gl_FragColor = vec4(tint, edge * cloud * density);
   #include <colorspace_fragment>
 }`;
 
-function Steam({ position, size, tint, seed, density, animate }: {
+function smoothstep(from: number, to: number, value: number) {
+  const x = Math.max(0, Math.min(1, (value - from) / (to - from)));
+  return x * x * (3 - 2 * x);
+}
+
+function bakeSteam() {
+  const size = 128;
+  const noise = new Uint8Array(size * size);
+  const octaves = [8, 16, 32].map(period => ({
+    period,
+    grid: Array.from({ length: period ** 2 }, (_, cell) => {
+      const hash = Math.sin((cell + 1) * 127.1 + period * 311.7) * 43758.5453;
+      return hash - Math.floor(hash);
+    }),
+  }));
+  const weights = [0.67, 0.23, 0.10];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let value = 0;
+      for (let octave = 0; octave < octaves.length; octave++) {
+        const { period, grid } = octaves[octave];
+        const u = x * period / size;
+        const v = y * period / size;
+        const i = Math.floor(u);
+        const j = Math.floor(v);
+        const next = (i + 1) % period;
+        const a = j * period;
+        const b = (j + 1) % period * period;
+        const s = smoothstep(0, 1, u - i);
+        const t = smoothstep(0, 1, v - j);
+        value += weights[octave] * ((grid[a + i] * (1 - s) + grid[a + next] * s) * (1 - t) + (grid[b + i] * (1 - s) + grid[b + next] * s) * t);
+      }
+      noise[y * size + x] = Math.round(smoothstep(0.19, 0.79, value) * 255);
+    }
+  }
+  const texture = new DataTexture(noise, size, size, RedFormat);
+  texture.wrapS = texture.wrapT = RepeatWrapping;
+  texture.minFilter = texture.magFilter = LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function Steam({ position, size, tint, seed, density, animate, clouds }: {
   position: Vector3Tuple;
   size: [number, number];
   tint: string;
   seed: number;
   density: number;
   animate: boolean;
+  clouds: Texture;
 }) {
   const material = useRef<ShaderMaterial>(null);
-  const uniforms = useMemo(() => ({ elapsed: { value: 0 }, seed: { value: seed }, tint: { value: new Color(tint) }, density: { value: density } }), [seed, tint, density]);
+  const uniforms = useMemo(() => ({
+    elapsed: { value: 0 }, seed: { value: seed }, tint: { value: new Color(tint) }, density: { value: density }, clouds: { value: clouds },
+  }), [seed, tint, density, clouds]);
   useFrame(({ clock }) => { if (material.current && animate) material.current.uniforms.elapsed.value = clock.elapsedTime; });
   return (
     <mesh position={position}>
@@ -107,23 +138,25 @@ function drawFloor(ink: CanvasRenderingContext2D) {
   }
 }
 
-const shaftFragment = `
-uniform vec3 tint;
-varying vec2 vUv;
-void main() {
-  float depth = 1.0 - vUv.y;
-  float width = mix(0.076, 0.49, depth);
-  float edge = 1.0 - smoothstep(width * 0.30, width, abs(vUv.x - 0.5));
-  float density = 0.165 * edge * pow(vUv.y, 1.54) * smoothstep(0.015, 0.15, depth);
-  gl_FragColor = vec4(tint, density);
-  #include <colorspace_fragment>
-}`;
+function drawShaft(ink: CanvasRenderingContext2D) {
+  const size = 64;
+  const image = ink.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    const depth = (y + 0.5) / size;
+    const width = 0.076 + 0.414 * depth;
+    for (let x = 0; x < size; x++) {
+      const offset = (y * size + x) * 4;
+      const edge = 1 - smoothstep(width * 0.30, width, Math.abs((x + 0.5) / size - 0.5));
+      image.data[offset] = image.data[offset + 1] = image.data[offset + 2] = 255;
+      image.data[offset + 3] = 42 * edge * (1 - depth) ** 1.54 * smoothstep(0.015, 0.15, depth);
+    }
+  }
+  ink.putImageData(image, 0, 0);
+}
 
-function Pendant({ position, color, power, task }: (typeof lights)[number]) {
+function Pendant({ position, color }: (typeof fixtures)[number]) {
   const [, y] = position;
   const stem = ceiling - y - 0.51;
-  const target = useMemo(() => new Object3D(), []);
-  const glow = useMemo(() => ({ tint: { value: new Color(color) } }), [color]);
   return (
     <group position={position}>
       <mesh position={[0, 0.36 + stem / 2, 0]}>
@@ -147,19 +180,6 @@ function Pendant({ position, color, power, task }: (typeof lights)[number]) {
         <sphereGeometry args={[0.106, 16, 12]} />
         <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
-      <pointLight position={[0, -0.24, 0]} color={color} intensity={task ? power * 0.39 : power} distance={8.7} decay={2} />
-      {task && (
-        <>
-          <primitive object={target} position={[0, factoryFloor - y, 0.12]} />
-          <spotLight position={[0, -0.16, 0]} target={target} color={color} intensity={power * 1.06} distance={10.2} decay={2}
-            angle={0.78} penumbra={0.76} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-near={0.15}
-            shadow-camera-far={10.4} shadow-radius={2.8} shadow-normalBias={0.017} />
-          <mesh position={[0, -2.29, 0.21]}>
-            <planeGeometry args={[4.7, 4.48]} />
-            <shaderMaterial uniforms={glow} vertexShader={steamVertex} fragmentShader={shaftFragment} transparent depthWrite={false} side={DoubleSide} toneMapped={false} />
-          </mesh>
-        </>
-      )}
     </group>
   );
 }
@@ -183,7 +203,7 @@ function Catwalk() {
   );
 }
 
-export function Factory({ animate }: { animate: boolean }) {
+export const Factory = memo(function Factory({ animate }: { animate: boolean }) {
   const cachedFloor = usePrint(256, 256, drawFloor);
   const floor = useMemo(() => {
     cachedFloor.wrapS = cachedFloor.wrapT = RepeatWrapping;
@@ -191,61 +211,70 @@ export function Factory({ animate }: { animate: boolean }) {
     return cachedFloor;
   }, [cachedFloor]);
   const baked = useBakedLighting(floorBake);
-  const grain = useSurfaceGrain(2, 6, true);
+  const shaft = usePrint(64, 64, drawShaft);
+  const clouds = useMemo(bakeSteam, []);
+  useEffect(() => () => clouds.dispose(), [clouds]);
 
   return (
     <group>
-      <mesh position={floorBake.position} rotation={[-quarter, 0, 0]} receiveShadow>
+      <mesh position={floorBake.position} rotation={[-quarter, 0, 0]}>
         <planeGeometry args={floorBake.area} />
-        <meshStandardMaterial map={floor} {...baked} lightMapIntensity={1.83} aoMapIntensity={0.65}
-          color="#9ca5a0" roughness={0.84} bumpMap={floor} bumpScale={0.037} />
+        <meshBasicMaterial map={floor} {...baked} lightMapIntensity={3.2} aoMapIntensity={0.65} color="#9ca5a0" />
       </mesh>
-      <Block size={[43.2, 8.23, 0.46]} color="#51595c" position={[0, 0.395, -27.85]} />
-      <Block size={[43.2, 0.31, 23.88]} color="#303a3e" position={[0, ceiling, -15.6]} />
-      {[-21.6, 21.6].map(x => <Block key={x} size={[0.38, 7.99, 26]} color="#4d585a" position={[x, 0.42, -14.4]} />)}
-      {[-7.06, -15.92, -23.4].map(z => (
-        <group key={z}>
-          <Block size={[43.1, 0.334, 0.269]} color={girder} position={[0, ceiling - 0.307, z]} />
-          <Block size={[43.1, 0.054, 0.41]} color="#687274" position={[0, ceiling - 0.45, z]} metalness={0.36} />
-          {[-17.07, -10.61, 10.61, 17.07].map(x => (
-            <group key={x} position={[x, 0, z]}>
-              <Block size={[0.31, 7.54, 0.365]} color={girder} position={[0, 0.23, 0]} />
-              <Block size={[0.062, 7.47, 0.424]} color="#6a7373" position={[-0.174, 0.23, 0]} />
-              <Block size={[0.072, 7.47, 0.422]} color="#606969" position={[0.174, 0.23, 0]} />
-              <Block size={[0.57, 0.096, 0.68]} color="#525e61" position={[0, factoryFloor + 0.049, 0]} />
-            </group>
-          ))}
-        </group>
-      ))}
+      <BakedFactory>
+        <Block size={[43.2, 8.23, 0.46]} color="#51595c" position={[0, 0.395, -27.85]} />
+        <Block size={[43.2, 0.31, 23.88]} color="#303a3e" position={[0, ceiling, -15.6]} />
+        {[-21.6, 21.6].map(x => <Block key={x} size={[0.38, 7.99, 26]} color="#4d585a" position={[x, 0.42, -14.4]} />)}
+        {[-7.06, -15.92, -23.4].map(z => (
+          <group key={z}>
+            <Block size={[43.1, 0.334, 0.269]} color={girder} position={[0, ceiling - 0.307, z]} />
+            <Block size={[43.1, 0.054, 0.41]} color="#687274" position={[0, ceiling - 0.45, z]} metalness={0.36} />
+            {[-17.07, -10.61, 10.61, 17.07].map(x => (
+              <group key={x} position={[x, 0, z]}>
+                <Block size={[0.31, 7.54, 0.365]} color={girder} position={[0, 0.23, 0]} />
+                <Block size={[0.062, 7.47, 0.424]} color="#6a7373" position={[-0.174, 0.23, 0]} />
+                <Block size={[0.072, 7.47, 0.422]} color="#606969" position={[0.174, 0.23, 0]} />
+                <Block size={[0.57, 0.096, 0.68]} color="#525e61" position={[0, factoryFloor + 0.049, 0]} />
+              </group>
+            ))}
+          </group>
+        ))}
 
+        {vesselRows.map(({ x, z, yaw }) => (
+          <group key={x}>
+            <Vat position={[x, factoryFloor, z]} yaw={yaw} />
+            <Pipe radius={0.151} points={[[x, 0.605, z], [x, 1.41, z], [x, 2.30, z], [x, 2.61, z - 0.29], [x, 2.61, -15.25]]} />
+            <Flange position={[x, 1.55, z]} radius={0.197} />
+            <Flange position={[x, 2.61, z - 0.85]} radius={0.195} rotation={[quarter, 0, 0]} />
+          </group>
+        ))}
+        {[2.61, 3.056].map((y, index) => (
+          <group key={y} position={[0, y, -15.25 - index * 1.4]}>
+            <mesh rotation={[0, 0, quarter]}>
+              <cylinderGeometry args={[0.16, 0.16, 40.95, 18]} />
+              <meshStandardMaterial color={index ? "#70685c" : "#697274"} metalness={0.51} roughness={0.52} />
+            </mesh>
+            {[-14.3, -10.7, -6.72, -2.4, 2.4, 6.44, 10.7, 14.3].map(x => <Flange key={x} position={[x, 0, 0]} radius={0.208} rotation={[0, 0, quarter]} />)}
+          </group>
+        ))}
+        <Vat position={[-10.54, factoryFloor, -17.61]} yaw={0.41} />
+        <Vat position={[10.97, factoryFloor, -17.72]} yaw={-0.41} />
+        <ControlsCabinet position={[-4.76, factoryFloor, -16.67]} />
+        <ControlsCabinet position={[4.59, factoryFloor, -16.91]} />
+        <Catwalk />
+        {fixtures.map(department => <Pendant key={department.position[2]} {...department} />)}
+      </BakedFactory>
       <Conveyor animate={animate} />
-      {vesselRows.map(({ x, z, yaw }) => (
-        <group key={x}>
-          <Vat position={[x, factoryFloor, z]} yaw={yaw} grain={grain} />
-          <Pipe radius={0.151} points={[[x, 0.605, z], [x, 1.41, z], [x, 2.30, z], [x, 2.61, z - 0.29], [x, 2.61, -15.25]]} />
-          <Flange position={[x, 1.55, z]} radius={0.197} />
-          <Flange position={[x, 2.61, z - 0.85]} radius={0.195} rotation={[quarter, 0, 0]} />
-        </group>
+      {fixtures.filter(fixture => fixture.task).map(({ position: [x, y, z], color }) => (
+        <mesh key={z} position={[x, y - 2.29, z + 0.21]}>
+          <planeGeometry args={[4.7, 4.48]} />
+          <meshBasicMaterial map={shaft} color={color} transparent depthWrite={false} side={DoubleSide} toneMapped={false} fog={false} />
+        </mesh>
       ))}
-      {[2.61, 3.056].map((y, index) => (
-        <group key={y} position={[0, y, -15.25 - index * 1.4]}>
-          <mesh rotation={[0, 0, quarter]}>
-            <cylinderGeometry args={[0.16, 0.16, 40.95, 18]} />
-            <meshStandardMaterial color={index ? "#70685c" : "#697274"} metalness={0.51} roughness={0.52} bumpMap={grain} bumpScale={0.006} />
-          </mesh>
-          {[-14.3, -10.7, -6.72, -2.4, 2.4, 6.44, 10.7, 14.3].map(x => <Flange key={x} position={[x, 0, 0]} radius={0.208} rotation={[0, 0, quarter]} />)}
-        </group>
-      ))}
-      <Vat position={[-10.54, factoryFloor, -17.61]} yaw={0.41} grain={grain} />
-      <Vat position={[10.97, factoryFloor, -17.72]} yaw={-0.41} grain={grain} />
-      <ControlsCabinet position={[-4.76, factoryFloor, -16.67]} />
-      <ControlsCabinet position={[4.59, factoryFloor, -16.91]} />
-      <Catwalk />
-      {lights.map(department => <Pendant key={department.position[2]} {...department} />)}
-      <Steam position={[-5.8, -0.60, -11.52]} size={[7.6, 4.8]} tint="#8c8b80" density={0.37} seed={3.4} animate={animate} />
-      <Steam position={[5.25, -0.48, -11.61]} size={[7.8, 5.5]} tint="#819290" density={0.45} seed={7.7} animate={animate} />
-      <Steam position={[0, -0.37, -17.12]} size={[16.1, 6.4]} tint="#7b8184" density={0.67} seed={16.9} animate={animate} />
-      <Steam position={[5.4, -0.44, -21.71]} size={[16.4, 6.2]} tint="#7d8588" density={0.82} seed={10.8} animate={animate} />
+      <Steam position={[-5.8, -0.60, -11.52]} size={[7.6, 4.8]} tint="#8c8b80" density={0.37} seed={3.4} animate={animate} clouds={clouds} />
+      <Steam position={[5.25, -0.48, -11.61]} size={[7.8, 5.5]} tint="#819290" density={0.45} seed={7.7} animate={animate} clouds={clouds} />
+      <Steam position={[0, -0.37, -17.12]} size={[16.1, 6.4]} tint="#7b8184" density={0.67} seed={16.9} animate={animate} clouds={clouds} />
+      <Steam position={[5.4, -0.44, -21.71]} size={[16.4, 6.2]} tint="#7d8588" density={0.82} seed={10.8} animate={animate} clouds={clouds} />
     </group>
   );
-}
+});
