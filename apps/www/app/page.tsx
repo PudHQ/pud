@@ -1,7 +1,7 @@
 import localFont from "next/font/local";
-import { AlphaSignup, JoinAlphaLink } from "./alpha/signup";
+import { JoinWaitlistLink } from "./alpha/signup";
+import { WaitlistSection } from "./alpha/waitlist-section";
 import { GitHubStarLink } from "./github-star-link";
-import { NewsSection } from "./newsstand/news-section";
 import { DexSection } from "./puddex/dex-section";
 
 // Google Sans Flex 4.007 retains the grade axis used in the original wordmark.
@@ -40,7 +40,7 @@ export default function Home() {
           </a>
           <div className="ms-auto flex items-center gap-nav-gap text-nav font-interface phone:gap-3 small-phone:gap-1.5">
             <GitHubStarLink />
-            <JoinAlphaLink />
+            <JoinWaitlistLink />
           </div>
         </nav>
       </header>
@@ -75,20 +75,7 @@ export default function Home() {
             />
           </div>
         </div>
-        <section
-          id="alpha"
-          aria-labelledby="alpha-title"
-          className="group/alpha grid grid-cols-poster items-center gap-column-gap bg-ink px-gutter py-signup-panel text-paper narrow:grid-cols-1"
-        >
-          <div>
-            <h2 id="alpha-title" className={`${pudDisplay.className} text-signup-title leading-none`}>Join the alpha</h2>
-            <p id="alpha-help" className="mt-2.5 text-signup-help group-has-data-[status=joined]/alpha:hidden">
-              Leave your email for an invite.
-            </p>
-          </div>
-          <AlphaSignup />
-        </section>
-        <NewsSection displayClass={pudDisplay.className} />
+        <WaitlistSection displayClass={pudDisplay.className} />
         <DexSection />
       </main>
       <footer className="relative z-10 flex flex-wrap items-center justify-between gap-x-8 border-t border-neutral-900 bg-black px-gutter py-2 font-mono text-credit text-neutral-400">

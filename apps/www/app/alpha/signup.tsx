@@ -6,37 +6,31 @@ import { joinAlpha, type SignupState } from "./actions";
 
 const initialState: SignupState = { status: "idle" };
 
-export function JoinAlphaLink() {
+export function JoinWaitlistLink() {
   function focusSignup(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     analytics?.capture("alpha_signup_cta_clicked");
-    const target = document.getElementById("alpha-entry");
-    target?.focus({ preventScroll: true });
-    if (target instanceof HTMLInputElement && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      target.animate(
-        [0, -4, 4, -2, 2, 0].map(x => ({ transform: `translateX(${x}px)` })),
-        { duration: 320, easing: "ease-out" },
-      );
-    }
+    // Let the fragment scroll to the full section before moving focus to the email field.
+    requestAnimationFrame(() => document.getElementById("alpha-entry")?.focus({ preventScroll: true }));
   }
 
   return (
     // biome-ignore lint/a11y/useValidAnchor: The fragment link scrolls to the form before hydration too.
     <a
-      href="#alpha-entry"
+      href="#waitlist"
       onClick={focusSignup}
       className="relative isolate inline-block min-h-11 min-w-11 py-3.5 ps-signup-link-start pe-gutter whitespace-nowrap text-ink
         before:absolute before:inset-0 before:-z-10 before:bg-cyan before:clip-signup
         hover:before:bg-paper focus-visible:outline-2 focus-visible:-outline-offset-5 focus-visible:outline-ink focus-visible:before:bg-paper
-        phone:ps-4.5 phone:pe-4 small-phone:ps-3.75 small-phone:pe-3"
+        phone:ps-4.5 phone:pe-4 small-phone:ps-3.75 small-phone:pe-3 small-phone:text-xs"
     >
-      Join the alpha
+      Join the waitlist
     </a>
   );
 }
 
-export function AlphaSignup() {
-  const [serverState, nativeAction] = useActionState(joinAlpha, initialState, "/#alpha");
+export function WaitlistSignup() {
+  const [serverState, nativeAction] = useActionState(joinAlpha, initialState, "/#waitlist");
   const [clientState, setClientState] = useState<SignupState | null>(null);
   const [pending, startTransition] = useTransition();
   const state = clientState ?? serverState;
@@ -69,58 +63,61 @@ export function AlphaSignup() {
   }, [state]);
 
   return (
-    <div className="w-full max-w-176" data-status={state.status}>
+    <div className="mt-6 w-full max-w-lg" data-status={state.status}>
       {state.status !== "joined" && (
         <form
-          className="grid grid-cols-signup items-start gap-3 phone:grid-cols-1"
+          className="grid grid-cols-signup items-start"
           action={nativeAction}
           onSubmit={submit}
           onInvalid={() => analytics?.capture("alpha_signup_result", { outcome: "invalid" })}
-          aria-labelledby="alpha-title"
+          aria-labelledby="waitlist-title"
           aria-busy={pending}
         >
-          <div className="grid gap-1.5">
-            <label className="text-signup-label leading-4 font-interface" htmlFor="alpha-entry">Email</label>
-            <input
-              className="min-h-12 w-full scroll-my-16 rounded-xs border-2 border-transparent bg-paper px-3 py-2.25 text-ink
-                aria-invalid:border-error-border focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-cyan"
-              ref={email}
-              id="alpha-entry"
-              name="email"
-              type="email"
-              autoComplete="email"
-              maxLength={254}
-              required
-              defaultValue={state.email}
-              aria-invalid={state.status === "invalid"}
-              aria-describedby={state.status === "invalid" ? "email-error" : "alpha-help"}
-            />
-            {state.status === "invalid" && (
-              <small id="email-error" className="text-signup-error leading-signup-feedback text-error">Enter an email address we can send an invite to.</small>
-            )}
-          </div>
+          <label className="col-span-2 mb-2 text-signup-label leading-4 font-interface" htmlFor="alpha-entry">Email address</label>
+          <input
+            className="min-h-13 w-full min-w-0 scroll-my-16 border-2 border-transparent bg-paper px-3 py-2.25 text-ink
+              placeholder:text-ink/60 aria-invalid:border-error-border focus-visible:z-10 focus-visible:outline-2
+              focus-visible:-outline-offset-4 focus-visible:outline-ink"
+            ref={email}
+            id="alpha-entry"
+            name="email"
+            type="email"
+            autoComplete="email"
+            maxLength={254}
+            placeholder="you@example.com"
+            required
+            defaultValue={state.email}
+            aria-invalid={state.status === "invalid"}
+            aria-describedby={state.status === "invalid" ? "email-error" : "waitlist-help"}
+          />
           <button
-            className="mt-5.5 min-h-12 cursor-pointer rounded-xs border-2 border-transparent bg-cyan px-4.75 font-bold text-ink
-              enabled:hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-cyan disabled:cursor-progress disabled:opacity-75 phone:mt-1.5"
+            className="inline-flex min-h-13 cursor-pointer items-center justify-between gap-3 bg-cyan px-4 text-sm font-bold whitespace-nowrap text-ink
+              enabled:hover:bg-cyan/85 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink disabled:cursor-progress disabled:opacity-75"
             type="submit"
             disabled={pending}
           >
-            {pending ? "Joining…" : "Request invite"}
+            {pending ? "Joining…" : "Notify me"} <span aria-hidden="true" className="text-lg leading-none">→</span>
           </button>
+          {state.status === "invalid" && (
+            <small id="email-error" className="col-span-2 mt-2 text-signup-error leading-signup-feedback text-error">Enter a valid email address.</small>
+          )}
         </form>
       )}
       <div
         ref={feedback}
         id={state.status === "joined" ? "alpha-entry" : undefined}
-        className="scroll-my-16"
+        className="scroll-my-16 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-cyan"
         role="status"
         aria-atomic="true"
         tabIndex={-1}
       >
         {state.status === "joined" && (
-          <p className="text-signup-status leading-signup-feedback font-interface">
-            <span className="text-cyan" aria-hidden="true">✓</span> You’re on the alpha list.
-          </p>
+          <>
+            <p className="text-signup-status leading-signup-feedback font-interface">
+              <span className="text-cyan" aria-hidden="true">✓</span> You’re on the waitlist.
+            </p>
+            <p className="mt-1 text-signup-help text-paper/85">We’ll email you when the Pud Alpha is ready.</p>
+          </>
         )}
         {state.status === "unavailable" && <p className="mt-3 leading-signup-feedback">We couldn’t save your signup. Please try again.</p>}
       </div>

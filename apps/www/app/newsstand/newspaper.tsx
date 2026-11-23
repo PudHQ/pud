@@ -20,8 +20,9 @@ function NewspaperArtwork() {
 export function Newspaper() {
   const artwork = <NewspaperArtwork />;
   return (
-    <div className="pointer-events-none relative h-28 w-35 motion-safe:transition-transform motion-safe:group-hover:-translate-y-0.5 sm:mr-7 sm:h-37 sm:w-60 lg:mr-12 lg:h-41 lg:w-72 small-phone:w-27" aria-hidden="true">
-      <div className="absolute inset-x-1/5 bottom-3 h-6 bg-radial from-ink/20 to-transparent blur-sm" />
+    <div className="pointer-events-none relative aspect-4/3 w-full max-w-78
+      motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-1 motion-safe:group-focus-visible:-translate-y-1" aria-hidden="true">
+      <div className="absolute inset-x-1/5 bottom-1/12 h-1/6 bg-radial from-ink/35 to-transparent blur-sm" />
       <SceneViewport artwork={artwork}>
         {() => <NewspaperScene fallback={artwork} />}
       </SceneViewport>
