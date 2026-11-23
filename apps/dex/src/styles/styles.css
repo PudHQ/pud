@@ -181,6 +181,7 @@
 @custom-variant expanded (details[open] > &);
 @custom-variant outbound (&[target="_blank"]);
 @custom-variant teletext (&:where([data-dex-teletext], [data-dex-teletext] *));
+@custom-variant crt (&:where([data-dex-crt] *));
 @custom-variant teletext-key-pressed (&:is(:where(.group\/teletext-key):is(:active, [data-teletext-pressed]) *));
 
 @layer base {

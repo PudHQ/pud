@@ -18,6 +18,7 @@
         "@fontsource-variable/atkinson-hyperlegible-next": "catalog:",
         "@fontsource-variable/pixelify-sans": "catalog:",
         "@pud/analytics": "workspace:*",
+        "@pud/crt": "workspace:*",
         "astro": "catalog:",
         "markdown-it": "catalog:",
         "markdown-it-footnote": "catalog:",
@@ -38,6 +39,7 @@
       "name": "@pud/www",
       "dependencies": {
         "@pud/analytics": "workspace:*",
+        "@pud/crt": "workspace:*",
         "@react-three/drei": "catalog:",
         "@react-three/fiber": "catalog:",
         "@vinext/cloudflare": "catalog:",
@@ -97,6 +99,10 @@
         "@pud/model": "workspace:*",
         "chalk": "catalog:",
       },
+    },
+    "packages/crt": {
+      "name": "@pud/crt",
+      "version": "0.0.1",
     },
     "packages/model": {
       "name": "@pud/model",
@@ -415,6 +421,8 @@
     "@pud/analytics": ["@pud/analytics@workspace:packages/analytics"],
 
     "@pud/cli": ["@pud/cli@workspace:packages/cli"],
+
+    "@pud/crt": ["@pud/crt@workspace:packages/crt"],
 
     "@pud/debit-example": ["@pud/debit-example@workspace:experiments/debit-endpoint"],
 

@@ -1,0 +1,13 @@
+<svg width="0" height="0" aria-hidden="true" class="pointer-events-none absolute">
+  <defs>
+    <filter id="dex-crt-lens" x="0" y="0" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feImage x="0" y="0" preserveAspectRatio="none" result="raster" />
+      <feDisplacementMap in="SourceGraphic" in2="raster" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+</svg>
+
+<script>
+  import { installCrtDisplay } from "../lib/crt-display";
+  installCrtDisplay();
+</script>

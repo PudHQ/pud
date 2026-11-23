@@ -16,6 +16,7 @@
     "incremental": true,
     "types": [
       "vinext/types",
+      "vite/client",
       "node"
     ]
   },

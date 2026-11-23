@@ -70,6 +70,21 @@
 
   --shadow-registration: var(--spacing-registration) var(--spacing-registration) var(--color-cyan);
   --drop-shadow-registration: var(--spacing-registration) var(--spacing-registration) 0 var(--color-cyan);
+  --background-image-crt-scanlines: repeating-linear-gradient(transparent 0 2px, color-mix(in oklab, var(--color-black) 23%, transparent) 2px 3px);
+  --background-image-crt-phosphor: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-red-500) 5%, transparent) 0 1px, color-mix(in srgb, var(--color-green-500) 5%, transparent) 1px 2px, color-mix(in srgb, var(--color-blue-500) 5%, transparent) 2px 3px);
+  --background-image-crt-glare: radial-gradient(ellipse at 24% -9%, color-mix(in srgb, var(--color-white) 13%, transparent), transparent 58%), linear-gradient(108deg, transparent 13%, color-mix(in srgb, var(--color-white) 3%, transparent) 27%, transparent 42%);
+  --shadow-crt-glass: inset 0 0 1.34rem 0.2rem color-mix(in srgb, var(--color-black) 63%, transparent), inset 0 0 0.36rem var(--color-black);
+  --animate-crt-refresh: crt-refresh 8s linear infinite;
+
+  @keyframes crt-refresh {
+    from { translate: 0 -100%; }
+    to { translate: 0 100%; }
+  }
+
+}
+
+@utility pixelated {
+  image-rendering: pixelated;
 }
 
 @utility clip-* {

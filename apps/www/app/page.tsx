@@ -1,6 +1,8 @@
 import localFont from "next/font/local";
 import { AlphaSignup, JoinAlphaLink } from "./alpha/signup";
 import { GitHubStarLink } from "./github-star-link";
+import { NewsSection } from "./newsstand/news-section";
+import { DexSection } from "./puddex/dex-section";
 
 // Google Sans Flex 4.007 retains the grade axis used in the original wordmark.
 const pudWordmark = localFont({
@@ -15,13 +17,7 @@ const pudDisplay = localFont({
   display: "swap",
 });
 
-const siteLink = `${pudDisplay.className} group relative isolate flex min-h-12 items-center justify-between gap-4
-  px-5 py-3 text-xl leading-none whitespace-nowrap
-  before:absolute before:inset-0 before:-z-10 before:-skew-x-9 before:shadow-registration
-  focus-visible:outline-2 focus-visible:outline-offset-5 focus-visible:outline-ink
-  phone:gap-2 phone:px-3 phone:text-base`;
-
-const siteLinkArrow = "font-sans leading-none motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5 motion-safe:group-hover:-translate-y-0.5";
+const siteLink = "inline-flex min-h-11 items-center gap-2 whitespace-nowrap hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper";
 
 export default function Home() {
   return (
@@ -92,20 +88,19 @@ export default function Home() {
           </div>
           <AlphaSignup />
         </section>
+        <NewsSection displayClass={pudDisplay.className} />
+        <DexSection />
       </main>
-      <footer className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 bg-paper px-gutter pt-5 pb-4 phone:pb-2">
-        <nav aria-label="More from Pud" className="grid grid-cols-2 gap-6 phone:w-full phone:gap-4 small-phone:grid-cols-1">
-          <a target="_blank" rel="noopener" className={`${siteLink} text-paper before:bg-blue-950 hover:before:bg-blue-900`} href="https://dex.pud.dev/">
-            PudDex
-            <span aria-hidden="true" className={`${siteLinkArrow} text-cyan`}>↗</span>
+      <footer className="relative z-10 flex flex-wrap items-center justify-between gap-x-8 border-t border-neutral-900 bg-black px-gutter py-2 font-mono text-credit text-neutral-400">
+        <nav aria-label="More from Pud" className="flex flex-wrap gap-x-5">
+          <a target="_blank" rel="noopener" className={siteLink} href="https://dex.pud.dev/">
+            PudDex <span aria-hidden="true">↗</span>
           </a>
-          <a target="_blank" rel="noopener" className={`${siteLink} text-ink before:bg-vermilion hover:before:bg-vermilion/85`} href="https://pudlog.substack.com/">
-            The Pud Log
-            <span aria-hidden="true" className={siteLinkArrow}>↗</span>
+          <a target="_blank" rel="noopener" className={siteLink} href="https://pudlog.substack.com/">
+            The Pud Log <span aria-hidden="true">↗</span>
           </a>
         </nav>
-        <a className="ms-auto inline-flex min-h-12 items-center font-mono text-credit font-semibold text-ink underline underline-offset-3
-          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" href="https://rorz.io">by Rory McMeekin</a>
+        <a className={siteLink} href="https://rorz.io">by Rory McMeekin</a>
       </footer>
     </div>
   );

@@ -15,6 +15,7 @@
     "@fontsource-variable/atkinson-hyperlegible-next": "catalog:",
     "@fontsource-variable/pixelify-sans": "catalog:",
     "@pud/analytics": "workspace:*",
+    "@pud/crt": "workspace:*",
     "astro": "catalog:",
     "markdown-it": "catalog:",
     "markdown-it-footnote": "catalog:",
