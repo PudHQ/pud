@@ -2,7 +2,7 @@ import localFont from "next/font/local";
 import { JoinWaitlistLink } from "./alpha/signup";
 import { WaitlistSection } from "./alpha/waitlist-section";
 import { GitHubStarLink } from "./github-star-link";
-import { DexSection } from "./puddex/dex-section";
+import { DexSection, pudDexUrl } from "./puddex/dex-section";
 
 // Google Sans Flex 4.007 retains the grade axis used in the original wordmark.
 const pudWordmark = localFont({
@@ -80,7 +80,7 @@ export default function Home() {
       </main>
       <footer className="relative z-10 flex flex-wrap items-center justify-between gap-x-8 border-t border-neutral-900 bg-black px-gutter py-2 font-mono text-credit text-neutral-400">
         <nav aria-label="More from Pud" className="flex flex-wrap gap-x-5">
-          <a target="_blank" rel="noopener" className={siteLink} href="https://dex.pud.dev/">
+          <a target="_blank" rel="noopener" className={siteLink} href={pudDexUrl}>
             PudDex <span aria-hidden="true">↗</span>
           </a>
           <a target="_blank" rel="noopener" className={siteLink} href="https://pudlog.substack.com/">

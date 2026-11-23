@@ -35,7 +35,7 @@ function BootScreen({ disk }: Pick<Power, "disk">) {
   );
 }
 
-export function DexTerminal({ url }: { url: string }) {
+export function DexTerminal({ iframeUrl, address }: { iframeUrl: string; address: string }) {
   const terminal = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   const eject = useRef<HTMLButtonElement>(null);
@@ -108,9 +108,9 @@ export function DexTerminal({ url }: { url: string }) {
         type="button" onClick={togglePower} aria-controls="puddex-crt" aria-label="PudDex power" aria-pressed={on} title={on ? "Turn PudDex off" : "Turn PudDex on"}
       />
       <div ref={screen} className="absolute top-1/6 left-7/25 z-10 h-1/2 w-11/25 origin-top-left phone:left-1/10 phone:w-4/5">
-        <CrtGlass lit={on} src={booted ? url : undefined}>
+        <CrtGlass lit={on} src={booted ? iframeUrl : undefined} address={address}>
           {on && !booted && <BootScreen disk={disk} />}
-          <noscript><a href={url} className="pointer-events-auto absolute bottom-4 left-4 text-sm text-paper underline">Open PudDex ↗</a></noscript>
+          <noscript><a href={address} target="_blank" rel="noopener" className="pointer-events-auto absolute bottom-4 left-4 text-sm text-paper underline">Open PudDex ↗</a></noscript>
         </CrtGlass>
       </div>
       <p role="status" className="sr-only">{machineStatus(power)}</p>
