@@ -25,7 +25,7 @@ const wires: { color: string; radius: number; points: Vector3Tuple[] }[] = [
   {
     color: "#a49479", radius: 0.0135,
     points: [
-      [mouse.position[0] + 0.034, 0.054, mouse.position[2] - 0.277], [1.258, 0.03, 1.396], [1.337, 0.018, 1.347],
+      [mouse.position[0] + 0.034, 0.038, mouse.position[2] - 0.277], [1.258, 0.026, 1.396], [1.337, 0.018, 1.347],
       [1.306, 0.0175, 1.28], [1.244, 0.0175, 1.222], [1.221, 0.0175, 1.106], [1.231, 0.018, 0.75], [1.243, 0.018, 0.32],
       [1.245, 0.027, -0.957], [0.994, 0.033, -1.284], [0.25, 0.075, -1.293], [-0.23, 0.323, -1.227], [-0.23, 0.367, rear],
     ],
@@ -55,7 +55,7 @@ function mouseShell([left, right]: [number, number], [front, back]: [number, num
       const crown = Math.cos(u * Math.PI / 2) ** 0.52 * taper;
       const palm = underside ? -0.031 : 0.119 * (0.77 + v * 0.24);
       const x = u * mouse.width / 2 * taper * (0.985 + v * 0.069);
-      const y = 0.049 + crown * palm + offset;
+      const y = 0.033 + crown * palm + offset;
       vertices.push(x, y, mouse.depth / 2 * v);
 
       if (column === stepsX || row === stepsZ) continue;
@@ -86,7 +86,6 @@ function BallMouse() {
 
   return (
     <group position={mouse.position} rotation={[0, mouse.angle, 0]}>
-      <Block size={[0.435, 0.016, 0.65]} radius={0.011} color="#494542" position={[0.006, 0.008, 0.005]} roughness={0.97} />
       <mesh geometry={shells.lower} castShadow receiveShadow>
         <meshStandardMaterial color="#948975" roughness={0.69} />
       </mesh>
@@ -101,7 +100,7 @@ function BallMouse() {
           <meshPhysicalMaterial color="#cfc3b2" roughness={0.52} clearcoat={0.17} />
         </mesh>
       ))}
-      <mesh position={[0, 0.052, -0.27]} rotation={[quarterTurn, 0, 0]}>
+      <mesh position={[0, 0.036, -0.27]} rotation={[quarterTurn, 0, 0]}>
         <cylinderGeometry args={[0.018, 0.023, 0.038, 14]} />
         <meshStandardMaterial color="#867864" roughness={0.73} />
       </mesh>

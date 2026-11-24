@@ -192,7 +192,7 @@
   }
 
   @media (any-pointer: fine) {
-    :root { --active-wallpaper-cursor: var(--wallpaper-cursor); }
+    :root { --active-wallpaper-cursor: var(--wallpaper-cursor-image) var(--wallpaper-cursor-x) var(--wallpaper-cursor-y),; }
   }
 
   @media (forced-colors: active) {
@@ -204,14 +204,18 @@
   :root:has(#wallpaper-brick:checked) {
     --wallpaper-tile: url("/wallpapers/brick.png");
     --wallpaper-light: url("/wallpapers/brick-light.png");
-    --wallpaper-cursor: url("../assets/brick-cursor.png?inline") 2 2,;
+    --wallpaper-cursor-image: url("../assets/brick-cursor.png?inline");
+    --wallpaper-cursor-x: 2;
+    --wallpaper-cursor-y: 2;
     --wallpaper-motion: var(--animate-wallpaper-embers);
   }
 
   :root:has(#wallpaper-corkboard:checked) {
     --wallpaper-tile: url("/wallpapers/corkboard.png");
     --wallpaper-light: url("/wallpapers/corkboard-light.png");
-    --wallpaper-cursor: url("../assets/corkboard-cursor.png?inline") 2 28,;
+    --wallpaper-cursor-image: url("../assets/corkboard-cursor.png?inline");
+    --wallpaper-cursor-x: 2;
+    --wallpaper-cursor-y: 28;
     --wallpaper-motion: var(--animate-wallpaper-cork);
   }
 
@@ -219,7 +223,9 @@
     --wallpaper-tile: url("/wallpapers/starfield.png");
     --wallpaper-light: url("/wallpapers/starfield-light.png");
     --wallpaper-accent: url("/wallpapers/starfield-accent.png");
-    --wallpaper-cursor: url("../assets/starfield-cursor.png?inline") 8 6,;
+    --wallpaper-cursor-image: url("../assets/starfield-cursor.png?inline");
+    --wallpaper-cursor-x: 8;
+    --wallpaper-cursor-y: 6;
     --wallpaper-motion: var(--animate-wallpaper-twinkle);
     --wallpaper-accent-motion: var(--animate-wallpaper-twinkle-offset);
   }
@@ -228,7 +234,9 @@
     --wallpaper-tile: url("/wallpapers/circuit.png");
     --wallpaper-light: url("/wallpapers/circuit-light.png");
     --wallpaper-accent: url("/wallpapers/circuit-accent.png");
-    --wallpaper-cursor: url("../assets/circuit-cursor.png?inline") 6 28,;
+    --wallpaper-cursor-image: url("../assets/circuit-cursor.png?inline");
+    --wallpaper-cursor-x: 6;
+    --wallpaper-cursor-y: 28;
     --wallpaper-motion: var(--animate-wallpaper-signal);
     --wallpaper-accent-motion: var(--animate-wallpaper-signal-offset);
   }
@@ -237,9 +245,40 @@
     --wallpaper-tile: url("/wallpapers/aquarium.png");
     --wallpaper-light: url("/wallpapers/aquarium-light.png");
     --wallpaper-accent: url("/wallpapers/aquarium-accent.png");
-    --wallpaper-cursor: url("../assets/aquarium-cursor.png?inline") 2 14,;
+    --wallpaper-cursor-image: url("../assets/aquarium-cursor.png?inline");
+    --wallpaper-cursor-x: 2;
+    --wallpaper-cursor-y: 14;
     --wallpaper-motion: var(--animate-wallpaper-tide);
     --wallpaper-accent-motion: var(--animate-wallpaper-bubbles);
+  }
+}
+
+.dex-crt-cursor {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.dex-crt-cursor::before {
+  content: "";
+  position: absolute;
+  top: calc(-1px * var(--wallpaper-cursor-y));
+  left: calc(-1px * var(--wallpaper-cursor-x));
+  width: 32px;
+  height: 32px;
+  background: var(--wallpaper-cursor-image) no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 1px #c8dcec80);
+}
+
+@media (any-pointer: fine) and (forced-colors: none) {
+  :root[data-crt-cursor]:not([data-dex-teletext]):has([data-wallpaper-picker] input:not([value="plain"]):checked) {
+    &, :where(*) { cursor: none; }
+    .dex-crt-cursor { display: block; }
   }
 }
 

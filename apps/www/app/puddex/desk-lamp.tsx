@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { CatmullRomCurve3, DoubleSide, Object3D, Quaternion, Vector2, Vector3, type Vector3Tuple } from "three";
 import { Block } from "../scenes/props";
-import { lamp } from "./desk-layout";
+import { lamp, lampSource } from "./desk-layout";
 import { useSurfaceGrain } from "./surface-grain";
 
 const quarter = Math.PI / 2;
@@ -14,7 +14,7 @@ const baseTie: Vector3Tuple = [0.055, 0.14, 0.008];
 const elbowTie: Vector3Tuple = [-0.045, 0.489, -0.018];
 const elbowTop: Vector3Tuple = [-0.077, 0.424, -0.013];
 const shadeTie: Vector3Tuple = [0.301, 0.574, 0.063];
-const rimY = -0.209;
+const rimY = lamp.rim;
 const shadeProfile = [[0.188, rimY], [0.202, -0.204], [0.206, -0.192], [0.188, -0.158], [0.132, -0.082], [0.088, -0.036], [0.057, -0.016], [0.05, -0.002]]
   .map(([r, y]) => new Vector2(r, y));
 const linerProfile = [[0.191, -0.205], [0.195, -0.187], [0.177, -0.154], [0.123, -0.081], [0.07, -0.032], [0.047, -0.02]]
@@ -74,7 +74,7 @@ export function DeskLamp() {
       new Vector3(-0.145, 0.515, -0.048), new Vector3(-0.049, 0.531, -0.052), new Vector3(0.132, 0.603, -0.034),
       new Vector3(0.248, 0.636, 0.011), pivot.clone().addScaledVector(axis, 0.031),
     ]);
-    return { rotation: new Quaternion().setFromUnitVectors(up, axis), source: pivot.addScaledVector(axis, rimY - 0.02), springs: [-1, 1].map(springCurve), cord };
+    return { rotation: new Quaternion().setFromUnitVectors(up, axis), springs: [-1, 1].map(springCurve), cord };
   }, []);
 
   return (
@@ -151,9 +151,9 @@ export function DeskLamp() {
         </mesh>
       </group>
       <primitive object={target} position={lamp.aim} />
-      <spotLight position={fixture.source} target={target} color="#ffc997" intensity={6.3} distance={2.8} decay={2}
-        angle={0.65} penumbra={0.77} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-near={0.045}
-        shadow-camera-far={3.2} shadow-radius={2.3} shadow-normalBias={0.003} />
+      <spotLight position={lampSource} target={target} color={lamp.color} intensity={9.5} distance={2.8} decay={2}
+        angle={lamp.angle} penumbra={lamp.penumbra} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-near={0.045}
+        shadow-camera-far={3.2} shadow-radius={2.8} shadow-normalBias={0.003} />
     </group>
   );
 }

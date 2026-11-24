@@ -2,7 +2,11 @@
   <defs>
     <filter id="dex-crt-lens" x="0" y="0" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feImage x="0" y="0" preserveAspectRatio="none" result="raster" />
-      <feDisplacementMap in="SourceGraphic" in2="raster" xChannelSelector="R" yChannelSelector="G" />
+      <feDisplacementMap in="SourceGraphic" in2="raster" xChannelSelector="R" yChannelSelector="G" result="picture" />
+      <!-- Keep the picture's hue and use luminance to weight its contribution to the bloom. -->
+      <feColorMatrix in="picture" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.12756 0.42912 0.04332 0 -0.12" />
+      <feGaussianBlur stdDeviation="7.5" result="bloom" />
+      <feBlend in="bloom" in2="picture" mode="screen" />
     </filter>
   </defs>
 </svg>

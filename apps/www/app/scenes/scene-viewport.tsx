@@ -12,11 +12,15 @@ export function useReducedMotion() {
   return useSyncExternalStore(subscribeToMotion, () => window.matchMedia(motionPreference).matches, () => true);
 }
 
-class SceneBoundary extends Component<{ artwork: ReactNode; children: ReactNode }, { failed: boolean }> {
+class SceneBoundary extends Component<{ artwork: ReactNode; children: ReactNode; onError?: () => void }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+
+  componentDidCatch() {
+    this.props.onError?.();
   }
 
   render() {
@@ -24,9 +28,10 @@ class SceneBoundary extends Component<{ artwork: ReactNode; children: ReactNode 
   }
 }
 
-export function SceneViewport({ artwork, children }: {
+export function SceneViewport({ artwork, children, onError }: {
   artwork: ReactNode;
   children: (animate: boolean) => ReactNode;
+  onError?: () => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -66,7 +71,7 @@ export function SceneViewport({ artwork, children }: {
   return (
     <div ref={viewport} className="absolute inset-0" aria-hidden="true">
       {mounted ? (
-        <SceneBoundary artwork={artwork}>
+        <SceneBoundary artwork={artwork} onError={onError}>
           <Suspense fallback={artwork}>{children(visible && !reduced)}</Suspense>
         </SceneBoundary>
       ) : artwork}

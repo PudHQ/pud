@@ -1,7 +1,10 @@
-import { OrthographicCamera, RoundedBox } from "@react-three/drei";
-import { type ThreeElements, useThree } from "@react-three/fiber";
+import { OrthographicCamera } from "@react-three/drei";
+import { extend, type ThreeElements, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import { CanvasTexture, NearestFilter, SRGBColorSpace, type ColorRepresentation, type Path, type Texture, type Vector3Tuple } from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+
+const RoundedGeometry = extend(RoundedBoxGeometry);
 
 export function traceRoundedRect<T extends Path>(path: T, x: number, y: number, width: number, height: number, radius: number): T {
   const l = x - width / 2;
@@ -30,11 +33,12 @@ export function Block({ size, color, radius = 0, roughness = 0.72, metalness = 0
     metalness?: number;
     bumpMap?: Texture;
   }) {
-  const material = <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} bumpMap={bumpMap} bumpScale={0.014} />;
-  return radius ? (
-    <RoundedBox args={size} radius={radius} smoothness={3} {...props}>{material}</RoundedBox>
-  ) : (
-    <mesh {...props}><boxGeometry args={size} />{material}</mesh>
+  const segments = radius >= 0.075 ? 3 : radius >= 0.022 ? 2 : 1;
+  return (
+    <mesh {...props}>
+      {radius ? <RoundedGeometry args={[...size, segments, radius]} /> : <boxGeometry args={size} />}
+      <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} bumpMap={bumpMap} bumpScale={0.014} />
+    </mesh>
   );
 }
 

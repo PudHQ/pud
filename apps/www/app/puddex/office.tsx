@@ -1,14 +1,18 @@
+import { useEffect, useMemo } from "react";
+import { Float32BufferAttribute, type Texture } from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { Block, usePrint } from "../scenes/props";
 import { DeskLamp } from "./desk-lamp";
-import { desktopSurface } from "./desk-layout";
+import { desktopSurface, officeFloor, officeSill, officeWindows } from "./desk-layout";
 import { Clipboard, CoffeeMug } from "./desk-props";
-import { deskBake, useBakedLighting } from "./lightmaps";
+import { deskBake, officeFloorBake, useBakedLighting, windowSillBake } from "./lightmaps";
+import type { OfficeShadowMaps } from "./office-shadows";
 import { useSurfaceGrain } from "./surface-grain";
 
 const frame = "#333434";
 const trim = "#64605a";
-const windows = [-4.65, -2.32, 0, 2.32, 4.65];
 const quarter = Math.PI / 2;
+const lightmapReceiver = { shadowBake: false };
 
 function drawWood(ink: CanvasRenderingContext2D) {
   const stain = ink.createLinearGradient(0, 0, 0, 512);
@@ -44,16 +48,42 @@ function drawWood(ink: CanvasRenderingContext2D) {
   ink.fillRect(333, 189, 334, 334);
 }
 
+function WindowSill({ paint }: { paint: Texture }) {
+  const { width, height, depth, y, offset } = officeSill;
+  const lighting = useBakedLighting(windowSillBake);
+  const geometry = useMemo(() => {
+    const box = new RoundedBoxGeometry(width, height, depth, 3, 0.025);
+    const { position, normal } = box.attributes;
+    const uv: number[] = [];
+    const colors: number[] = [];
+    for (let i = 0; i < position.count; i++) {
+      uv.push(0.5 + position.getX(i) / width, 0.5 - position.getZ(i) / depth);
+      const exposure = 0.17 + 0.83 * Math.max(0, normal.getY(i));
+      colors.push(exposure, exposure, exposure);
+    }
+    box.setAttribute("uv1", new Float32BufferAttribute(uv, 2));
+    box.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    return box;
+  }, [width, height, depth]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh geometry={geometry} position={[0, y, offset]} receiveShadow>
+      <meshPhysicalMaterial color={trim} vertexColors {...lighting} lightMapIntensity={5.2} aoMapIntensity={0.66}
+        roughness={0.59} clearcoat={0.19} bumpMap={paint} bumpScale={0.006} />
+    </mesh>
+  );
+}
+
 function OfficeWindows() {
   const paint = useSurfaceGrain(2, 6, true);
   return (
-    <group position={[0, 0, -2.54]}>
+    <group position={[0, 0, officeWindows.z]}>
       <Block size={[9.63, 0.4, 0.26]} color="#55534c" position={[0, -0.65, 0]} receiveShadow />
-      <Block size={[9.76, 0.16, 0.41]} color={trim} position={[0, -0.41, 0.055]} bumpMap={paint} radius={0.025} receiveShadow />
+      <WindowSill paint={paint} />
       <Block size={[9.51, 0.029, 0.022]} color="#77746a" position={[0, -0.348, 0.265]} roughness={0.7} />
       <Block size={[9.64, 0.2, 0.29]} color={frame} position={[0, 2.84, 0]} />
       <Block size={[9.51, 0.089, 0.17]} color="#4e4f48" position={[0, 1.92, 0.026]} bumpMap={paint} />
-      {windows.map(x => (
+      {officeWindows.mullions.map(x => (
         <group key={x}>
           <Block size={[0.16, 3.27, 0.24]} radius={0.015} color={frame} position={[x, 1.22, 0]} bumpMap={paint} />
           <Block size={[0.045, 3.23, 0.028]} color="#74746a" position={[x + 0.046, 1.21, 0.124]} />
@@ -76,12 +106,18 @@ function OfficeWindows() {
   );
 }
 
-export function Office() {
+export function Office({ shadows }: { shadows?: OfficeShadowMaps }) {
   const wood = usePrint(1024, 512, drawWood);
-  const baked = useBakedLighting(deskBake);
+  const desk = useBakedLighting(deskBake, shadows?.desk);
+  const floor = useBakedLighting(officeFloorBake, shadows?.floor);
   return (
     <group>
-      <Block size={[10.8, 0.14, 7.2]} color="#403d38" position={[0, -0.866, 0.89]} />
+      <Block size={[officeFloor.width, 0.14, officeFloor.depth]} color="#403d38"
+        position={[0, officeFloor.y - 0.072, officeFloor.z]} userData={lightmapReceiver} />
+      <mesh position={officeFloorBake.position} rotation={[-quarter, 0, 0]} userData={lightmapReceiver} receiveShadow>
+        <planeGeometry args={officeFloorBake.area} />
+        <meshStandardMaterial color="#5b5447" {...floor} lightMapIntensity={5.35} aoMapIntensity={0.81} roughness={0.86} />
+      </mesh>
       <Block size={[10.8, 0.24, 7.3]} color="#444641" position={[0, 3.11, 0.89]} />
       {[-5.5, 5.5].map(x => <Block key={x} size={[0.31, 4.1, 7.34]} color="#52524e" position={[x, 1.068, 0.84]} />)}
       <OfficeWindows />
@@ -91,9 +127,9 @@ export function Office() {
         <meshBasicMaterial color="#8f9694" toneMapped={false} />
       </mesh>
       <Block size={[5.94, 0.148, 4.62]} radius={0.037} color="#534231" position={[0, -0.081, desktopSurface.z]} castShadow receiveShadow />
-      <mesh position={deskBake.position} rotation={[-quarter, 0, 0]} receiveShadow>
+      <mesh position={deskBake.position} rotation={[-quarter, 0, 0]} userData={lightmapReceiver} receiveShadow>
         <planeGeometry args={deskBake.area} />
-        <meshPhysicalMaterial map={wood} {...baked} lightMapIntensity={1.55} aoMapIntensity={0.86}
+        <meshPhysicalMaterial map={wood} {...desk} lightMapIntensity={1.65} aoMapIntensity={0.64}
           roughness={0.66} clearcoat={0.26} clearcoatRoughness={0.64} bumpMap={wood} bumpScale={0.005} />
       </mesh>
       <Block size={[5.93, 0.03, 0.054]} radius={0.012} color="#806749" position={[0, -0.036, 3.286]} />

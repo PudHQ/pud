@@ -18,8 +18,8 @@ const globeLayer = "col-start-1 row-start-1 size-full object-contain [image-rend
     <img class:list={[globeLayer, "group-data-interactive/masthead:invisible"]} src="/globe.svg" alt="" width={width} height={height} />
     <canvas data-globe-canvas class:list={[globeLayer, "invisible group-data-interactive/masthead:visible"]} width={width} height={height} inert></canvas>
     <svg data-orbit-world class={globeLayer} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false" shape-rendering="crispEdges">
-      <path class="opacity-0 motion-safe:animate-water-shimmer" fill="#d6efff" d="M69 34h3v1h-3zM73 32h5v1h-5zM78 30h2v1h-2z" />
-      <path class="opacity-0 motion-safe:animate-orbit-sheen" fill="none" stroke="#fff9e8" stroke-width="2" stroke-dasharray="8 110" pathLength="100"
+      <path class="opacity-0 motion-safe:animate-water-shimmer crt:[animation-timing-function:steps(8,end)]" fill="#d6efff" d="M69 34h3v1h-3zM73 32h5v1h-5zM78 30h2v1h-2z" />
+      <path class="opacity-0 motion-safe:animate-orbit-sheen crt:[animation-timing-function:steps(12,end)]" fill="none" stroke="#fff9e8" stroke-width="2" stroke-dasharray="8 110" pathLength="100"
         d={`M${-ring.rx} 0a${ring.rx} ${ring.ry} 0 0 0 ${ring.rx * 2} 0`}
         transform={`translate(${ring.cx} ${ring.cy}) rotate(${ring.angle})`} />
     </svg>

@@ -1,28 +1,27 @@
 import { Instance, Instances } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
-  Color, DataTexture, DynamicDrawUsage, Float32BufferAttribute, LatheGeometry,
-  LinearFilter, LinearSRGBColorSpace, Object3D, Vector2, type InstancedMesh,
+  Color, DataTexture, DynamicDrawUsage, Float32BufferAttribute, Frustum, LatheGeometry,
+  LinearFilter, LinearSRGBColorSpace, Material, Matrix4, Mesh, Object3D, Sphere, Vector2, type Group, type InstancedMesh, type Texture,
 } from "three";
 import { Block } from "../scenes/props";
+import { conveyor, conveyorDeck, conveyorSupports as supports, factoryFloor } from "./factory-layout";
+import { applyConveyorLighting } from "./factory-lighting";
 import { useSurfaceGrain } from "./surface-grain";
 
-export const factoryFloor = -3.54;
-export const conveyor = { start: -20.16, end: 20.16, y: -1.49, z: -9.15, width: 1.38 };
 const length = conveyor.end - conveyor.start;
 const rate = 0.72;
 const sideDistance = conveyor.width / 2 + 0.11;
 const slatCount = 144;
 const puddingCount = 42;
-const supports = Array.from({ length: 15 }, (_, index) => (index - 7) * 2.69);
-const plateHeight = conveyor.y + 0.143;
+const plateHeight = conveyorDeck.position[1];
 const plateProfile = [[0, 0], [0.205, 0], [0.229, 0.012], [0.234, 0.029], [0.216, 0.035], [0.196, 0.018], [0, 0.018]].map(([r, y]) => new Vector2(r, y));
 const flanProfile = [[0.006, 0], [0.156, 0], [0.176, 0.013], [0.184, 0.037], [0.177, 0.078], [0.151, 0.152], [0.144, 0.181], [0.129, 0.193], [0.006, 0.193]].map(([r, y]) => new Vector2(r, y));
 const caramelProfile = [[0.150, 0.159], [0.152, 0.172], [0.148, 0.181], [0.141, 0.192], [0.126, 0.2], [0, 0.201]].map(([r, y]) => new Vector2(r, y));
 
 function moldFlan() {
-  const geometry = new LatheGeometry(flanProfile, 48);
+  const geometry = new LatheGeometry(flanProfile, 36);
   const positions = geometry.attributes.position;
   const caramelGold = new Color("#e88819");
   const custard = new Color("#ffc654");
@@ -43,7 +42,7 @@ function moldFlan() {
 }
 
 function pourCaramel() {
-  const geometry = new LatheGeometry(caramelProfile, 48);
+  const geometry = new LatheGeometry(caramelProfile, 28);
   const positions = geometry.attributes.position;
   for (let index = 0; index < positions.count; index++) {
     const x = positions.getX(index);
@@ -88,7 +87,8 @@ function updateFrequently(mesh: InstancedMesh) {
   mesh.instanceMatrix.setUsage(DynamicDrawUsage);
 }
 
-export function Conveyor({ animate }: { animate: boolean }) {
+export function Conveyor({ animate, deckLight, groundLight }: { animate: boolean; deckLight: Texture; groundLight: Texture }) {
+  const frame = useRef<Group>(null);
   const slats = useRef<InstancedMesh>(null);
   const plates = useRef<InstancedMesh>(null);
   const puddings = useRef<InstancedMesh>(null);
@@ -96,11 +96,21 @@ export function Conveyor({ animate }: { animate: boolean }) {
   const cursor = useRef(0);
   const lastPlacement = useRef(-1);
   const placement = useMemo(() => new Object3D(), []);
+  const view = useMemo(() => ({
+    clip: new Matrix4(), previousClip: new Matrix4(), frustum: new Frustum(), bounds: new Sphere(),
+  }), []);
   const flan = useMemo(moldFlan, []);
   const glaze = useMemo(pourCaramel, []);
   const brushed = useSurfaceGrain(4, 2, true);
   const steelLight = useMemo(() => bakeFinish(false), []);
   const glazeLight = useMemo(() => bakeFinish(true), []);
+
+  useLayoutEffect(() => {
+    frame.current?.traverse(part => {
+      if (part instanceof Mesh && part.material instanceof Material) applyConveyorLighting(part.material, deckLight, groundLight);
+    });
+  }, [deckLight, groundLight]);
+
   useEffect(() => () => {
     flan.dispose();
     glaze.dispose();
@@ -108,40 +118,60 @@ export function Conveyor({ animate }: { animate: boolean }) {
     glazeLight.dispose();
   }, [flan, glaze, steelLight, glazeLight]);
 
-  useFrame((_, delta) => {
+  useFrame(({ camera }, delta) => {
     const slatMesh = slats.current;
     const plateMesh = plates.current;
     const puddingMesh = puddings.current;
     const caramelMesh = caramel.current;
     if (!slatMesh || !plateMesh || !puddingMesh || !caramelMesh) return;
     if (animate) cursor.current = (cursor.current + Math.min(delta, 0.083) * rate) % length;
-    if (cursor.current === lastPlacement.current) return;
+    view.clip.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    if (cursor.current === lastPlacement.current && view.clip.equals(view.previousClip)) return;
     lastPlacement.current = cursor.current;
+    view.previousClip.copy(view.clip);
+    view.frustum.setFromProjectionMatrix(view.clip);
+
+    // Compact the visible instances before submitting the belt and its cargo.
+    let slatIndex = 0;
     placement.rotation.y = 0;
+    view.bounds.radius = 0.72;
     for (let index = 0; index < slatCount; index++) {
       const x = conveyor.start + (index * length / slatCount + cursor.current) % length;
-      placement.position.set(x, conveyor.y + 0.115, conveyor.z);
+      view.bounds.center.set(x, conveyor.y + 0.115, conveyor.z);
+      if (!view.frustum.intersectsSphere(view.bounds)) continue;
+      placement.position.copy(view.bounds.center);
       placement.updateMatrix();
-      slatMesh.setMatrixAt(index, placement.matrix);
+      slatMesh.setMatrixAt(slatIndex++, placement.matrix);
     }
+    let dessertIndex = 0;
+    view.bounds.radius = 0.28;
     for (let index = 0; index < puddingCount; index++) {
       const x = conveyor.start + (index * length / puddingCount + cursor.current) % length;
       const z = conveyor.z + (index % 2 ? 0.26 : -0.26);
+      view.bounds.center.set(x, plateHeight + 0.10, z);
+      if (!view.frustum.intersectsSphere(view.bounds)) continue;
       placement.rotation.y = index * 0.8;
       placement.position.set(x, plateHeight, z);
       placement.updateMatrix();
-      plateMesh.setMatrixAt(index, placement.matrix);
+      plateMesh.setMatrixAt(dessertIndex, placement.matrix);
       placement.position.y += 0.022;
       placement.updateMatrix();
-      puddingMesh.setMatrixAt(index, placement.matrix);
-      caramelMesh.setMatrixAt(index, placement.matrix);
+      puddingMesh.setMatrixAt(dessertIndex, placement.matrix);
+      caramelMesh.setMatrixAt(dessertIndex++, placement.matrix);
     }
-    for (const parts of [slatMesh, plateMesh, puddingMesh, caramelMesh]) parts.instanceMatrix.needsUpdate = true;
+    slatMesh.count = slatIndex;
+    plateMesh.count = puddingMesh.count = caramelMesh.count = dessertIndex;
+    for (const parts of [slatMesh, plateMesh, puddingMesh, caramelMesh]) {
+      if (!parts.count) continue;
+      parts.instanceMatrix.clearUpdateRanges();
+      parts.instanceMatrix.addUpdateRange(0, parts.count * 16);
+      parts.instanceMatrix.needsUpdate = true;
+    }
   });
 
   const span = conveyor.y - factoryFloor;
   return (
-    <group>
+    <group ref={frame}>
       <Block size={[length, 0.226, conveyor.width]} radius={0.02} color="#3b4142" position={[0, conveyor.y - 0.012, conveyor.z]} roughness={0.87} castShadow receiveShadow />
       {[-1, 1].map(side => {
         const z = conveyor.z + side * sideDistance;
@@ -178,7 +208,7 @@ export function Conveyor({ animate }: { animate: boolean }) {
         <meshMatcapMaterial color="#626b6b" matcap={steelLight} bumpMap={brushed} bumpScale={0.008} />
       </instancedMesh>
       <instancedMesh ref={plates} args={[undefined, undefined, puddingCount]} frustumCulled={false} onUpdate={updateFrequently}>
-        <latheGeometry args={[plateProfile, 20]} />
+        <latheGeometry args={[plateProfile, 16]} />
         <meshMatcapMaterial color="#aeb6ad" matcap={steelLight} />
       </instancedMesh>
       <instancedMesh ref={puddings} args={[flan, undefined, puddingCount]} frustumCulled={false} onUpdate={updateFrequently}>

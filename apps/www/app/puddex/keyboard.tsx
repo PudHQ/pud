@@ -1,8 +1,8 @@
 import { Instance, Instances } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
-import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Shape } from "three";
+import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import { Block, usePrint } from "../scenes/props";
+import { Block, traceRoundedRect, usePrint } from "../scenes/props";
 import { keyboard } from "./desk-layout";
 
 type Key = { label: string; x: number; z: number; width: number; gray: boolean };
@@ -86,8 +86,8 @@ function makeCase() {
   const side = new Shape();
   side.moveTo(-keyboard.depth / 2, 0.013);
   side.lineTo(keyboard.depth / 2, 0.013);
-  side.lineTo(keyboard.depth / 2, 0.117);
-  side.lineTo(-keyboard.depth / 2, 0.049);
+  side.lineTo(keyboard.depth / 2, 0.091);
+  side.lineTo(-keyboard.depth / 2, 0.023);
   side.closePath();
   const geometry = new ExtrudeGeometry(side, { depth: keyboard.width, bevelThickness: 0.019, bevelSize: 0.014, bevelSegments: 3 });
   geometry.rotateY(Math.PI / 2);
@@ -95,10 +95,30 @@ function makeCase() {
   return geometry;
 }
 
+function makeKeyDeck() {
+  const deck = traceRoundedRect(new Shape(), 0, 0, keyboard.width + 0.017, keyboard.depth + 0.008, 0.015);
+  const typing = new Path()
+    .moveTo(-0.879, 0.187).lineTo(0.279, 0.187).lineTo(0.279, -0.176)
+    .lineTo(0.098, -0.176).lineTo(0.098, -0.268).lineTo(-0.879, -0.268).closePath();
+  const arrows = new Path()
+    .moveTo(0.387, -0.084).lineTo(0.479, -0.084).lineTo(0.479, -0.176).lineTo(0.556, -0.176)
+    .lineTo(0.556, -0.268).lineTo(0.310, -0.268).lineTo(0.310, -0.176).lineTo(0.387, -0.176).closePath();
+  deck.holes.push(
+    typing, arrows,
+    traceRoundedRect(new Path(), -0.329, 0.244, 1.10, 0.095, 0.006),
+    traceRoundedRect(new Path(), 0.433, 0.244, 0.244, 0.095, 0.006),
+    traceRoundedRect(new Path(), 0.433, 0.094, 0.244, 0.186, 0.006),
+    traceRoundedRect(new Path(), 0.732, -0.041, 0.322, 0.454, 0.006),
+  );
+  return new ExtrudeGeometry(deck, { depth: 0.021, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 2, curveSegments: 5 })
+    .rotateX(-Math.PI / 2).translate(0, -0.016, 0);
+}
+
 export function Keyboard() {
   const housing = useMemo(makeCase, []);
+  const deck = useMemo(makeKeyDeck, []);
   const cap = useMemo(() => {
-    const geometry = new RoundedBoxGeometry(1, 1, 1, 2, 0.08);
+    const geometry = new RoundedBoxGeometry(1, 1, 1, 1, 0.08);
     const points = geometry.attributes.position;
     for (let index = 0; index < points.count; index++) {
       const scale = 1 - (points.getY(index) + 0.5) * 0.22;
@@ -110,18 +130,19 @@ export function Keyboard() {
   }, []);
   const legends = useMemo(makeLegendGeometry, []);
   const print = usePrint(atlasColumns * tile, atlasRows * tile, drawLegends);
-  useEffect(() => () => { housing.dispose(); cap.dispose(); legends.dispose(); }, [housing, cap, legends]);
+  useEffect(() => () => { housing.dispose(); deck.dispose(); cap.dispose(); legends.dispose(); }, [housing, deck, cap, legends]);
 
   return (
     <group position={keyboard.position} rotation={[0, 0.027, 0]}>
-      <mesh geometry={housing} castShadow receiveShadow><meshStandardMaterial color="#c0ad8a" roughness={0.75} /></mesh>
+      <mesh geometry={housing} castShadow receiveShadow><meshStandardMaterial color="#b7a583" roughness={0.75} /></mesh>
       <mesh position={[-0.57, 0.084, -0.334]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.024, 0.020, 0.048, 12]} />
         <meshStandardMaterial color="#8a806c" roughness={0.67} />
       </mesh>
       <group position={[0, 0.085, 0]} rotation={[0.106, 0, 0]}>
-        <Block size={[1.77, 0.018, 0.559]} radius={0.007} color="#42392e" receiveShadow />
-        <Instances geometry={cap} limit={keys.length} range={keys.length} castShadow receiveShadow>
+        <mesh geometry={deck} castShadow receiveShadow><meshStandardMaterial color="#c0ad8a" roughness={0.75} /></mesh>
+        <Block size={[1.81, 0.018, 0.57]} radius={0.007} color="#796b56" position={[0, -0.017, -0.01]} receiveShadow />
+        <Instances geometry={cap} limit={keys.length} range={keys.length} frames={1} castShadow receiveShadow>
           <meshStandardMaterial roughness={0.69} />
           {keys.map(({ x, z, width, gray }) => (
             <Instance key={`${x}/${z}`} color={gray ? "#a9997c" : "#d6c8a9"} position={[x, 0.028, z]} scale={[width, 0.044, capDepth]} />

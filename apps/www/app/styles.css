@@ -86,6 +86,66 @@
   image-rendering: pixelated;
 }
 
+.puddex-loader-halo {
+  background: radial-gradient(ellipse at center, #7a305a 0%, #30172e 35%, transparent 68%);
+  opacity: 0.08;
+}
+
+.puddex-loader-fill {
+  filter: drop-shadow(0 0 5px #ee7295aa);
+}
+
+.puddex-loader-clip {
+  clip-path: inset(var(--pud-fill) 0 0);
+}
+
+.puddex-loader-caption {
+  text-shadow: 0 0 8px #ed6baf88;
+}
+
+.puddex-loader[data-complete="true"] .puddex-loader-halo {
+  opacity: 1;
+}
+
+.puddex-loader[data-complete="true"] .puddex-loader-caption {
+  animation: none;
+}
+
+.puddex-loader[data-complete="true"] .puddex-loader-fill {
+  filter: brightness(1.25) saturate(1.23) drop-shadow(0 0 4px #ffd3df) drop-shadow(0 0 13px #ff81a8) drop-shadow(0 0 32px #f652a6);
+}
+
+.puddex-loader-pixels {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  color: #ff94b6;
+  box-shadow: -5.4rem -3.8rem currentColor, -6.8rem 1.2rem #ed5b8b, -3.1rem 5.6rem #ffbbce,
+    0.5rem -6.5rem #ffd2de, 4.8rem -4.8rem #ff6ca3, 6.6rem -0.8rem #ffaac6, 5.3rem 4.4rem #ed6baf;
+  filter: drop-shadow(0 0 6px #f64993);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .puddex-loader-halo { transition: opacity 200ms ease-out; }
+  .puddex-loader-fill { transition: filter 170ms ease-out; }
+  .puddex-loader-clip { transition: clip-path 170ms steps(12, end); }
+  .puddex-loader-caption { animation: puddex-caption-blink 1.2s steps(1, end) infinite; }
+  .puddex-loader[data-complete="true"] .puddex-loader-pixels { animation: puddex-pixel-burst 460ms ease-out; }
+}
+
+@keyframes puddex-caption-blink {
+  0%, 100% { opacity: 1; }
+  70% { opacity: 0.38; }
+}
+
+@keyframes puddex-pixel-burst {
+  0% { opacity: 0; transform: scale(0.54); }
+  35% { opacity: 1; }
+  100% { opacity: 0.28; transform: scale(1.45); }
+}
+
 @utility clip-* {
   clip-path: --value(--clip-*);
 }

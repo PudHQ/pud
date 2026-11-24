@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { Vector3Tuple } from "three";
+import { Vector3, type Vector3Tuple } from "three";
 
 // The PC 300GL type 6561 chassis is 450 mm square and 128 mm tall.
 const caseWidth = 2.27;
@@ -17,11 +17,30 @@ export const lamp = {
   scale: 1.35,
   pivot: [0.269, 0.641, 0.058] as Vector3Tuple,
   aim: [1.016, 0.006, 0.274] as Vector3Tuple,
+  rim: -0.209,
+  color: "#ffc997",
+  angle: 0.65,
+  penumbra: 0.80,
 };
+const lampPivot = new Vector3(...lamp.pivot);
+const lampAim = new Vector3(...lamp.aim);
+const lampDirection = lampAim.clone().sub(lampPivot).normalize();
+export const lampSource = lampPivot.addScaledVector(lampDirection, 0.02 - lamp.rim).toArray();
+const lampBase = new Vector3(...lamp.position);
+export const lampWorld = {
+  position: new Vector3(...lampSource).multiplyScalar(lamp.scale).add(lampBase).toArray(),
+  target: lampAim.multiplyScalar(lamp.scale).add(lampBase).toArray(),
+};
+
+export const deskKey = { position: [0.66, 2.96, 3.21] as Vector3Tuple, target: [-0.08, 0.81, 1.28] as Vector3Tuple };
 export const mouse = { position: [1.168, 0, 1.71] as Vector3Tuple, angle: -0.12, width: 0.36, depth: 0.53 };
 export const mug = { position: [1.57, 0, 0.985] as Vector3Tuple, scale: 1.62 };
 export const clipboard = { position: [1.918, 0.012, 1.775] as Vector3Tuple, scale: 1.34 };
 export const desktopSurface = { width: 5.87, depth: 4.55, z: 0.98, y: 0.002 };
+export const officeFloor = { width: 10.8, depth: 7.2, z: 0.89, y: -0.796 };
+export const officeWindows = { z: -2.54, mullions: [-4.65, -2.32, 0, 2.32, 4.65] };
+export const officeSill = { width: 9.76, height: 0.16, depth: 0.41, y: -0.41, offset: 0.055 };
+export const clipboardPenAsset = "/pud-clipboard-pen.glb";
 
 export type ScreenControls = {
   screen: RefObject<HTMLDivElement | null>;

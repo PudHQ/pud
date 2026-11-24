@@ -1,4 +1,4 @@
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { ExtrudeGeometry, MathUtils, Path, Shape, type Group } from "three";
 import { Block, Print, traceRoundedRect, usePrint } from "../scenes/props";
@@ -14,6 +14,7 @@ const slotHeight = 0.046;
 const [driveX, driveY] = drive.position;
 const [buttonX, buttonY, buttonZ] = powerSwitch.position;
 const around = Math.PI / 2;
+const diskShadowInterval = 48;
 const vents = [-0.894, -0.608, -0.322].flatMap(x => Array.from({ length: 5 }, (_, index) => ({ x, y: 0.158 + index * 0.045 })));
 
 function mold(shape: Shape, depth: number, bevel: number) {
@@ -22,20 +23,31 @@ function mold(shape: Shape, depth: number, bevel: number) {
 
 function FloppyDisk({ power }: { power: Power }) {
   const disk = useRef<Group>(null);
+  const lastShadow = useRef(0);
   const label = usePrint(320, 168, drawDisk);
+  const shadowMap = useThree(state => state.gl.shadowMap);
+  useEffect(() => { shadowMap.needsUpdate = true; }, [power.disk, shadowMap]);
 
   useFrame(() => {
     if (!disk.current) return;
     const duration = diskDurations[power.disk] || 1;
-    const travel = MathUtils.smoothstep(performance.now() - power.started, 0, duration);
+    const now = performance.now();
+    const travel = MathUtils.smoothstep(now - power.started, 0, duration);
     const inserted = power.disk === "inserting" ? travel : power.disk === "ejecting" ? 1 - travel : power.disk === "ejected" ? 0 : 1;
-    disk.current.position.z = MathUtils.lerp(face + 0.012, face - 0.238, inserted);
-    disk.current.visible = inserted < 0.996;
+    const z = MathUtils.lerp(face + 0.012, face - 0.238, inserted);
+    const visible = inserted < 0.996;
+    const changing = visible && disk.current.position.z !== z && (now - lastShadow.current >= diskShadowInterval || travel === 1);
+    if (disk.current.visible !== visible || changing) {
+      shadowMap.needsUpdate = true;
+      lastShadow.current = now;
+    }
+    disk.current.position.z = z;
+    disk.current.visible = visible;
   });
 
   return (
-    <group ref={disk} position={[driveX - 0.005, driveY, face + 0.012]} visible={power.disk === "ejected"}>
-      <Block size={[0.451, 0.018, 0.445]} radius={0.006} color="#2c3030" roughness={0.7} />
+    <group ref={disk} position={[driveX - 0.005, driveY, face + 0.012]} visible={power.disk === "ejected"} userData={{ shadowBake: false }}>
+      <Block size={[0.451, 0.018, 0.445]} radius={0.006} color="#2c3030" roughness={0.7} castShadow receiveShadow />
       <Block size={[0.442, 0.006, 0.438]} radius={0.003} color="#373b3a" position={[0, 0.008, 0.001]} />
       <Block size={[0.213, 0.005, 0.124]} radius={0.002} color="#a8acaa" roughness={0.3} metalness={0.72} position={[0.01, 0.013, -0.157]} />
       <Block size={[0.047, 0.006, 0.084]} radius={0.002} color="#252826" position={[0.056, 0.016, -0.17]} />

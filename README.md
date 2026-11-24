@@ -10,25 +10,30 @@ Pud is under active development. You can run the examples today or [join the alp
 
 [PudDex](https://dex.pud.dev) is the company wiki and link directory. Open its [Markdown content folder](apps/dex/content) as an Obsidian vault.
 
+> [!WARNING]
+> **Are you an AI agent?**
+>
+> Read [LLMs.txt](./llms.txt) first
+
 ## Workspace
 
 Install the Bun version in [package.json](package.json) and the Node version in [.nvmrc](.nvmrc), then run `bun install --frozen-lockfile` from the repository root. The root Bun catalog pins dependencies for every workspace. PudDex uses a named TypeScript 6 catalog because the Astro checker supports TypeScript 5 and 6.
 
-| Workspace | Purpose |
-| --- | --- |
-| [Pud landing site](apps/www/README.md) | Vinext Worker with D1-backed alpha signups |
-| [PudDex](apps/dex/README.md) | Static Astro site built from an Obsidian vault |
-| [CLI](packages/cli/README.md) | Public command, authoring API, and package archive |
-| [Model](packages/model/README.md) | Shared verification model and backend interfaces |
-| [Postgres](packages/postgres/README.md) | Embedded PostgreSQL fixture for replay |
-| [Debit endpoint](experiments/debit-endpoint/README.md) | Runnable experiment using the shared packages |
+| Workspace                                              | Purpose                                            |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| [Pud landing site](apps/www/README.md)                 | Vinext Worker with D1-backed alpha signups         |
+| [PudDex](apps/dex/README.md)                           | Static Astro site built from an Obsidian vault     |
+| [CLI](packages/cli/README.md)                          | Public command, authoring API, and package archive |
+| [Model](packages/model/README.md)                      | Shared verification model and backend interfaces   |
+| [Postgres](packages/postgres/README.md)                | Embedded PostgreSQL fixture for replay             |
+| [Debit endpoint](experiments/debit-endpoint/README.md) | Runnable experiment using the shared packages      |
 
 Run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` at the root to check the workspace and build both sites. The tests include proof replay and require [Rocq](https://rocq-prover.org/docs). Pud can provision Dafny on first use. CI runs the same commands and both proof demos. [Proof workflow](.github/workflows/proofs.yml)
 
-| Site | Dev | Build | Preview | Deploy |
-| --- | --- | --- | --- | --- |
+| Site                | Dev               | Build               | Preview               | Deploy               |
+| ------------------- | ----------------- | ------------------- | --------------------- | -------------------- |
 | Landing site · 4901 | `bun run dev:www` | `bun run build:www` | `bun run preview:www` | `bun run deploy:www` |
-| PudDex · 4902 | `bun run dev:dex` | `bun run build:dex` | `bun run preview:dex` | `bun run deploy:dex` |
+| PudDex · 4902       | `bun run dev:dex` | `bun run build:dex` | `bun run preview:dex` | `bun run deploy:dex` |
 
 Reuse the app already listening on its assigned port. Build before running preview and free the assigned port before switching between dev and preview. Both apps use Vite and Tailwind and ship to Cloudflare Workers with the workspace's `cf` CLI. Sign in once with `bun run --cwd apps/www cf auth login`. Check setup with the same deploy command and `--dry-run`. The [landing site release notes](apps/www/README.md#release) cover D1 migrations and the [PudDex release notes](apps/dex/README.md#release) cover its asset build.
 
@@ -48,8 +53,11 @@ You should see `2 passed`. The proof file imports `reserveSeats` directly. Its f
 import { proof } from "@pud/cli";
 import { reserveSeats } from "./seats";
 
-export default proof(reserveSeats, "A reservation never creates seats",
-  (available, requested, remaining) => remaining <= available);
+export default proof(
+  reserveSeats,
+  "A reservation never creates seats",
+  (available, requested, remaining) => remaining <= available,
+);
 ```
 
 The second property names the condition `fits`, checks rejected reservations with an early return, and checks the exact seat count for an accepted reservation. Edit the function and rerun the command to check both claims. [Implementation](packages/cli/demo/seats.ts) · [Seat properties](packages/cli/demo/seats.proof.ts)
@@ -91,13 +99,13 @@ Dafny is set up on first use and shared across projects in your user cache. Pud 
 
 ## How the model fits together
 
-| Part | Responsibility |
-| --- | --- |
-| [Pud model](packages/model/src/model.ts) | Typed expressions, local bindings, branches, returns and domain-specific operations. The data structures have no parser or solver dependencies. |
-| [TypeScript frontend](packages/model/src/typescript.ts) | Read ordinary control flow from the parsed function. The pure frontend binds `bigint` and `boolean`. A domain adapter can give meaning to additional values and effects. |
-| [Adapter and backend interfaces](packages/model/src/adapter.ts) | A domain adapter models an export, binds each predicate, and replays the original implementation. A proof backend emits and verifies a claim and can suggest inputs for replay. Adapter authors can import the types from `@pud/cli`. Custom adapters and backends are trusted project code. |
-| [Dafny](packages/model/src/dafny.ts) and [Rocq](packages/cli/src/rocq-model.ts) | Render the shared model. Dafny checks automatic properties. Rocq checks explicit proofs of pure functions. |
-| [Postgres replay](packages/postgres/src/postgres.ts) | Apply application migrations to an isolated PGlite database. The example’s separate [ledger adapter](experiments/debit-endpoint/ledger.ts) supplies its formal SQL semantics. |
+| Part                                                                            | Responsibility                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Pud model](packages/model/src/model.ts)                                        | Typed expressions, local bindings, branches, returns and domain-specific operations. The data structures have no parser or solver dependencies.                                                                                                                                              |
+| [TypeScript frontend](packages/model/src/typescript.ts)                         | Read ordinary control flow from the parsed function. The pure frontend binds `bigint` and `boolean`. A domain adapter can give meaning to additional values and effects.                                                                                                                     |
+| [Adapter and backend interfaces](packages/model/src/adapter.ts)                 | A domain adapter models an export, binds each predicate, and replays the original implementation. A proof backend emits and verifies a claim and can suggest inputs for replay. Adapter authors can import the types from `@pud/cli`. Custom adapters and backends are trusted project code. |
+| [Dafny](packages/model/src/dafny.ts) and [Rocq](packages/cli/src/rocq-model.ts) | Render the shared model. Dafny checks automatic properties. Rocq checks explicit proofs of pure functions.                                                                                                                                                                                   |
+| [Postgres replay](packages/postgres/src/postgres.ts)                            | Apply application migrations to an isolated PGlite database. The example’s separate [ledger adapter](experiments/debit-endpoint/ledger.ts) supplies its formal SQL semantics.                                                                                                                |
 
 The pure model covers required `bigint` and `boolean` arguments, immutable local bindings, branches and the operations listed below. General JavaScript `number` arithmetic is unsupported. The ledger adapter covers the documented SQL operations and transaction model. Proofs rely on the translator, the adapter’s assumptions, and the selected prover.
 
@@ -112,12 +120,12 @@ bun run demo:rocq
 
 The [demo](packages/cli/demo/replay.ts) works in a temporary directory. It holds [the reviewed property](packages/cli/demo/bounds.proof.ts) fixed throughout.
 
-| Change to `max` | Result |
-| --- | --- |
-| Original implementation, `a < b ? b : a` | `PASS`. Rocq checks the proof. |
-| Equivalent implementation, `b < a ? a : b` | `UNPROVED`. The original proof splits on the old comparison. |
-| Same implementation, [agent’s repaired proof](packages/cli/demo/repair/Maximum.v) | `PASS`. The same repair also checks against the original implementation. |
-| Wrong implementation, `a < b ? a : b` | `FAIL`. Calling `max(0n, 1n)` returns `0n`, which violates the reviewed property. |
+| Change to `max`                                                                   | Result                                                                            |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Original implementation, `a < b ? b : a`                                          | `PASS`. Rocq checks the proof.                                                    |
+| Equivalent implementation, `b < a ? a : b`                                        | `UNPROVED`. The original proof splits on the old comparison.                      |
+| Same implementation, [agent’s repaired proof](packages/cli/demo/repair/Maximum.v) | `PASS`. The same repair also checks against the original implementation.          |
+| Wrong implementation, `a < b ? a : b`                                             | `FAIL`. Calling `max(0n, 1n)` returns `0n`, which violates the reviewed property. |
 
 The repair was written by an agent given the failing proof and the generated theorem. The demo replays the saved repair locally. To check just the current files, use the same command on a laptop or in CI.
 
@@ -134,7 +142,8 @@ import { max } from "./bounds.ts";
 
 export default {
   subject: max,
-  property: (a: bigint, b: bigint, r: bigint) => r >= a && r >= b && (r === a || r === b),
+  property: (a: bigint, b: bigint, r: bigint) =>
+    r >= a && r >= b && (r === a || r === b),
   proof: "./Maximum.v",
   theorem: "max_correct",
 };
@@ -152,13 +161,13 @@ At verification time, Rocq compiles the generated model and the proof in a fresh
 
 ## What the results mean
 
-| Result | Meaning |
-| --- | --- |
-| `PASS` | The selected prover established the reviewed claim within the supported model. |
-| `FAIL` | Replaying the actual implementation produced a counterexample. |
-| `UNPROVED` | Verification did not establish the claim and replay supplied no witness. |
-| `UNSUPPORTED` | A construct falls outside the selected model. |
-| `ERROR` | Invalid input or a tool failure prevented a check. |
+| Result        | Meaning                                                                        |
+| ------------- | ------------------------------------------------------------------------------ |
+| `PASS`        | The selected prover established the reviewed claim within the supported model. |
+| `FAIL`        | Replaying the actual implementation produced a counterexample.                 |
+| `UNPROVED`    | Verification did not establish the claim and replay supplied no witness.       |
+| `UNSUPPORTED` | A construct falls outside the selected model.                                  |
+| `ERROR`       | Invalid input or a tool failure prevented a check.                             |
 
 Pure-function replay tries up to 256 combinations of small signed bigints and booleans. When Dafny supplies scalar inputs for an inconclusive property, Pud also runs the actual TypeScript on those inputs and reports an observed violation. Database replay exercises the concrete cases in the adapter. Passing samples alone cannot produce a passing verdict. Exit `0` means every check passed, `1` means unproved or disproved, and `2` means an error or unsupported input and takes precedence.
 

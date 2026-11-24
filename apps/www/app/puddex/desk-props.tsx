@@ -3,11 +3,11 @@ import { useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo } from "react";
 import { CatmullRomCurve3, DoubleSide, ExtrudeGeometry, Mesh, Shape, SRGBColorSpace, Vector2, Vector3 } from "three";
 import { Block, usePrint } from "../scenes/props";
-import { clipboard, mug } from "./desk-layout";
+import { clipboard, clipboardPenAsset, mug } from "./desk-layout";
 import { useSurfaceGrain } from "./surface-grain";
 
 const quarter = Math.PI / 2;
-const mugGlaze = { color: "#af241f", roughness: 0.27, clearcoat: 0.87, clearcoatRoughness: 0.16, ior: 1.5 };
+const mugGlaze = { color: "#ad2b23", roughness: 0.30, clearcoat: 0.92, clearcoatRoughness: 0.17, ior: 1.52 };
 const outside = [[0, 0], [0.078, 0], [0.089, 0.004], [0.094, 0.01], [0.103, 0.013], [0.11, 0.033], [0.117, 0.105], [0.122, 0.219], [0.12, 0.241]]
   .map(([radius, y]) => new Vector2(radius, y));
 const inside = [[0, 0.038], [0.08, 0.038], [0.093, 0.046], [0.102, 0.094], [0.108, 0.192], [0.109, 0.237]]
@@ -99,7 +99,7 @@ export function CoffeeMug() {
 
 function ClipboardPen() {
   // Retractable ballpoint from Grab3D's CC0 Ballpoint Pens set.
-  const { scene } = useGLTF("/pud-clipboard-pen.glb", false, false);
+  const { scene } = useGLTF(clipboardPenAsset, false, false);
   const { gl, invalidate } = useThree();
   const pen = useMemo(() => {
     const model = scene.clone();
@@ -130,7 +130,8 @@ function ShiftReport() {
 
 function StampedClamp() {
   const brushed = useSurfaceGrain(2, 3, true);
-  const jaw = useMemo(() => {
+  const prong = useMemo(() => {
+    const width = 0.035;
     const profile = new Shape();
     profile.moveTo(-0.300, 0.067);
     profile.bezierCurveTo(-0.279, 0.08, -0.244, 0.068, -0.22, 0.049);
@@ -140,42 +141,30 @@ function StampedClamp() {
     profile.quadraticCurveTo(-0.2, 0.022, -0.214, 0.032);
     profile.bezierCurveTo(-0.238, 0.046, -0.274, 0.069, -0.298, 0.057);
     profile.closePath();
-    const geometry = new ExtrudeGeometry(profile, { depth: 0.21, bevelThickness: 0.0032, bevelSize: 0.0038, bevelSegments: 3, curveSegments: 12 });
-    const vertices = geometry.attributes.position;
-    for (let i = 0; i < vertices.count; i++) {
-      const depth = vertices.getX(i);
-      const width = vertices.getZ(i) - 0.105;
-      const swell = 0.013 * Math.exp(-(width * width) / 0.0025) * Math.max(0, (-depth - 0.224) / 0.076);
-      vertices.setY(i, vertices.getY(i) + swell);
-    }
-    geometry.computeVertexNormals();
-    return geometry;
+    return new ExtrudeGeometry(profile, { depth: width, bevelThickness: 0.0024, bevelSize: 0.0023, bevelSegments: 3, curveSegments: 12 })
+      .translate(0, 0, -width / 2).rotateY(-quarter);
   }, []);
-  useEffect(() => () => jaw.dispose(), [jaw]);
+  useEffect(() => () => prong.dispose(), [prong]);
   return (
     <group>
-      <Block size={[0.274, 0.013, 0.092]} radius={0.013} color="#838278" roughness={0.46} metalness={0.71} position={[0, 0.028, -0.268]} receiveShadow />
-      {[-0.099, 0.099].map(x => (
-        <group key={x} position={[x, 0, -0.283]}>
-          <Block size={[0.027, 0.032, 0.05]} radius={0.008} color="#6a6c65" metalness={0.57} position={[0, 0.047, 0]} castShadow />
-          <mesh position={[0, 0.037, 0.024]}>
+      {[-0.086, 0.086].map(x => (
+        <group key={x} position={[x, 0, 0]}>
+          <Block size={[0.049, 0.013, 0.068]} radius={0.006} color="#838278" roughness={0.46} metalness={0.71} position={[0, 0.028, -0.276]} receiveShadow />
+          <Block size={[0.027, 0.036, 0.05]} radius={0.008} color="#6a6c65" metalness={0.57} position={[0, 0.049, -0.283]} castShadow />
+          <mesh position={[0, 0.037, -0.259]}>
             <cylinderGeometry args={[0.011, 0.012, 0.006, 18]} />
             <meshStandardMaterial color="#afa99a" metalness={0.75} roughness={0.39} />
           </mesh>
+          <mesh geometry={prong} castShadow receiveShadow>
+            <meshPhysicalMaterial color="#aba99a" roughness={0.34} metalness={0.76} bumpMap={brushed} bumpScale={0.0016} clearcoat={0.22} />
+          </mesh>
+          <Block size={[0.037, 0.01, 0.025]} radius={0.004} color="#3f4440" position={[0, 0.030, -0.193]} roughness={0.89} />
         </group>
       ))}
-      <mesh position={[0, 0.052, -0.279]} rotation={[0, 0, quarter]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.012, 0.012, 0.254, 20]} />
+      <mesh position={[0, 0.055, -0.283]} rotation={[0, 0, quarter]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.011, 0.011, 0.228, 20]} />
         <meshStandardMaterial color="#5e615f" metalness={0.72} roughness={0.43} />
       </mesh>
-      <mesh geometry={jaw} position={[0.105, 0, 0]} rotation={[0, -quarter, 0]} castShadow receiveShadow>
-        <meshPhysicalMaterial color="#aba99a" roughness={0.34} metalness={0.76} bumpMap={brushed} bumpScale={0.0016} clearcoat={0.22} />
-      </mesh>
-      <mesh position={[0, 0.031, -0.188]} rotation={[0, 0, quarter]} castShadow>
-        <cylinderGeometry args={[0.006, 0.006, 0.216, 12]} />
-        <meshStandardMaterial color="#62665d" metalness={0.67} roughness={0.48} />
-      </mesh>
-      {[-0.086, 0.086].map(x => <Block key={x} size={[0.029, 0.012, 0.026]} radius={0.004} color="#3f4440" position={[x, 0.031, -0.193]} roughness={0.89} />)}
     </group>
   );
 }

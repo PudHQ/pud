@@ -1,28 +1,15 @@
 "use client";
 
-import { lazy, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SceneViewport, useReducedMotion } from "../scenes/scene-viewport";
 import { CrtGlass } from "./crt-glass";
 import type { ScreenControls } from "./desk-layout";
+import { DexLoader, loaderBloomDuration } from "./loader";
 import { diskDurations, finishDiskStep, initialPower, machineStatus, moveDisk, switchPower, type Power } from "./machine";
 
 const DexScene = lazy(() => import("./dex-scene"));
 
 const machineControl = "absolute z-20 h-11 min-w-11 -translate-1/2 cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-paper aria-disabled:cursor-wait";
-
-function DesktopArtwork() {
-  return (
-    <>
-      <img src="/pud-factory.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover opacity-45" />
-      <div className="absolute top-1/8 left-1/4 h-7/12 w-1/2 rounded-2xl bg-linear-to-b from-stone-200 via-stone-300 to-stone-500 ring-1 ring-stone-500 phone:left-1/16 phone:w-7/8" />
-      <div className="absolute top-7/10 left-1/4 h-1/10 w-1/2 rounded-md bg-linear-to-b from-stone-300 to-stone-500 ring-1 ring-stone-500 phone:left-1/16 phone:w-7/8">
-        <div className="absolute top-1/3 right-1/4 h-1 w-1/4 rounded-full bg-black" />
-        <div className="absolute top-3/5 right-1/16 size-2 rounded-full bg-stone-700" />
-      </div>
-      <div className="absolute top-5/6 left-3/10 h-1/12 w-2/5 rounded-md bg-linear-to-b from-stone-300 to-stone-500 shadow-lg phone:left-1/8 phone:w-3/4" />
-    </>
-  );
-}
 
 function BootScreen({ disk }: Pick<Power, "disk">) {
   return (
@@ -43,9 +30,21 @@ export function DexTerminal({ iframeUrl, address }: { iframeUrl: string; address
   const controls = useMemo<ScreenControls>(() => ({ screen, eject, powerSwitch }), []);
   const hasStarted = useRef(false);
   const [power, setPower] = useState(initialPower);
+  const [progress, setProgress] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [presented, setPresented] = useState(false);
+  const reportProgress = useCallback((value: number) => setProgress(current => Math.max(current, value)), []);
+  const sceneFailed = useCallback(() => setFailed(true), []);
   const reduced = useReducedMotion();
   const { on, disk, started } = power;
   const duration = diskDurations[disk];
+  const ready = progress === 100 && started > 0;
+
+  useEffect(() => {
+    if (!ready || failed) return;
+    const finish = window.setTimeout(() => setPresented(true), reduced ? 0 : loaderBloomDuration);
+    return () => window.clearTimeout(finish);
+  }, [failed, ready, reduced]);
 
   useEffect(() => {
     if (hasStarted.current || !terminal.current) return;
@@ -92,28 +91,30 @@ export function DexTerminal({ iframeUrl, address }: { iframeUrl: string; address
     setPower(current => switchPower(current, reduced, now));
   }
 
-  const artwork = <DesktopArtwork />;
   const driveLabel = disk === "loaded" || disk === "booting" || disk === "ejecting" ? "Eject PudDex disk" : "Insert PudDex disk";
   const booted = on && disk === "loaded";
+  const loadPage = progress === 100 && on && (disk === "booting" || disk === "loaded" || disk === "ejecting");
 
   return (
     <div ref={terminal} className="relative isolate h-svh min-h-132 w-full overflow-hidden bg-neutral-950">
-      <SceneViewport artwork={artwork}>
-        {animate => <DexScene controls={controls} animate={animate} power={power} fallback={artwork} />}
+      <SceneViewport artwork={null} onError={sceneFailed}>
+        {animate => <DexScene controls={controls} animate={animate} power={power} presented={presented} onProgress={reportProgress} />}
       </SceneViewport>
-      <button ref={eject} className={`${machineControl} top-3/4 left-3/5`}
-        type="button" onClick={toggleDisk} aria-controls="puddex-crt" aria-disabled={disk === "inserting" || disk === "ejecting"} aria-label={driveLabel} title={driveLabel}
-      />
-      <button ref={powerSwitch} className={`${machineControl} top-19/25 left-7/10 phone:left-4/5`}
-        type="button" onClick={togglePower} aria-controls="puddex-crt" aria-label="PudDex power" aria-pressed={on} title={on ? "Turn PudDex off" : "Turn PudDex on"}
-      />
-      <div ref={screen} className="absolute top-1/6 left-7/25 z-10 h-1/2 w-11/25 origin-top-left phone:left-1/10 phone:w-4/5">
-        <CrtGlass lit={on} src={booted ? iframeUrl : undefined} address={address}>
-          {on && !booted && <BootScreen disk={disk} />}
-          <noscript><a href={address} target="_blank" rel="noopener" className="pointer-events-auto absolute bottom-4 left-4 text-sm text-paper underline">Open PudDex ↗</a></noscript>
-        </CrtGlass>
+      <div className={presented && !failed ? undefined : "invisible"}>
+        <button ref={eject} className={`${machineControl} top-3/4 left-3/5`}
+          type="button" onClick={toggleDisk} aria-controls="puddex-crt" aria-disabled={disk === "inserting" || disk === "ejecting"} aria-label={driveLabel} title={driveLabel}
+        />
+        <button ref={powerSwitch} className={`${machineControl} top-19/25 left-7/10 phone:left-4/5`}
+          type="button" onClick={togglePower} aria-controls="puddex-crt" aria-label="PudDex power" aria-pressed={on} title={on ? "Turn PudDex off" : "Turn PudDex on"}
+        />
+        <div ref={screen} className="absolute top-1/6 left-7/25 z-10 h-1/2 w-11/25 origin-top-left will-change-transform phone:left-1/10 phone:w-4/5">
+          <CrtGlass lit={on} src={loadPage ? iframeUrl : undefined} showPage={booted} address={address}>
+            {on && !booted && <BootScreen disk={disk} />}
+          </CrtGlass>
+        </div>
+        <p role="status" className="sr-only">{machineStatus(power)}</p>
       </div>
-      <p role="status" className="sr-only">{machineStatus(power)}</p>
+      {(!presented || failed) && <DexLoader progress={ready ? 100 : Math.min(progress, 94)} failed={failed} address={address} />}
     </div>
   );
 }

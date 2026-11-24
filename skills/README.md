@@ -10,5 +10,6 @@ Use all that you require below:
 | Styling | [`./styling.md`](./styling.md)         | Directives and opinions on styling, including Tailwind |
 | Ports   | [`./ports.md`](./ports.md)             | Local service port assignments                         |
 | Color   | [color.md](./color.md)                 | Palette, color area, and text contrast                 |
+| WebGL   | [webgl-scenes](./webgl-scenes/SKILL.md) | Rendering and profiling against the 60 fps budget      |
 | Posters | [poster-layout.md](./landing-site/poster-layout.md) | Display type, composition, and measured spacing        |
 | Nav     | [splash-nav.md](./landing-site/splash-nav.md)       | Splash controls, touch targets, and keyboard focus     |
