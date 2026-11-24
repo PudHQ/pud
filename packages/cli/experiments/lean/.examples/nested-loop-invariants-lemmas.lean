@@ -28,7 +28,7 @@ private theorem countRows (rows columns : List Int) (start : Int) :
     rw [advance, ih]
     simp [Int.add_mul, Int.add_assoc, Int.add_left_comm, Int.add_comm]
 
-theorem correct (values : List Int) : countPairs values values 0 = (values.length : Int) ^ 2 := by
-  simp [countRows, Int.pow_succ]
+theorem correct (values : List Int) : countPairs values values 0 = (values.length : Int) * (values.length : Int) := by
+  simp [countRows]
 
 end NestedSum

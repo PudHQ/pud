@@ -37,7 +37,15 @@ describe(clamp, () => {
 });
 ```
 
-Use `pud.bigint()`, `pud.boolean()`, and `pud.array(item)` to declare TypeScript types. Chain bounds such as `.gte()` and `.lte()`, and use `given()` to relate inputs.
+Use `pud.bigint()`, `pud.boolean()`, and `pud.array(item)` to declare TypeScript types. Chain bounds such as `.gte()` and `.lte()`, or add a predicate with `.refine(value => …)`. Refinements work on input and result schemas. Use `given()` to relate inputs.
+
+```ts
+expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
+  pud.iff(found, pud.exists(values, value => value === target)),
+));
+```
+
+`pud.exists` and `pud.forall` quantify over the elements of an array or the values admitted by a scalar schema. Compose symbolic predicates with `pud.and`, `pud.or`, `pud.not`, `pud.implies`, and `pud.iff`. Pud translates the callbacks from source. [Supported domains and operators](experiments/lean/README.md#sidecar-syntax)
 
 Run `pud check clamp.proof.ts` to certify the claim, or `pud --emit clamp.proof.ts` to inspect the generated unit. `it.todo(title)` reports a pending property without asking the assistant for a verdict.
 

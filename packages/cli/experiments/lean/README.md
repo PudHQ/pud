@@ -24,7 +24,7 @@ lean --version
 | Style | Implementation | Sidecar |
 | --- | --- | --- |
 | Functional | [Clamp](.examples/clamp.ts) | [Ordered bounds and chained assertions](.examples/clamp.proof.ts) |
-| Functional | [Export quota](.examples/admit.ts) | [Boolean assertions and an inline Lean predicate](.examples/admit.proof.ts) |
+| Functional | [Export quota](.examples/admit.ts) | [Batch bounds and boolean equality](.examples/admit.proof.ts) |
 | Imperative | [Balance debit](.examples/debit.ts) | [Local mutation, a branch, and an exact debit](.examples/debit.proof.ts) |
 | Imperative | [Sum positive values](.examples/sum-positive.ts) | [A loop, a named Lean proof, and a TODO](.examples/sum-positive.proof.ts) |
 | Functional | [Parity](.examples/iff.ts) | [Evenness](.examples/is-even.proof.ts) · [Matching parity](.examples/same-parity.proof.ts) |
@@ -61,12 +61,22 @@ bun run pud --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 | `pud.array(pud.opaque<T>())`, `pud.textOrArray(pud.opaque<T>())` | `List Item`, `Option (List Item)` for an opaque element type |
 | Integer `.eq`, `.gt`, `.gte`, `.lt`, `.lte` | `=`, `>`, `≥`, `<`, `≤` |
 | Boolean `.eq` | Boolean equality |
+| `.refine(value => predicate)` | A proposition about the input or result |
 | `given(predicate)` | An additional premise |
+| `pud.forall(domain, value => predicate)` | Universal quantification with the domain as a premise |
+| `pud.exists(domain, value => predicate)` | Existential quantification with the domain as a conjunct |
+| `pud.and`, `pud.or`, `pud.not`, `pud.implies`, `pud.iff` | `∧`, `∨`, `¬`, `→`, `↔` |
 | `it.todo(title)` | A reported TODO with zero proof obligations |
 
 `pud.int()` and `pud.bool()` are aliases for `pud.bigint()` and `pud.boolean()`.
 
-Import `pud` from `pud.config.ts` to use native predicates or proofs in `pud.describe()`. Use `.satisfies(lean.ref("Namespace.predicate", ...args))` to apply a named Lean predicate to the explicit arguments followed by the value under assertion. A `lean` tagged template can build the same predicate and interpolate in-scope TypeScript expressions. `use(lean.module("./helper.lean"))` adds a local module. `it(...).by(lean.ref("Namespace.theorem"))` or a tagged `by` term supplies a certificate of the exact generated claim type. [Template example](.examples/admit.proof.ts) · [Named lemma example](.examples/linear-search.proof.ts)
+Quantifier domains can be bound `readonly bigint[]` values or `pud.bigint()` and `pud.boolean()` schemas with optional constraints. Each callback is a unary arrow with an expression or a single return. Write ordinary scalar comparisons inside it and use the Pud connectives to combine symbolic predicates. Both refinements and `given()` accept symbolic predicates. [Membership example](.examples/array-contains.proof.ts) · [Maximum example](.examples/max-element.proof.ts)
+
+Specifications can use `pud.length(values)` for a bigint count of elements or `pud.sum(values)` for the sum of a bigint array. `pud.modulo(value, divisor)` expresses the nonnegative residue for a positive bigint literal divisor. [Array sum](.examples/array-sum.proof.ts) · [Parity](.examples/is-even.proof.ts)
+
+Import `pud` from `pud.config.ts` to use native predicates or proofs in `pud.describe()`. Use `.satisfies(lean.ref("Namespace.predicate", ...args))` to apply a named Lean predicate to the explicit arguments followed by the value under assertion. A `lean` tagged template can build the same predicate and interpolate in-scope TypeScript expressions. [Native template example](../../README.md#use-native-proof-code)
+
+Register local Lean definitions and lemmas with `use(lean.module("./helper.lean"))`. A definition marked `@[simp]` is available to the automatic simplifier. Use `it(...).by(lean.ref("Namespace.theorem"))` or a tagged `by` term when supplying a certificate. Lean checks it against the exact generated claim. [Induction lemma example](.examples/array-sum-lemmas.lean)
 
 ## What a pass establishes
 

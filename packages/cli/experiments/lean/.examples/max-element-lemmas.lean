@@ -23,7 +23,7 @@ private theorem scan_started (values : List Int) (largest : Int) :
         simp [scan, Id.run, List.forIn_cons, greater, Int.max_eq_left le]
     rw [step, ih, List.foldl_cons]
 
-theorem correct (values : List Int) : scan values 0 false = values.max?.getD 0 := by
+private theorem scan_max (values : List Int) : scan values 0 false = values.max?.getD 0 := by
   cases values with
   | nil => rfl
   | cons value rest =>
@@ -31,5 +31,23 @@ theorem correct (values : List Int) : scan values 0 false = values.max?.getD 0 :
       simp [scan, Id.run, List.forIn_cons]
     rw [first, scan_started, List.max?_cons']
     rfl
+
+theorem correct (values : List Int) :
+    let result := scan values 0 false
+    (∀ value ∈ values, value ≤ result) ∧
+      (((values.length : Int) = 0 ∧ result = 0) ∨ ∃ value ∈ values, value = result) := by
+  dsimp only
+  rw [scan_max]
+  cases maximum : values.max? with
+  | none =>
+    rw [List.max?_eq_none_iff.mp maximum]
+    simp
+  | some greatest =>
+    have max_eq_or (a b : Int) : max a b = a ∨ max a b = b := by
+      rw [Int.max_def]
+      split <;> simp
+    have member := List.max?_mem max_eq_or maximum
+    have upper := (List.max?_le_iff (fun _ _ _ => Int.max_le) maximum).mp (Int.le_refl greatest)
+    exact ⟨upper, Or.inr ⟨greatest, member, rfl⟩⟩
 
 end MaxElement

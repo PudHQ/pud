@@ -5,10 +5,18 @@ type Subject = (...args: never[]) => Value;
 declare const valueType: unique symbol;
 declare const assistantType: unique symbol;
 declare const nativeType: unique symbol;
+declare const propositionType: unique symbol;
+
+export interface Proposition {
+  readonly [propositionType]: true;
+}
+
+type Predicate = boolean | Proposition;
 
 export interface Schema<T, Id extends string = never> {
   readonly [valueType]: T;
   readonly [assistantType]: Id;
+  refine(predicate: (value: T) => Predicate): this;
 }
 
 export interface NativeTerm<Id extends string> {
@@ -52,6 +60,16 @@ interface SchemaBuilders<Id extends string> {
   opaque<T>(): Schema<T, Id>;
   array<T>(items: Schema<T, Id>): ArraySchema<T, Id>;
   textOrArray<T>(items: Schema<T, Id>): Schema<string | readonly T[], Id>;
+  forall<T extends bigint | boolean>(domain: Schema<T, Id> | readonly T[], predicate: (value: T) => Predicate): Proposition;
+  exists<T extends bigint | boolean>(domain: Schema<T, Id> | readonly T[], predicate: (value: T) => Predicate): Proposition;
+  and(left: Predicate, right: Predicate): Proposition;
+  or(left: Predicate, right: Predicate): Proposition;
+  not(operand: Predicate): Proposition;
+  implies(assumption: Predicate, conclusion: Predicate): Proposition;
+  iff(left: Predicate, right: Predicate): Proposition;
+  length(items: readonly unknown[]): bigint;
+  sum(items: readonly bigint[]): bigint;
+  modulo(value: bigint, divisor: bigint): bigint;
 }
 
 interface SuiteAuthoring<Id extends string> {
@@ -64,7 +82,7 @@ interface SuiteAuthoring<Id extends string> {
     ): { by(proof: NativeTerm<Id>): void };
     todo(name: string): void;
   };
-  given(condition: boolean): void;
+  given(condition: Predicate): void;
   expect<T extends Value>(value: T): { to(schema: Schema<NoInfer<T>, Id>): void };
   use(module: NativeModule<Id>): void;
 }
@@ -81,6 +99,8 @@ function sourceOnly(): never {
 const schemaBuilders = {
   bigint: sourceOnly, boolean: sourceOnly, int: sourceOnly, bool: sourceOnly,
   opaque: sourceOnly, array: sourceOnly, textOrArray: sourceOnly,
+  forall: sourceOnly, exists: sourceOnly, and: sourceOnly, or: sourceOnly, not: sourceOnly, implies: sourceOnly, iff: sourceOnly,
+  length: sourceOnly, sum: sourceOnly, modulo: sourceOnly,
 };
 export const pud: SchemaBuilders<never> = schemaBuilders;
 export const it: SuiteAuthoring<never>["it"] = Object.assign(sourceOnly.bind(undefined), { todo: sourceOnly });

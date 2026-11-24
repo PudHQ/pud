@@ -8,6 +8,6 @@ pud.describe(nestedSum, ({ it, expect, use }) => {
   it("counts exactly one visit per ordered pair of positions", {
     values: pud.array(pud.bigint()),
   }, ({ values }) => {
-    expect(nestedSum(values)).to(pud.bigint().satisfies(lean`(fun (values : List Int) (result : Int) => result = (values.length : Int) ^ 2) ${values}`));
+    expect(nestedSum(values)).to(pud.bigint().eq(pud.length(values) * pud.length(values)));
   }).by(lean.ref("NestedSum.correct"));
 });

@@ -8,6 +8,8 @@ export type ProofType =
 /** A TypeScript expression and its mapping from callback bindings to subject parameters. */
 export interface ProofExpression extends Omit<ReviewedProperty, "expression"> {
   bindings: ReadonlyMap<string, string>;
+  /** In-scope references to Pud's specification helpers. */
+  schemaBindings?: ReadonlySet<string>;
 }
 
 export type NativeProofTerm = { assistant: string; args: readonly ProofExpression[] } & (
@@ -15,11 +17,27 @@ export type NativeProofTerm = { assistant: string; args: readonly ProofExpressio
   | { kind: "template"; parts: readonly string[] }
 );
 
-export type ProofTarget = { kind: "parameter"; name: string } | { kind: "result" };
+export type ProofTarget = { kind: "parameter"; name: string } | { kind: "result" } | { kind: "quantified" };
 export type ProofComparison = "eq" | "gt" | "gte" | "lt" | "lte";
+
+export type ProofPredicate =
+  | { kind: "boolean"; expression: ProofExpression }
+  | { kind: "not"; operand: ProofPredicate }
+  | { kind: "binary"; operator: "and" | "or" | "implies" | "iff"; left: ProofPredicate; right: ProofPredicate }
+  | {
+    kind: "quantifier";
+    quantifier: "forall" | "exists";
+    variable: string;
+    domain: { kind: "array"; expression: ProofExpression }
+      | { kind: "schema"; type: "integer" | "boolean"; constraints: readonly ProofConstraint[] };
+    predicate: ProofPredicate;
+  };
+
 export type ProofConstraint =
   | { kind: "condition"; expression: ProofExpression }
+  | { kind: "proposition"; predicate: ProofPredicate }
   | { kind: "comparison"; target: ProofTarget; operator: ProofComparison; value: ProofExpression }
+  | { kind: "refinement"; target: ProofTarget; variable: string; predicate: ProofPredicate }
   | { kind: "native"; target: ProofTarget; term: NativeProofTerm };
 
 export interface ProofClaim {

@@ -9,6 +9,8 @@ pud.describe(arrayContains, ({ it, expect, use }) => {
     values: pud.array(pud.bigint()),
     target: pud.bigint(),
   }, ({ values, target }) => {
-    expect(arrayContains(values, target)).to(pud.boolean().satisfies(lean`(fun (values : List Int) (target : Int) (result : Bool) => result = true ↔ target ∈ values) ${values} ${target}`));
+    expect(arrayContains(values, target)).to(pud.boolean().refine(result =>
+      pud.iff(result, pud.exists(values, value => value === target)),
+    ));
   }).by(lean.ref("ArrayContains.correct"));
 });

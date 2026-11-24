@@ -77,22 +77,48 @@ function emit(expr: Expr): string {
   }
 }
 
-export function readValue(file: string, node: Node, scope: ReadonlyMap<string, Value>): Value {
+function readSpecCall(file: string, node: Node, helpers: ReadonlySet<string> | undefined, read: (node: Node) => Value): Expr | undefined {
+  if (node.type !== "CallExpression" || node.typeArguments || node.callee.type !== "MemberExpression" || node.callee.computed ||
+      node.callee.object.type !== "Identifier" || !helpers?.has(node.callee.object.name) || node.callee.property.type !== "Identifier") return;
+  const name = node.callee.property.name;
+  if (name === "sum" || name === "length") {
+    const [input] = node.arguments;
+    if (node.arguments.length !== 1 || !input) invalid(file, node, `Pass one array to pud.${name}().`);
+    const value = read(input);
+    if (name === "sum") {
+      return ref("integer", `(List.sum ${ofSort(file, input, value, "integers")})`);
+    }
+    if (value.sort !== "integers" && value.sort !== "items") invalid(file, input, "Pass a supported array to pud.length().");
+    return ref("integer", `(Int.ofNat (List.length ${value.code}))`);
+  }
+  if (name === "modulo") {
+    const [input, divisor] = node.arguments;
+    if (node.arguments.length !== 2 || !input || divisor?.type !== "BigIntLiteral" || BigInt(divisor.value) <= 0n) {
+      invalid(file, node, "Pass a bigint and a positive literal divisor to pud.modulo().");
+    }
+    return ref("integer", `(${ofSort(file, input, read(input), "integer")} % (${BigInt(divisor.value)} : Int))`);
+  }
+}
+
+export function readValue(file: string, node: Node, scope: ReadonlyMap<string, Value>, helpers?: ReadonlySet<string>): Value {
   const lookup = (name: string, at: Node) => scope.get(name) ?? invalid(file, at, `Unknown binding '${name}'.`);
   if (node.type === "Identifier") return lookup(node.name, node);
+  const read = (child: Node) => readValue(file, child, scope, helpers);
   const expr = readExpression(file, node, n => {
+    const spec = readSpecCall(file, n, helpers, read);
+    if (spec) return spec;
     if (n.type === "BinaryExpression" && (n.operator === "%" || n.operator === "/")) {
       const operation = n.operator === "%" ? "remainder" : "division";
       if (n.right.type !== "BigIntLiteral" || BigInt(n.right.value) <= 0n) {
         invalid(file, n.right, `Bigint ${operation} needs a positive literal divisor.`);
       }
-      const dividend = ofSort(file, n.left, readValue(file, n.left, scope), "integer");
+      const dividend = ofSort(file, n.left, read(n.left), "integer");
       const leanOperator = n.operator === "%" ? "Int.tmod" : "Int.tdiv";
       return ref("integer", `(${leanOperator} ${dividend} (${BigInt(n.right.value)} : Int))`);
     }
     if (n.type === "BinaryExpression" && n.operator === "<<") {
       if (n.right.type !== "BigIntLiteral") invalid(file, n.right, "Bigint left shift needs a nonnegative literal count.");
-      const value = ofSort(file, n.left, readValue(file, n.left, scope), "integer");
+      const value = ofSort(file, n.left, read(n.left), "integer");
       return ref("integer", `(${value} * (2 : Int) ^ (${BigInt(n.right.value)} : Nat))`);
     }
     if (n.type === "BinaryExpression" && n.operator === "&") {
@@ -100,7 +126,7 @@ export function readValue(file: string, node: Node, scope: ReadonlyMap<string, V
       if (mask === undefined || (mask & (mask + 1n)) !== 0n) {
         invalid(file, n.right, "Bigint bitwise AND needs a literal mask with only consecutive low bits set.");
       }
-      const value = ofSort(file, n.left, readValue(file, n.left, scope), "integer");
+      const value = ofSort(file, n.left, read(n.left), "integer");
       // A low-bit mask is the nonnegative residue, including for negative inputs.
       return ref("integer", `(${value} % (${mask + 1n} : Int))`);
     }
@@ -116,4 +142,22 @@ export function readValue(file: string, node: Node, scope: ReadonlyMap<string, V
 export function ofSort<T extends Sort>(file: string, at: Node, value: Value, expected: T): string {
   if (value.sort !== expected) invalid(file, at, `Expected ${leanTypes[expected]}, got ${leanTypes[value.sort]}.`);
   return value.code;
+}
+
+export function readProposition(file: string, node: Node, scope: ReadonlyMap<string, Value>, helpers?: ReadonlySet<string>): string {
+  const read = (child: Node) => readValue(file, child, scope, helpers);
+  const predicate = (child: Node) => readProposition(file, child, scope, helpers);
+  if (node.type === "LogicalExpression" && (node.operator === "&&" || node.operator === "||")) {
+    return `(${predicate(node.left)} ${node.operator === "&&" ? "∧" : "∨"} ${predicate(node.right)})`;
+  }
+  if (node.type === "UnaryExpression" && node.operator === "!") return `(¬ ${predicate(node.argument)})`;
+  if (node.type === "BinaryExpression" && Object.hasOwn(comparisons, node.operator)) {
+    const left = read(node.left);
+    const sort = node.operator === "===" || node.operator === "!==" ? left.sort : "integer";
+    if (!isScalar(sort)) invalid(file, node, "Use equality on bigint or boolean values.");
+    const lhs = ofSort(file, node.left, left, sort);
+    const rhs = ofSort(file, node.right, read(node.right), sort);
+    return `(${lhs} ${comparisons[node.operator as keyof typeof comparisons]} ${rhs})`;
+  }
+  return `(${ofSort(file, node, read(node), "boolean")} = true)`;
 }

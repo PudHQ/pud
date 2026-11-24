@@ -2,7 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Unsupported } from "@pud/model/adapter";
-import type { ProofAssistant, ProofClaim, ProofModule } from "@pud/model/assistant";
+import type { NativeProofTerm, ProofAssistant, ProofClaim, ProofConstraint, ProofModule, ProofPredicate } from "@pud/model/assistant";
 import type { CheckOptions, CheckResult, EmitOptions } from "./check.ts";
 import { bindClaim, type Suite } from "./suite.ts";
 
@@ -63,8 +63,29 @@ function modulesFor(suite: Suite, assistant: string, read: Read): ProofModule[] 
   return [...files].map(file => ({ file, source: read(file).source }));
 }
 
+function* predicateTerms(predicate: ProofPredicate): IterableIterator<NativeProofTerm> {
+  switch (predicate.kind) {
+    case "boolean": return;
+    case "not": yield* predicateTerms(predicate.operand); return;
+    case "binary":
+      yield* predicateTerms(predicate.left);
+      yield* predicateTerms(predicate.right);
+      return;
+    case "quantifier":
+      if (predicate.domain.kind === "schema") yield* constraintTerms(predicate.domain.constraints);
+      yield* predicateTerms(predicate.predicate);
+  }
+}
+
+function* constraintTerms(constraints: readonly ProofConstraint[]): IterableIterator<NativeProofTerm> {
+  for (const constraint of constraints) {
+    if (constraint.kind === "native") yield constraint.term;
+    if (constraint.kind === "refinement" || constraint.kind === "proposition") yield* predicateTerms(constraint.predicate);
+  }
+}
+
 function checkAssistant(claim: ProofClaim, assistant: string) {
-  const terms = [claim.proof, ...[...claim.premises, ...claim.assertions].flatMap(c => c.kind === "native" ? [c.term] : [])];
+  const terms = [claim.proof, ...constraintTerms(claim.premises), ...constraintTerms(claim.assertions)];
   const incompatible = terms.find(term => term && term.assistant !== assistant);
   if (incompatible) throw new Unsupported(`This property uses ${incompatible.assistant} proof code. The selected adapter is ${assistant}.`);
 }

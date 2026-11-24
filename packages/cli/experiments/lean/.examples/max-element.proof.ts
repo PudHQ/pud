@@ -8,6 +8,11 @@ pud.describe(maxElement, ({ it, expect, use }) => {
   it("returns the greatest element, or zero for an empty list", {
     values: pud.array(pud.bigint()),
   }, ({ values }) => {
-    expect(maxElement(values)).to(pud.bigint().satisfies(lean`(fun (values : List Int) (result : Int) => result = values.max?.getD 0) ${values}`));
+    expect(maxElement(values)).to(pud.bigint()
+      .refine(result => pud.forall(values, value => value <= result))
+      .refine(result => pud.or(
+        pud.and(pud.length(values) === 0n, result === 0n),
+        pud.exists(values, value => value === result),
+      )));
   }).by(lean.ref("MaxElement.correct"));
 });

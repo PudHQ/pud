@@ -1,6 +1,7 @@
 import { parseExpression } from "@babel/parser";
+import type { Node } from "@babel/types";
 import { Unsupported, type SubjectSource } from "@pud/model/adapter";
-import type { NativeProofTerm, ProofAssistant, ProofClaim, ProofComparison, ProofConstraint, ProofExpression, ProofModule, ProofOutcome, ProofTarget, ProofType } from "@pud/model/assistant";
+import type { NativeProofTerm, ProofAssistant, ProofClaim, ProofComparison, ProofConstraint, ProofExpression, ProofModule, ProofOutcome, ProofPredicate, ProofType } from "@pud/model/assistant";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,7 +9,7 @@ import { join } from "node:path";
 import { native } from "../suite-authoring.ts";
 import { leanCommand, type LeanOptions } from "./command.ts";
 import { lowerSubject, type Subject } from "./subject.ts";
-import { leanTypes, ofSort, readValue, type Sort, type Value } from "./syntax.ts";
+import { leanTypes, ofSort, readProposition, readValue, type Sort, type Value } from "./syntax.ts";
 
 export type { LeanOptions } from "./command.ts";
 export const lean = native("lean");
@@ -18,9 +19,14 @@ const operators: Record<ProofComparison, string> = { eq: "=", gt: ">", gte: "≥
 const autoProof = `by
   simp only [claim]
   intros
-  try simp_all [impl, Id.run]
-  all_goals (repeat' (first | split | constructor))
-  all_goals ((try simp_all) <;> omega)`;
+  first
+  | rfl
+  | try simp_all [impl, Id.run, Int.add_nonneg, Int.tmod_eq_emod_of_nonneg, Int.tdiv_eq_ediv_of_nonneg]
+    all_goals (repeat' (split <;> try simp_all))
+    all_goals (first | rfl | omega)
+  | try simp_all [impl, Id.run]
+    all_goals (repeat' (first | split | constructor))
+    all_goals ((try simp_all) <;> omega)`;
 
 function proofType(sort: Sort, itemType: string | undefined): ProofType {
   switch (sort) {
@@ -32,38 +38,24 @@ function proofType(sort: Sort, itemType: string | undefined): ProofType {
   }
 }
 
-function readOperand(expression: ProofExpression, parameters: ReadonlyMap<string, Value>, expected?: Sort) {
-  const { file, source, line, column, offset, bindings } = expression;
+type Scope = ReadonlyMap<string, Value>;
+const emptyScope: Scope = new Map();
+const logicalOperators = { and: "∧", or: "∨", implies: "→", iff: "↔" } as const;
+
+function readOperand<T>(
+  expression: ProofExpression, parameters: Scope, locals: Scope,
+  read: (file: string, node: Node, scope: Scope, helpers?: ReadonlySet<string>) => T,
+): T {
+  const { file, source, line, column, offset, bindings, schemaBindings } = expression;
   const scope = new Map([...bindings].map(([name, parameter]) => [name, parameters.get(parameter)!]));
+  for (const [name, value] of locals) scope.set(name, value);
   try {
     const node = parseExpression(source, { plugins: ["typescript"], startLine: line, startColumn: column, startIndex: offset });
-    const value = readValue(file, node, scope);
-    return expected ? ofSort(file, node, value, expected) : value.code;
+    return read(file, node, scope, schemaBindings);
   } catch (error) {
     if (error instanceof Unsupported) throw error;
     throw new Unsupported(`${file}:${line}:${column + 1}: ${(error as Error).message}`);
   }
-}
-
-function renderTerm(term: NativeProofTerm, parameters: ReadonlyMap<string, Value>) {
-  if (term.assistant !== "lean") throw new Unsupported(`This proof term requires ${term.assistant}.`);
-  const args = term.args.map(arg => readOperand(arg, parameters));
-  if (term.kind === "reference") return [term.name, ...args].join(" ");
-  return `(${term.parts.map((part, i) => i ? `(${args[i - 1]})${part}` : part).join("")})`;
-}
-
-function renderTarget(target: ProofTarget, result: Value, parameters: ReadonlyMap<string, Value>) {
-  if (target.kind === "result") return result;
-  const parameter = parameters.get(target.name);
-  if (!parameter) throw new Unsupported(`No subject parameter named '${target.name}'.`);
-  return parameter;
-}
-
-function renderConstraint(constraint: ProofConstraint, result: Value, parameters: ReadonlyMap<string, Value>) {
-  if (constraint.kind === "condition") return `(${readOperand(constraint.expression, parameters, "boolean")} = true)`;
-  const value = renderTarget(constraint.target, result, parameters);
-  if (constraint.kind === "native") return `((${renderTerm(constraint.term, parameters)} ${value.code}) : Prop)`;
-  return `(${value.code} ${operators[constraint.operator]} ${readOperand(constraint.value, parameters, value.sort)})`;
 }
 
 function indent(code: string) { return code.split("\n").map(line => `  ${line}`).join("\n"); }
@@ -71,8 +63,57 @@ function indent(code: string) { return code.split("\n").map(line => `  ${line}`)
 function generate(subject: Subject, claim: ProofClaim, imports: readonly string[]) {
   const { params, itemType, definition } = subject;
   const parameters = new Map(params.map(p => [p.name, p]));
-  const result = { sort: subject.result, code: "result" };
-  const render = (constraint: ProofConstraint) => renderConstraint(constraint, result, parameters);
+  const result: Value = { sort: subject.result, code: "result" };
+  let nextBinder = 0;
+
+  function operand(expression: ProofExpression, locals: Scope, expected?: Sort) {
+    return readOperand(expression, parameters, locals, (file, node, scope, helpers) => {
+      const value = readValue(file, node, scope, helpers);
+      return expected ? ofSort(file, node, value, expected) : value.code;
+    });
+  }
+
+  function term(proof: NativeProofTerm, locals: Scope) {
+    if (proof.assistant !== "lean") throw new Unsupported(`This proof term requires ${proof.assistant}.`);
+    const args = proof.args.map(arg => operand(arg, locals));
+    if (proof.kind === "reference") return [proof.name, ...args].join(" ");
+    return `(${proof.parts.map((part, i) => i ? `(${args[i - 1]})${part}` : part).join("")})`;
+  }
+
+  function predicate(spec: ProofPredicate, locals: Scope): string {
+    switch (spec.kind) {
+      case "boolean": return readOperand(spec.expression, parameters, locals, readProposition);
+      case "not": return `(¬ ${predicate(spec.operand, locals)})`;
+      case "binary": return `(${predicate(spec.left, locals)} ${logicalOperators[spec.operator]} ${predicate(spec.right, locals)})`;
+      case "quantifier": {
+        const { domain } = spec;
+        const value: Value = { sort: domain.kind === "schema" ? domain.type : "integer", code: `q${nextBinder++}` };
+        // The domain is outside the scope of the new binder, even when callback names repeat.
+        const restrictions = domain.kind === "schema"
+          ? domain.constraints.map(clause => renderConstraint(clause, locals, value))
+          : [`(${value.code} ∈ ${operand(domain.expression, locals, "integers")})`];
+        const body = predicate(spec.predicate, new Map([...locals, [spec.variable, value]]));
+        const binder = `(${value.code} : ${leanTypes[value.sort]})`;
+        const connective = spec.quantifier === "forall" ? "→" : "∧";
+        const symbol = spec.quantifier === "forall" ? "∀" : "∃";
+        const guarded = restrictions.length ? `(${restrictions.join(" ∧ ")}) ${connective} ${body}` : body;
+        return `(${symbol} ${binder}, ${guarded})`;
+      }
+    }
+  }
+
+  function renderConstraint(constraint: ProofConstraint, locals: Scope, quantified?: Value): string {
+    if (constraint.kind === "condition") return `(${operand(constraint.expression, locals, "boolean")} = true)`;
+    if (constraint.kind === "proposition") return predicate(constraint.predicate, locals);
+    const target = constraint.target;
+    const value = target.kind === "result" ? result : target.kind === "quantified" ? quantified : parameters.get(target.name);
+    if (!value) throw new Unsupported("The property constraint has no corresponding value.");
+    if (constraint.kind === "refinement") return predicate(constraint.predicate, new Map([...locals, [constraint.variable, value]]));
+    if (constraint.kind === "native") return `((${term(constraint.term, locals)} ${value.code}) : Prop)`;
+    return `(${value.code} ${operators[constraint.operator]} ${operand(constraint.value, locals, value.sort)})`;
+  }
+
+  const render = (constraint: ProofConstraint) => renderConstraint(constraint, emptyScope);
   const binders = [itemType && "(Item : Type)", ...params.map(param => `(${param.code} : ${leanTypes[param.sort]})`)].filter(Boolean).join(" ");
   const args = [itemType && "(Item := Item)", ...params.map(param => param.code)].filter(Boolean).join(" ");
   const proposition = [binders && `∀ ${binders},`, ...claim.premises.map(p => `${render(p)} →`), `let result := impl ${args}`.trimEnd(),
@@ -80,7 +121,7 @@ function generate(subject: Subject, claim: ProofClaim, imports: readonly string[
   return [
     "import Std", ...imports.map(module => `import ${module}`), "", "namespace Pud", "", "set_option autoImplicit false", "",
     definition, "", "def claim : Prop :=", indent(proposition), "",
-    "theorem checked : claim :=", indent(claim.proof ? renderTerm(claim.proof, parameters) : autoProof), "", "end Pud", "",
+    "theorem checked : claim :=", indent(claim.proof ? term(claim.proof, emptyScope) : autoProof), "", "end Pud", "",
   ].join("\n");
 }
 

@@ -2,8 +2,8 @@
 author: codex
 date: 2026-11-24
 updated-at: 2026-11-24
-summary: Run the Lean prototype on a TypeScript search function and read the claim it checks.
-tags: [verification, typescript, lean]
+summary: Run the Lean adapter on TypeScript search and membership functions and read the claims it checks.
+tags: [verification, typescript, lean, quantifiers]
 ---
 # Checking TypeScript with Lean
 
@@ -47,3 +47,17 @@ The first command reports one `PASS`. The second prints the file that defines `i
 The runner checks that the supplied theorem has the type of the emitted claim and audits its axiom dependencies. A `PASS` establishes the claim over the generated model. Connecting that claim to the TypeScript call depends on the lowering and the model’s input domain, here a dense array of bigints. An `UNPROVED` result carries the Lean diagnostic. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]]
 
 The search example entered the suite alongside two other ports that exercise different parts of the translator. [[First Mate's Log/Verification/Lean/random-lemmascript-examples|What the LemmaScript ports exercised]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|How the adapter boundary was tested]]
+
+## State a quantified property
+
+The membership sidecar uses a refinement to say when its boolean result is true.
+
+```ts
+expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
+  pud.iff(found, pud.exists(values, value => value === target)),
+));
+```
+
+Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/array-contains-lemmas.lean)
+
+Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/cli/experiments/lean/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/README.md#sidecar-syntax)

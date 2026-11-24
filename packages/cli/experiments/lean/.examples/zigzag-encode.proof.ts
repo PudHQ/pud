@@ -9,8 +9,5 @@ pud.describe(encode, ({ it, expect, use }) => {
     value: pud.bigint(),
   }, ({ value }) => {
     expect(encode(value)).to(pud.bigint().satisfies(lean.ref("ZigZag.represents", value)));
-  }).by(lean`by
-  intro value
-  simp [ZigZag.represents, impl, Id.run]
-  split <;> omega`);
+  });
 });

@@ -1,5 +1,5 @@
 import type { CallExpression, Node, Program, StringLiteral } from "@babel/types";
-import type { NativeProofTerm, PreparedProofAssistant, ProofClaim, ProofComparison, ProofConstraint, ProofExpression, ProofTarget, ProofType } from "@pud/model/assistant";
+import type { NativeProofTerm, PreparedProofAssistant, ProofClaim, ProofComparison, ProofConstraint, ProofExpression, ProofPredicate, ProofTarget, ProofType } from "@pud/model/assistant";
 import { invalid, resolveTypeScriptImport } from "@pud/model/source";
 import { dirname, resolve } from "node:path";
 
@@ -229,7 +229,7 @@ function expression(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<
   }
   const at = node.loc!.start;
   return { file: suite.file, source: suite.source.slice(node.start!, node.end!), line: at.line,
-    column: at.column, offset: node.start!, bindings };
+    column: at.column, offset: node.start!, bindings, schemaBindings: suite.schemaBindings };
 }
 
 function nativeTerm(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<string, string>): NativeProofTerm {
@@ -284,16 +284,73 @@ function schemaHint(type: ProofType): string {
   }
 }
 
+function predicateCallback(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<string, string>) {
+  const { file, schemaBindings } = suite;
+  if (node?.type !== "ArrowFunctionExpression" || node.async || node.typeParameters || node.params.length !== 1) {
+    return invalid(file, node, "Use a synchronous predicate with one parameter.");
+  }
+  const variable = identifier(file, node.params[0]);
+  if (schemaBindings.has(variable) || suite.native.has(variable)) {
+    invalid(file, node.params[0], "The predicate parameter cannot shadow Pud's helpers or a native tag.");
+  }
+  if (node.body.type !== "BlockStatement") return { variable, predicate: proofPredicate(suite, node.body, bindings) };
+  const [statement] = node.body.body;
+  if (node.body.body.length !== 1 || statement?.type !== "ReturnStatement" || !statement.argument) {
+    return invalid(file, node.body, "Return a single predicate expression.");
+  }
+  return { variable, predicate: proofPredicate(suite, statement.argument, bindings) };
+}
+
+function quantifiedType(suite: Suite, node: Node | undefined): "integer" | "boolean" | undefined {
+  const chain = memberCall(node, true);
+  if (!chain) return;
+  if (!isSchemaBuilder(suite, chain.receiver)) return quantifiedType(suite, chain.receiver);
+  if (chain.name === "bigint" || chain.name === "int") return "integer";
+  if (chain.name === "boolean" || chain.name === "bool") return "boolean";
+}
+
+function proofPredicate(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<string, string>): ProofPredicate {
+  const call = memberCall(node, true);
+  if (!call || !isSchemaBuilder(suite, call.receiver)) return { kind: "boolean", expression: expression(suite, node, bindings) };
+  const read = (part: Node | undefined) => proofPredicate(suite, part, bindings);
+  switch (call.name) {
+    case "not": {
+      const [operand] = arity(suite.file, call.call, 1);
+      return { kind: "not", operand: read(operand) };
+    }
+    case "and":
+    case "or":
+    case "implies":
+    case "iff": {
+      const [left, right] = arity(suite.file, call.call, 2);
+      return { kind: "binary", operator: call.name, left: read(left), right: read(right) };
+    }
+    case "forall":
+    case "exists": {
+      const [input, callback] = arity(suite.file, call.call, 2);
+      const type = quantifiedType(suite, input);
+      const domain = type ? { kind: "schema" as const, type,
+        constraints: schemaConstraints(suite, input, { kind: type }, { kind: "quantified" }, bindings),
+      } : { kind: "array" as const, expression: expression(suite, input, bindings) };
+      return { kind: "quantifier", quantifier: call.name, domain, ...predicateCallback(suite, callback, bindings) };
+    }
+    default: return { kind: "boolean", expression: expression(suite, node, bindings) };
+  }
+}
+
 function schemaConstraints(suite: Suite, node: Node | undefined, type: ProofType, target: ProofTarget, bindings: ReadonlyMap<string, string>): ProofConstraint[] {
   if (isSchema(suite, node, type)) return [];
   const chain = memberCall(node);
   if (!chain || isSchemaBuilder(suite, chain.receiver)) {
-    const value = target.kind === "result" ? "the result" : `parameter '${target.name}'`;
+    const value = target.kind === "result" ? "the result"
+      : target.kind === "quantified" ? "the quantified value" : `parameter '${target.name}'`;
     return invalid(suite.file, node, `Use ${schemaHint(type)} for ${value}.`);
   }
   const constraints = schemaConstraints(suite, chain.receiver, type, target, bindings);
   const [value] = arity(suite.file, chain.call, 1);
-  if (chain.name === "satisfies" && type.kind !== "textOrArray" && type.kind !== "opaque") {
+  if (chain.name === "refine") {
+    constraints.push({ kind: "refinement", target, ...predicateCallback(suite, value, bindings) });
+  } else if (chain.name === "satisfies" && type.kind !== "textOrArray" && type.kind !== "opaque") {
     constraints.push({ kind: "native", target, term: nativeTerm(suite, value, bindings) });
   } else if ((type.kind === "integer" && comparisons.has(chain.name)) || (type.kind === "boolean" && chain.name === "eq")) {
     constraints.push({ kind: "comparison", target, operator: chain.name as ProofComparison, value: expression(suite, value, bindings) });
@@ -350,7 +407,10 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
     if (given) {
       if (assertions.length) invalid(file, step, "Put given() before the assertions.");
       const [condition] = arity(file, given, 1);
-      premises.push({ kind: "condition", expression: expression(suite, condition, bindings) });
+      const predicate = proofPredicate(suite, condition, bindings);
+      premises.push(predicate.kind === "boolean"
+        ? { kind: "condition", expression: predicate.expression }
+        : { kind: "proposition", predicate });
       continue;
     }
     const to = memberCall(step.expression);

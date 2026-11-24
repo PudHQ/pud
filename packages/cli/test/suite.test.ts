@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { check, emit, type ProofAssistant, type ProofClaim, type ProofModule } from "../src/index.ts";
+import { leanAdapter } from "../src/lean/index.ts";
 
 const increment = "export function increment(value: bigint): bigint { return value + 1n; }";
 const portable = `import { describe, expect, given, it, pud } from "@pud/cli";
@@ -94,6 +95,35 @@ test("the nearest project config selects the adapter and edited config is reload
   });
 });
 
+test("quantified refinements keep the domain outside the callback's binding", async () => {
+  await fixture(async dir => {
+    const file = join(dir, "increment.proof.ts");
+    await writeFile(file, portable
+      .replace("given(input !== 7n)", "given(pud.forall(pud.boolean(), flag => pud.implies(flag, input !== 7n)))")
+      .replace("pud.bigint().eq(input + 1n)", `pud.bigint().refine(result =>
+        pud.forall(pud.bigint().gte(result), result => result > input),
+      )`));
+    const selected = adapter(claims => {
+      expect(claims[0]?.premises[1]).toMatchObject({
+        kind: "proposition",
+        predicate: { kind: "quantifier", quantifier: "forall", domain: { kind: "schema", type: "boolean" } },
+      });
+      expect(claims[0]?.assertions[0]).toMatchObject({
+        kind: "refinement", variable: "result", target: { kind: "result" },
+        predicate: { kind: "quantifier", quantifier: "forall", variable: "result",
+          domain: { kind: "schema", type: "integer", constraints: [
+            { kind: "comparison", target: { kind: "quantified" }, operator: "gte", value: { source: "result" } },
+          ] },
+        },
+      });
+    });
+    expect((await check(file, { adapter: selected })).results[0]?.status).toBe("unproved");
+    const lean = await emit(file, { adapter: leanAdapter() });
+    expect(lean).toContain("(∀ (q0 : Bool), ((q0 = true) → (p0 ≠ (7 : Int)))) →");
+    expect(lean).toContain("(∀ (q1 : Int), ((q1 ≥ result)) → (q1 > p0))");
+  });
+});
+
 test("a different adapter receives portable properties and excludes native Lean terms", async () => {
   await fixture(async dir => {
     await writeFile(join(dir, "pud.config.ts"), "throw new Error('The explicit adapter should bypass config evaluation.');");
@@ -112,6 +142,11 @@ pud.describe(increment, ({ it, expect, use }) => {
   it("native proof", { value: pud.bigint() }, ({ value }) => {
     expect(increment(value)).to(pud.bigint().gt(value));
   }).by(lean.ref("Increment.correct"));
+  it("native quantified domain", { value: pud.bigint() }, ({ value }) => {
+    expect(increment(value)).to(pud.bigint().refine(result =>
+      pud.forall(pud.bigint().satisfies(lean.ref("Increment.admits")), other => other > result),
+    ));
+  });
 });`);
     const selected = adapter((claims, modules) => {
       expect(modules).toEqual([]);
@@ -119,8 +154,9 @@ pud.describe(increment, ({ it, expect, use }) => {
       expect(claims[0]?.assertions[0]).toMatchObject({ kind: "comparison", operator: "gt" });
     });
     const results = (await check(file, { adapter: selected })).results;
-    expect(results.map(result => result.status)).toEqual(["unproved", "unsupported", "unsupported"]);
+    expect(results.map(result => result.status)).toEqual(["unproved", "unsupported", "unsupported", "unsupported"]);
     expect(results[1]?.detail).toBe("This property uses lean proof code. The selected adapter is test.");
+    expect(results[3]?.detail).toBe(results[1]?.detail);
     await expect(emit(file, { adapter: selected, property: "native proof" })).rejects.toThrow("uses lean proof code");
   });
 });
