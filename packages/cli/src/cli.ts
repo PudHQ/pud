@@ -48,7 +48,7 @@ async function main(args: string[]): Promise<number> {
       else errors.push(`Expected a directory or a *.proof.ts file. Received ${path}.`);
     } catch (e) { errors.push((e as Error).message); }
   }
-  const progress = !json && files.size ? terminalProgress() : undefined;
+  const progress = !json && files.size ? terminalProgress(process.stderr, started) : undefined;
   if (progress) process.stderr.write(`\n${pudBanner(process.stderr, "Proof check")}\n\n`);
   const reports = await checkFiles([...files.values()], { onProgress: progress?.update }).finally(() => progress?.close());
   const counts = { proved: 0, disproved: 0, unproved: 0, unsupported: 0, error: errors.length, todo: 0 };

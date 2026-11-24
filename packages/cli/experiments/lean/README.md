@@ -11,7 +11,7 @@ bun run demo:lean
 bun run pud check packages/cli/experiments/lean/.examples
 ```
 
-In a terminal, the live panel shows each item's state and a thin bottom bar for the whole run. The final report groups properties by file and shows timings, verdicts, and the source location of any Lean diagnostic. Set `NO_COLOR=1` for monochrome output. Piped output uses plain status rows and a run summary.
+In a terminal, the live panel highlights the running property, its timer, and total elapsed time. The trail uses evenly spaced dots and groups checks when the queue outgrows the terminal. The final report groups properties by file and shows timings, verdicts, and the source location of any Lean diagnostic. Set `NO_COLOR=1` for monochrome output. Piped output uses plain status rows and a run summary.
 
 To use `lean` directly in your current macOS or Linux shell, run this from the repository root.
 

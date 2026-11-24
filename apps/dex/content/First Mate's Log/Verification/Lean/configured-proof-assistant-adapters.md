@@ -3,7 +3,7 @@ author: codex
 date: 2026-11-24
 updated-at: 2026-11-24
 summary: How Pud checks linked TypeScript properties and what its lowering certificates establish compared with LemmaScript and Lynx.
-tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, exceptions, termination, semantics, translation-validation, lemmascript, lynx]
+tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, exceptions, termination, semantics, translation-validation, proof-reuse, lemmascript, lynx]
 ---
 # Configured proof assistant adapters
 
@@ -79,6 +79,20 @@ example : divide (-5) 2 = .ok (-2) := by rfl
 7. **Check source observations against the runtime.** The differential suite runs signed arithmetic, calls, short circuits, exceptions, and loops in Bun 1.4.2 and in the emitted model on 280 input and function pairs. It also evaluates the reified source model on the scalar cases. These checks give evidence about the model and the AST bridge. [Differential tests](https://github.com/rorz/pud/blob/main/packages/cli/test/lean.test.ts)
 
 The demo has 19 active properties with a whole-observation scalar certificate, five with an audited iteration helper theorem, and eight with a model-level property proof. These are counts for the demo, with one additional TODO. General array control flow, the opaque string-or-array case, and the bodies of recursive functions still need preservation proofs. The next compiler obligation is to verify source reification, name resolution, and the mapping from source loop state to the iteration relation. A runtime guarantee also needs correspondence with the admitted JavaScript semantics, including assumptions about dense arrays and standard built-ins. [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Coverage measurements]]
+
+## Reuse proofs across equivalent refactors
+
+`sumPositive` originally used `total += value > 0n ? value : 0n`. Pud emits `List.foldl` for that single assignment, which matches `PositiveSum.nonnegative` after reduction. The equivalent `if (value > 0n) { total = total + value }` emits a Lean `for` loop. The direct theorem reference previously yielded `unproved` for that form. [Loop lowering](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/subject.ts) · [Fold theorem](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/sum-positive-lemmas.lean)
+
+In a temporary copy, Lean 4.19.0 certified the refactor using a proof that the guarded loop and the fold give equal totals for every list and initial accumulator. The proof uses induction on the list and splits the step on `0 < value`. Rewriting with that equality lets the claim reuse `PositiveSum.nonnegative`. Changing the guard to `value < 0n` made the same certificate fail.
+
+The reusable theorem now checks both forms with the same sidecar. For a pure `for…of` on a dense bigint array with a guarded update of one scalar local, Pud emits a conformance theorem alongside the ordinary loop. Lean checks that the loop body produces the fold's next state at every step. The iteration theorem lifts this equality to the result of the entire traversal. For additive updates, this lets `if positive then total + value else total` use the same fold step as `total + (if positive then value else 0)`. [Dense iteration proof](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/iteration.lean)
+
+Named proofs can apply directly to the emitted claim or use the checked equalities to rewrite it. The audit checks the law and the conformance theorems. `bun run --silent pud --emit packages/cli/experiments/lean/.examples/sum-positive.proof.ts` shows the loop, the conformance theorem, and the use of `PositiveSum.nonnegative`. The regression certifies the conditional operand, the conditional statement, and the guarded addition through an imported call. It rejects the reversed guard. [Refactor regression](https://github.com/rorz/pud/blob/main/packages/cli/test/lean.test.ts)
+
+The reusable proof depends on the fold specification. Each implementation supplies checked evidence of its behavior in the emitted model. The TypeScript-to-Lean loop translation still relies on the dense-array model and AST lowering. Loops with multiple updated locals, abrupt control flow, or potentially throwing steps use the general model without this fold rewrite. Any extension needs to preserve the outcomes its laws observe, including throws and termination.
+
+Lynx recommends laws that compare a replacement to a reference implementation. Its sum proof also shows how a certificate can depend on the shape of generated code through the recursive function's induction theorem. An Erlang port of the accumulator rewrite produced distinct Core Erlang bodies on OTP 27, using the same BEAM debug information extraction as Lynx. This comparison covers the compiler input to Lynx's translator. [Lynx sum proof](https://github.com/josevalim/lynx/blob/49928b1f94687cc38dee81490d5301008cfc22f9/README.md#elixir) · [Core Erlang extraction](https://github.com/josevalim/lynx/blob/49928b1f94687cc38dee81490d5301008cfc22f9/lib/lynx/translation.ex#L353-L361)
 
 ## How close to the runtime
 

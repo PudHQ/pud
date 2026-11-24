@@ -28,13 +28,13 @@ export interface CheckResult {
 
 export interface CheckReport { file: string; results: CheckResult[] }
 
-/** Work in progress. Only the final report includes snapshot-validated verdicts. */
+/** Finished statuses follow indices in order and are provisional until snapshot validation. */
 export type CheckProgress =
   | { kind: "suite"; file: string; index: number; total: number; totalItems: number; items: readonly { name: string; todo?: boolean }[] }
-  | { kind: "running" | "finished"; file: string; indices: readonly number[] }
+  | { kind: "running" | "finished"; file: string; indices: readonly number[]; statuses?: readonly CheckResult["status"][] }
   | { kind: "validating" };
 
-export type ItemProgress = (kind: "running" | "finished", indices: readonly number[]) => void;
+export type ItemProgress = (kind: "running" | "finished", indices: readonly number[], statuses?: readonly CheckResult["status"][]) => void;
 
 export interface CheckOptions {
   adapter?: ProofAssistant;
@@ -244,7 +244,8 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
       progress({ kind: "suite", file: plan.file, index, total: plans.length, totalItems, items });
     }
     if ("error" in plan) continue;
-    const report: ItemProgress | undefined = progress && ((kind, indices) => progress({ kind, file: plan.file, indices }));
+    const report: ItemProgress | undefined = progress && ((kind, indices, statuses) =>
+      progress({ kind, file: plan.file, indices, ...(statuses && { statuses }) }));
     if ("suite" in plan) {
       plan.results = await checkSuite(plan.suite, plan.config, options, snapshotReader(snapshots, plan.dependencies), report);
       continue;
@@ -254,14 +255,16 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
       if (results.has(p)) continue;
       const input = snapshots.read(p.source);
       if ("error" in input) {
-        results.set(p, failure(input.error, p));
-        report?.("finished", [item]);
+        const result = failure(input.error, p);
+        results.set(p, result);
+        report?.("finished", [item], [result.status]);
         continue;
       }
       if (p.proof !== undefined) {
         report?.("running", [item]);
-        results.set(p, await linked(p, input.source, snapshots.read(p.proof)));
-        report?.("finished", [item]);
+        const result = await linked(p, input.source, snapshots.read(p.proof));
+        results.set(p, result);
+        report?.("finished", [item], [result.status]);
         continue;
       }
       const group = definitions.filter((d): d is AutoDefinition => d.proof === undefined && d.source === p.source && d.subject === p.subject);
@@ -280,7 +283,7 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
       if (running) report?.("running", running);
       try { await automatic(group, results, subject); }
       catch (e) { for (const d of group) if (!results.has(d)) results.set(d, failure(e, d)); }
-      if (running) report?.("finished", running);
+      if (running) report?.("finished", running, group.map(proof => results.get(proof)!.status));
     }
   }
 

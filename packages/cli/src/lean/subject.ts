@@ -15,6 +15,7 @@ export interface Subject {
   fallible: boolean;
   countdown: boolean;
   fold: boolean;
+  loopConformance: readonly { name: string; definition: string }[];
   recursive: boolean;
   callees: ReadonlySet<Subject>;
   sourceExpression?: string;
@@ -33,6 +34,20 @@ function exits(node: Node | undefined): boolean {
 
 function tuple(parts: string[]): string {
   return parts.length === 1 ? parts[0]! : `(${parts.join(", ")})`;
+}
+
+function singleStatement(node: Statement): Statement {
+  return node.type === "BlockStatement" && node.body.length === 1 ? node.body[0]! : node;
+}
+
+function localUpdate(node: Statement): AssignmentExpression | undefined {
+  const statement = singleStatement(node);
+  if (statement.type === "ExpressionStatement" && statement.expression.type === "AssignmentExpression" &&
+      statement.expression.left.type === "Identifier") return statement.expression;
+}
+
+function truthy(value: Value, code: string) {
+  return value.sort === "integer" ? `(decide (${code} ≠ (0 : Int)))` : code;
 }
 
 export function lowerFunction(
@@ -77,6 +92,7 @@ export function lowerFunction(
   let fallible = false;
   let countdown = false;
   let fold = false;
+  const loopConformance: Subject["loopConformance"][number][] = [];
   const callTargets = new Map<string, Subject>();
   const executable: ExecutableExpressions = {
     fresh, recursive,
@@ -130,6 +146,62 @@ export function lowerFunction(
     const name = fresh();
     line(indent, `let ${name} ← ${value.code}`);
     return name;
+  }
+
+  function certifyGuardedUpdate(
+    node: Extract<Statement, { type: "IfStatement" }>, bindings: ReadonlyMap<string, Binding>, item: string, itemCode: string,
+  ) {
+    if (recursive || arrayGuard === node.test) return;
+    const yes = localUpdate(node.consequent);
+    const no = node.alternate && localUpdate(node.alternate);
+    if (yes?.left.type !== "Identifier" || (node.alternate && !no)) return;
+    const target = yes.left.name;
+    const accumulator = bindings.get(target);
+    if (!accumulator?.mutable || !isScalar(accumulator.sort) ||
+        (no && (no.left.type !== "Identifier" || no.left.name !== target))) return;
+
+    const state = fresh();
+    const scope = new Map(bindings);
+    scope.set(target, { ...accumulator, code: state });
+    const test = read(node.test, scope);
+    const updated = assignment(yes, scope).rhs;
+    const otherwise = no ? assignment(no, scope).rhs : { sort: accumulator.sort, code: state };
+    if (test.fallible || updated.fallible || otherwise.fallible) return;
+    const guard = truthy(test, test.code);
+
+    function delta(update: AssignmentExpression) {
+      const { operator, right } = update;
+      if (operator === "+=" || operator === "-=") return { operator: operator[0], code: read(right, scope).code };
+      if (operator === "=" && right.type === "BinaryExpression" && (right.operator === "+" || right.operator === "-") &&
+          right.left.type === "Identifier" && right.left.name === target) {
+        return { operator: right.operator, code: read(right.right, scope).code };
+      }
+    }
+
+    // Match the fold used by an assignment with a conditional operand. Lean
+    // checks the step equality, including the identity update on a skipped arm.
+    let step = `(if ${guard} then ${updated.code} else ${otherwise.code})`;
+    const taken = delta(yes), skipped = no && delta(no);
+    if (taken && (!no || skipped?.operator === taken.operator)) {
+      step = `(${state} ${taken.operator} (if ${guard} then ${taken.code} else ${skipped?.code ?? "(0 : Int)"}))`;
+    }
+
+    const used = new Set<string>();
+    for (const expression of [node.test, yes.right, no?.right]) {
+      if (expression) traverseFast(expression, child => { if (child.type === "Identifier") used.add(child.name); });
+    }
+    const captured = [...bindings].filter(([name]) => name !== target && name !== item && used.has(name));
+    const parameters = captured.map(([, value]) => `(${value.code} : ${leanTypes[value.sort]})`);
+    if (captured.some(([, value]) => value.sort === "items" || value.sort === "textOrItems")) parameters.unshift("{Item : Type}");
+    const name = `${code}Loop${loopConformance.length}Conforms`;
+    loopConformance.push({ name, definition: `theorem ${[name, ...parameters].join(" ")}
+    (values : List Int) (initial : ${leanTypes[accumulator.sort]}) :
+    forIn (m := Id) values initial (fun ${itemCode} ${state} =>
+      if ${guard} then ForInStep.yield (${updated.code}) else ForInStep.yield (${otherwise.code})) =
+    values.foldl (fun ${state} ${itemCode} => ${step}) initial := by
+  apply forIn_foldl_of_step_eq
+  intro ${itemCode} ${state}
+  by_cases h : (${guard}) = true <;> simp only [h, Bool.false_eq_true, if_true, if_false, Int.add_zero, Int.sub_zero]` });
   }
 
   function emitArrayGuard(node: Extract<Statement, { type: "IfStatement" }>, bindings: Map<string, Binding>, indent: number, inLoop: boolean) {
@@ -264,9 +336,7 @@ export function lowerFunction(
         if (emitArrayGuard(node, bindings, indent, inLoop)) return;
         const value = read(node.test, bindings);
         if (value.sort !== "integer") ofSort(file, node.test, value, "boolean");
-        const condition = force(value, indent);
-        const test = value.sort === "integer"
-          ? `(decide (${condition} ≠ (0 : Int)))` : condition;
+        const test = truthy(value, force(value, indent));
         line(indent, `if ${recursive ? `_${fresh()} : ` : ""}${test} then`);
         branch(node.consequent, bindings, indent + 2, inLoop);
         if (node.alternate) {
@@ -286,13 +356,12 @@ export function lowerFunction(
         if (bindings.has(item)) invalid(file, decl, "The loop item must have a new name.");
         const loopScope = new Map(bindings), itemCode = fresh();
         loopScope.set(item, { sort: "integer", code: itemCode });
-        const inner = node.body.type === "BlockStatement" && node.body.body.length === 1 ? node.body.body[0] : node.body;
-        if (inner?.type === "ExpressionStatement" && inner.expression.type === "AssignmentExpression" &&
-            inner.expression.left.type === "Identifier") {
-          const target = inner.expression.left.name, accumulator = bindings.get(target);
+        const update = localUpdate(node.body);
+        if (update?.left.type === "Identifier") {
+          const target = update.left.name, accumulator = bindings.get(target);
           if (accumulator?.mutable && accumulator.sort === "integer") {
             const stateCode = fresh();
-            const { rhs } = assignment(inner.expression, new Map([...loopScope, [target, { ...accumulator, code: stateCode }]]));
+            const { rhs } = assignment(update, new Map([...loopScope, [target, { ...accumulator, code: stateCode }]]));
             if (!rhs.fallible) {
               fold = true;
               const step = `(fun (${stateCode} ${itemCode} : Int) => ${rhs.code})`;
@@ -303,6 +372,8 @@ export function lowerFunction(
         }
         line(indent, `for ${itemCode} in ${values} do`);
         branch(node.body, loopScope, indent + 2, true);
+        const inner = singleStatement(node.body);
+        if (inner.type === "IfStatement") certifyGuardedUpdate(inner, loopScope, item, itemCode);
         return;
       }
       default: invalid(file, node, `Unsupported statement '${node.type}' before the final return.`);
@@ -353,6 +424,6 @@ export function lowerFunction(
     termination = `\ntermination_by ${measure.code}.toNat\ndecreasing_by all_goals (simp_wf; try simp_all; omega)`;
   }
   const definition = `def ${[code, ...signature].join(" ")} : ${resultType} :=${body}${termination}`;
-  return { code, params, result, itemType, definition, fallible, countdown, fold, recursive,
+  return { code, params, result, itemType, definition, fallible, countdown, fold, loopConformance: fallible ? [] : loopConformance, recursive,
     callees: new Set(callTargets.values()), sourceExpression: scalarSource(fn.body, params, result, callTargets) };
 }

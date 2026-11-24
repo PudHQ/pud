@@ -1,7 +1,7 @@
 import { parseExpression } from "@babel/parser";
 import type { Node } from "@babel/types";
 import { Unsupported, type SubjectSource } from "@pud/model/adapter";
-import type { NativeProofTerm, ProofAssistant, ProofCall, ProofClaim, ProofComparison, ProofConstraint, ProofErrorKind, ProofExpression, ProofModule, ProofOutcome, ProofPredicate, ProofType } from "@pud/model/assistant";
+import type { ClaimProgress, NativeProofTerm, ProofAssistant, ProofCall, ProofClaim, ProofComparison, ProofConstraint, ProofErrorKind, ProofExpression, ProofModule, ProofOutcome, ProofPredicate, ProofType } from "@pud/model/assistant";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -207,20 +207,31 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   const recursive = linked.filter(subject => subject.recursive).map(subject => subject.code);
   const countdown = linked.some(subject => subject.countdown);
   const fold = linked.some(subject => subject.fold);
+  const loopConformance = linked.flatMap(subject => subject.loopConformance);
   if (countdown) recursive.push("countdownWhile");
   const certificate = loweringProof(observed, binders);
   const sourceClaim = observed.source && proposition({
     sort: observed.source.sort, code: `Scalar.evaluate ${observed.source.code}`, fallible: true,
   });
+  let proof = claim.proof ? term(claim.proof, emptyScope) : autoProof(simplify, recursive);
+  if (claim.proof?.kind === "reference" && loopConformance.length) {
+    const rewrites = loopConformance.map(({ name }) => name).join(", ");
+    proof = `by
+  first
+  | exact (${proof})
+  | simpa only [claim, ${simplify}, bind, pure, ${rewrites}] using (${proof})`;
+  }
   const unit = [
     "import Std", ...imports.map(module => `import ${module}`), "", ...(certificate ? [scalarSemantics, ""] : []),
-    ...(countdown || fold ? [iterationSemantics, ""] : []),
+    ...(countdown || fold || loopConformance.length ? [iterationSemantics, ""] : []),
     "namespace Pud", "", "set_option autoImplicit false", "",
     errors, "",
-    linked.map(subject => subject.definition).join("\n\n"), "", ...(certificate ? [certificate, ""] : []),
+    linked.map(subject => subject.definition).join("\n\n"), "",
+    ...loopConformance.flatMap(({ definition }) => [definition, ""]),
+    ...(certificate ? [certificate, ""] : []),
     "def claim : Prop :=", indent(proposition(execution)), "",
     ...(sourceClaim ? ["def sourceClaim : Prop :=", indent(sourceClaim), ""] : []),
-    "theorem checked : claim :=", indent(claim.proof ? term(claim.proof, emptyScope) : autoProof(simplify, recursive)), "",
+    "theorem checked : claim :=", indent(proof), "",
     ...(sourceClaim ? [`theorem sourceChecked : sourceClaim := by
   have preservation := loweringCertificate
   unfold loweringClaim at preservation
@@ -230,6 +241,7 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   const iterationTheorems = [
     ...(countdown ? ["Pud.countdownWhile_except_correct", "Pud.countdownWhile_pure_correct"] : []),
     ...(fold ? ["Pud.denseForOf_correct"] : []),
+    ...loopConformance.map(({ name }) => `Pud.${name}`),
   ];
   return { unit, certifiedLowering: !!certificate, iterationTheorems };
 }
@@ -289,7 +301,7 @@ function moduleNames(modules: readonly ProofModule[]) {
 
 async function verify(
   program: Program, source: SubjectSource, options: LeanOptions, claims: readonly ProofClaim[],
-  modules: readonly ProofModule[], onClaim?: (index: number, state: "running" | "finished") => void,
+  modules: readonly ProofModule[], onClaim?: ClaimProgress,
 ): Promise<ProofOutcome[]> {
   const imports = moduleNames(modules);
   const units = claims.map(claim => {
@@ -311,21 +323,22 @@ async function verify(
     for (const [i, entry] of units.entries()) {
       if ("outcome" in entry) {
         outcomes.push(entry.outcome);
-        onClaim?.(i, "finished");
+        onClaim?.(i, "finished", entry.outcome.status);
         continue;
       }
       onClaim?.(i, "running");
+      let outcome: ProofOutcome;
       try {
         const module = `PudClaim${i}`;
         await run(module, entry.unit, true);
         await audit(module, run, entry);
-        outcomes.push({ status: "proved" });
+        outcome = { status: "proved" };
       } catch (error) {
         const detail = (error as Error).message;
-        outcomes.push({ status: error instanceof RejectedProof ? "unproved" : "error", detail });
-      } finally {
-        onClaim?.(i, "finished");
+        outcome = { status: error instanceof RejectedProof ? "unproved" : "error", detail };
       }
+      outcomes.push(outcome);
+      onClaim?.(i, "finished", outcome.status);
     }
     return outcomes;
   } finally {

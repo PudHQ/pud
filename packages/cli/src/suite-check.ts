@@ -114,17 +114,18 @@ export async function checkSuite(suite: Suite, config: string | undefined, optio
           checkAssistant(claim, assistant);
           accepted.push({ property, claim });
         } catch (error) {
-          results.set(property, failed(error));
-          if (indices) report?.("finished", [indices.get(property)!]);
+          const result = failed(error);
+          results.set(property, result);
+          if (indices) report?.("finished", [indices.get(property)!], [result.status]);
         }
       }
       if (accepted.length) {
         const running = indices && accepted.map(({ property }) => indices.get(property)!);
         if (running) report?.("running", running);
         const outcomes = await subject.verify(accepted.map(item => item.claim), modulesFor(suite, assistant, read),
-          report && running ? (index, state) => {
+          report && running ? (index, state, status) => {
             const item = running[index];
-            if (item !== undefined) report(state, [item]);
+            if (item !== undefined) report(state, [item], status ? [status] : undefined);
           } : undefined);
         if (!Array.isArray(outcomes) || outcomes.length !== accepted.length || accepted.some((_, index) =>
           !["proved", "disproved", "unproved", "unsupported", "error"].includes(outcomes[index]?.status ?? ""))) {
@@ -138,7 +139,8 @@ export async function checkSuite(suite: Suite, config: string | undefined, optio
     } catch (error) {
       for (const property of active) if (!results.has(property)) results.set(property, failed(error));
     }
-    if (indices) report?.("finished", active.map(property => indices.get(property)!));
+    if (indices) report?.("finished", active.map(property => indices.get(property)!),
+      active.map(property => results.get(property)!.status));
   }
   return suite.properties.map(property => ({
     ...(property.kind === "todo" ? { status: "todo" as const } : results.get(property)!),

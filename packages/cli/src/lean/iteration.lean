@@ -132,4 +132,14 @@ theorem denseForOf_correct {α σ : Type} (step : σ → α → σ) (values : Li
     rw [← equal]
     exact run
 
+theorem forIn_foldl_of_step_eq {α σ : Type} (values : List α) (initial : σ)
+    (body : α → σ → Id (ForInStep σ)) (step : σ → α → σ)
+    (agrees : ∀ item state, body item state = .yield (step state item)) :
+    forIn (m := Id) values initial body = values.foldl step initial := by
+  induction values generalizing initial with
+  | nil => rfl
+  | cons head tail ih =>
+    rw [List.forIn_cons, List.foldl_cons, agrees]
+    exact ih (step initial head)
+
 end Pud

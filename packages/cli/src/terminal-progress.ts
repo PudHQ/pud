@@ -1,6 +1,7 @@
+import type { ChalkInstance } from "chalk";
 import { basename } from "node:path";
-import type { CheckProgress } from "./check.ts";
-import { isInteractiveTerminal, terminalInk } from "./terminal.ts";
+import type { CheckProgress, CheckResult } from "./check.ts";
+import { isInteractiveTerminal, terminalInk, verdictColor } from "./terminal.ts";
 
 const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const erase = (lines: number) => lines ? `\x1b[${lines}F\x1b[J` : "";
@@ -16,46 +17,75 @@ function safeText(text: string) {
   return text.replace(/\p{Cc}/gu, " ").trim();
 }
 
-/** A transient pane. Its checked items are progress, never provisional verdicts. */
-export function terminalProgress(out = process.stderr) {
+type Completion = { status: CheckResult["status"] | undefined; proved: number; failed: number };
+
+function alignRight(label: string, detail: string, columns: number) {
+  if (!detail) return clip(label, columns);
+  const available = columns - width(detail);
+  const left = clip(label, available - 2);
+  return left + " ".repeat(available - width(left)) + detail;
+}
+
+function proofTrail(ink: ChalkInstance, completed: readonly Completion[], total: number, active: boolean, columns: number) {
+  if (!total) return "";
+  const done = completed.length;
+  const countWidth = width(`${total}/${total}`);
+  const slots = Math.min(total, Math.max(1, Math.floor((columns - countWidth - 1) / 2)));
+  const queued = ink.hex("#a1a1aa")(ink.level ? "•" : "·");
+  const proved = verdictColor(ink, "PASS")("•");
+  const failed = verdictColor(ink, "FAIL")(ink.level ? "•" : "×");
+  const unknown = ink.dim(ink.level ? "•" : "○");
+  const cursor = ink.cyan.bold("◆");
+
+  const markers = Array.from({ length: slots }, (_, slot) => {
+    const start = Math.floor(slot * total / slots);
+    const end = Math.floor((slot + 1) * total / slots);
+    if (end > done) return active && start <= done ? cursor : queued;
+    const last = completed[end - 1]!;
+    const previous = completed[start - 1];
+    if (last.failed > (previous?.failed ?? 0)) return failed;
+    return last.proved - (previous?.proved ?? 0) === end - start ? proved : unknown;
+  });
+
+  return `${markers.join(" ")}  ${ink.dim(`${done}/${total}`)}`;
+}
+
+/** The live trail shows provisional outcomes. The final report validates the snapshots. */
+export function terminalProgress(out = process.stderr, runStarted = performance.now()) {
   if (!isInteractiveTerminal(process.stdout) || !isInteractiveTerminal(out) || (out.columns && out.columns < 28)) return;
 
   const ink = terminalInk(out);
   let suite: Extract<CheckProgress, { kind: "suite" }> | undefined;
-  let written = 0, frame = 0, started = 0;
-  let completed = 0;
+  let written = 0, frame = 0, suiteItems = 0;
   let validating = false;
   const running = new Map<number, number>();
-  const finished = new Set<number>();
+  const completed: Completion[] = [];
+  const finished = new Map<number, number>();
 
   function draw() {
     if (!suite) return;
     const now = performance.now();
-    const columns = Math.max(12, Math.min(96, (out.columns || 80) - 1));
-    const spinner = frames[frame % frames.length]!;
-    const lines = [];
-    if (validating) {
-      lines.push(`  ${ink.cyan(spinner)}  Validating input snapshots`);
-    } else {
-      const index = ink.dim(`${suite.index + 1}/${suite.total}`);
-      lines.push(`  ${index}  ${ink.bold(safeText(basename(suite.file)))}`);
-      const available = Math.max(1, Math.min(5, (out.rows || 24) - 6));
-      const active = running.keys().next().value ?? suite.items.findIndex((item, i) => !item.todo && !finished.has(i));
-      const first = Math.max(0, Math.min(active, suite.items.length - available));
-      for (let i = first; i < Math.min(first + available, suite.items.length); i++) {
-        const item = suite.items[i]!;
-        const since = running.get(i);
-        const marker = item.todo ? ink.dim("○") : since !== undefined ? ink.cyan(spinner) : ink.dim(finished.has(i) ? "•" : "·");
-        const status = item.todo ? "todo" : since !== undefined ? `checking ${seconds(now - since)}` : finished.has(i) ? "checked" : "queued";
-        const name = clip(safeText(item.name), columns - 7 - width(status));
-        const gap = Math.max(1, columns - 6 - width(name) - width(status));
-        lines.push(`  ${marker}  ${since !== undefined ? ink.bold(name) : name}${" ".repeat(gap)}${ink.dim(status)}`);
-      }
-      lines.push(`  ${ink.dim(`${completed + finished.size}/${suite.totalItems} checked · ${seconds(now - started)}`)}`);
+    const columns = (out.columns || 80) - 1;
+    if (columns < 27) {
+      if (written) out.write(erase(written));
+      written = 0;
+      return;
     }
-    const barWidth = columns - 2;
-    const filled = suite.totalItems ? Math.floor(barWidth * (completed + finished.size) / suite.totalItems) : 0;
-    lines.push("  " + ink.white("▁".repeat(filled)) + ink.gray((ink.level ? "▁" : " ").repeat(barWidth - filled)));
+    const spinner = frames[frame % frames.length]!;
+    const active = validating ? undefined : running.entries().next().value;
+    const item = active && suite.items[active[0]];
+    const title = validating ? "Validating input snapshots" : item ? safeText(item.name)
+      : finished.size < suiteItems ? "Preparing proofs" : "Finishing suite";
+    const totalTime = ink.dim(`total ${seconds(now - runStarted)}`);
+    const proofTime = active ? ink.dim(`proof ${seconds(now - active[1])}`) : "";
+    const file = safeText(basename(suite.file));
+    const batch = active && running.size > 1 ? `  ·  +${running.size - 1} running` : "";
+    const lines = [
+      alignRight(`  ${ink.cyan(spinner)}  ${ink.bold(title)}`, totalTime, columns),
+      alignRight(`     ${ink.dim(file + batch)}`, proofTime, columns),
+    ];
+    const trail = proofTrail(ink, completed, suite.totalItems, !!item, columns - 2);
+    if (trail) lines.push("", `  ${trail}`);
     out.write(erase(written) + lines.map(line => clip(line, columns)).join("\n") + "\n");
     written = lines.length;
   }
@@ -82,9 +112,8 @@ export function terminalProgress(out = process.stderr) {
   return {
     update(event: CheckProgress) {
       if (event.kind === "suite") {
-        completed += finished.size;
         suite = event;
-        started = performance.now();
+        suiteItems = event.items.reduce((count, item) => count + Number(!item.todo), 0);
         finished.clear();
         running.clear();
         validating = false;
@@ -96,13 +125,32 @@ export function terminalProgress(out = process.stderr) {
           const now = performance.now();
           for (const index of event.indices) if (!finished.has(index)) running.set(index, now);
         } else {
-          for (const index of event.indices) {
+          let firstChanged = completed.length;
+          for (const [offset, index] of event.indices.entries()) {
             running.delete(index);
-            finished.add(index);
+            const status = event.statuses?.[offset];
+            const position = finished.get(index);
+            if (position === undefined) {
+              finished.set(index, completed.length);
+              completed.push({ status, proved: 0, failed: 0 });
+            } else if (status !== undefined && status !== completed[position]!.status) {
+              completed[position]!.status = status;
+              firstChanged = Math.min(firstChanged, position);
+            }
+          }
+          // Prefix totals let each compressed dot classify its range in constant time.
+          let proved = completed[firstChanged - 1]?.proved ?? 0;
+          let failed = completed[firstChanged - 1]?.failed ?? 0;
+          for (let index = firstChanged; index < completed.length; index++) {
+            const result = completed[index]!;
+            if (result.status === "proved") proved++;
+            else if (result.status && result.status !== "todo") failed++;
+            result.proved = proved;
+            result.failed = failed;
           }
         }
       }
-      draw();
+      if (!written || event.kind === "validating") draw();
     },
     close,
   };

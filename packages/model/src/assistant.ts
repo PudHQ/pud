@@ -66,6 +66,8 @@ export type ProofOutcome =
   | { status: "disproved"; counterexample: Counterexample }
   | { status: "unproved" | "unsupported" | "error"; detail: string; diagnostic?: string };
 
+export type ClaimProgress = (index: number, state: "running" | "finished", status?: ProofOutcome["status"]) => void;
+
 /** The adapter has parsed the exact implementation snapshot and can certify claims about it. */
 export interface PreparedProofAssistant {
   parameters: readonly { name: string; type: ProofType }[];
@@ -73,8 +75,7 @@ export interface PreparedProofAssistant {
   inspectCall?(call: ProofCall): ProofType;
   errors?: readonly ProofErrorKind[];
   emit(claim: ProofClaim, modules: readonly ProofModule[]): string | Promise<string>;
-  verify(claims: readonly ProofClaim[], modules: readonly ProofModule[],
-    onClaim?: (index: number, state: "running" | "finished") => void): Promise<readonly ProofOutcome[]>;
+  verify(claims: readonly ProofClaim[], modules: readonly ProofModule[], onClaim?: ClaimProgress): Promise<readonly ProofOutcome[]>;
 }
 
 export interface ProofAssistant<Id extends string = string> {

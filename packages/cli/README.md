@@ -49,7 +49,7 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 
 Run `pud check clamp.proof.ts` to certify the claim, or `pud --emit clamp.proof.ts` to inspect the generated unit. `it.todo(title)` reports a pending property without asking the assistant for a verdict.
 
-The terminal shows queued, checking, and checked properties with elapsed time and a thin white bar for total progress. The final verdict comes after the input snapshot check. Piped output and `--json` give the final report without terminal animation.
+The terminal highlights the active property and shows both proof and total elapsed time. A cyan diamond moves along a trail of evenly spaced dots. Gray dots show the queue ahead, and green or red dots show completed checks behind it. Long runs group checks to fit the terminal. Final verdicts come after the input snapshot check. Piped output and `--json` give the final report without terminal animation.
 
 ### Check calls and exceptions
 
@@ -102,7 +102,7 @@ const unit = await emit("clamp.proof.ts", { adapter, property: "keeps the result
 
 Another assistant can implement `ProofAssistant` from `@pud/cli`. Its `prepare` method reads the named TypeScript export from the supplied snapshot and returns its signature, an emitter, and a verifier. Pud binds the sidecar's premises and assertions to that signature and supplies the verifier one claim per active property. For a custom native tag, import `native` from `@pud/cli` and declare `const term = native("assistant-id")` at file scope before `pud.describe`. [Adapter contract](../model/src/assistant.ts)
 
-Use `checkFiles(files, { onProgress })` for a live view. Suite events declare the queue and total item count. Running and finished events identify the items in the current suite, and the validating event marks the start of the input snapshot check. The returned reports carry the verdicts.
+Use `checkFiles(files, { onProgress })` for a live view. Suite events declare the queue and total item count. Running and finished events identify items by index in the current suite. Finished events can include provisional statuses in the same order as those indices. The validating event marks the start of the input snapshot check. The returned reports carry the final verdicts.
 
 ## Development
 

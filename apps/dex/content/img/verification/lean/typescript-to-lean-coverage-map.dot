@@ -1,0 +1,40 @@
+digraph Coverage {
+  graph [rankdir=TB, bgcolor="#f4f0e6", pad=0.26, nodesep=0.28, ranksep=0.43,
+    splines=line, dpi=156, labelloc=t, labeljust=l, fontname="Helvetica",
+    label=<<FONT POINT-SIZE="22" COLOR="#17171c"><B>TypeScript → Lean coverage</B></FONT>>];
+  node [shape=box, style="rounded,filled", color="#b9b3a9", fillcolor="#fffdf8",
+    penwidth=1.15, fontname="Helvetica", fontcolor="#17171c", fontsize=15, margin="0.17,0.12"];
+  edge [color="#53515c", fontname="Helvetica", fontcolor="#53515c", fontsize=11,
+    penwidth=1.35, arrowsize=0.68];
+
+  source [group=spine, label=<<B>TypeScript source</B><BR/><FONT POINT-SIZE="12">Frozen export and call graph</FONT>>];
+  sidecar [fillcolor="#e1f3f5", color="#18747e",
+    label=<<B>*.proof.ts</B><BR/><FONT POINT-SIZE="12">Input domain and law</FONT>>];
+  contracts [fillcolor="#f8e9cd", color="#895b25",
+    label=<<B>External contracts</B><BR/><FONT POINT-SIZE="12">Built-ins, packages, Bun APIs</FONT><BR/><FONT POINT-SIZE="12">Possible results and effects</FONT>>];
+  behavior [group=spine, fillcolor="#fffdf8", color="#53515c", penwidth=1.4,
+    label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3">
+      <TR><TD COLSPAN="2" ALIGN="LEFT"><B>JavaScript behavior</B></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Values and operators</FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Bindings and calls</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Arrays and heap state</FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Branches and loops</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Returns and throws</FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Async and scheduling</FONT></TD></TR>
+    </TABLE>>];
+  bun [style="rounded,dashed,filled", color="#77716c", fillcolor="#f4f0e6",
+    label=<<B>Bun conformance tests</B><BR/><FONT POINT-SIZE="12">Compare observed outcomes</FONT>>];
+  model [group=spine, fillcolor="#e1f3f5", color="#18747e",
+    label=<<B>Lean model</B><BR/><FONT POINT-SIZE="12">Admitted program behavior</FONT>>];
+  kernel [group=spine, fillcolor="#e1f3f5", color="#18747e",
+    label=<<B>Kernel check and audit</B><BR/><FONT POINT-SIZE="12">Law, certificates, axiom dependencies</FONT>>];
+  verdict [group=spine, fillcolor="#262630", color="#262630", fontcolor="#fffdf8",
+    label=<<B>Proof verdict</B><BR/><FONT POINT-SIZE="12">Validated against the checked snapshots</FONT>>];
+
+  { rank=same; contracts; behavior; bun; }
+  { rank=same; sidecar; kernel; }
+  source:s -> behavior:n [label=" Parse and link", weight=10];
+  contracts -> behavior [weight=4];
+  behavior -> bun [style=dashed, dir=none, weight=4];
+  behavior:s -> model:n [label=" Preservation proof", weight=10];
+  model:s -> kernel:n [weight=10];
+  sidecar -> kernel [weight=4];
+  kernel:s -> verdict:n [weight=10];
+}

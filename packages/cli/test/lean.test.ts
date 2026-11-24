@@ -125,6 +125,42 @@ leanTest("both ZigZag callees are part of the theorem and edits to either invali
   });
 }, 20_000);
 
+leanTest("the same fold theorem checks guarded updates through a linked implementation", async () => {
+  await fixture(async directory => {
+    const file = join(directory, "sum-positive.proof.ts");
+    const subject = join(directory, "sum-positive.ts");
+    const helper = join(directory, "accumulate.ts");
+    const proof = await readFile(join(examples, "sum-positive.proof.ts"), "utf8");
+    await writeFile(file, proof.replace("../pud.config.ts", "./pud.config.ts"));
+    await writeFile(join(directory, "pud.config.ts"), "export default {};");
+    await writeFile(join(directory, "sum-positive-lemmas.lean"), await readFile(join(examples, "sum-positive-lemmas.lean"), "utf8"));
+    function source(name: string, update: string) {
+      return `export function ${name}(values: readonly bigint[]): bigint {
+  const threshold = 0n;
+  let total = 0n;
+  for (const value of values) { ${update} }
+  return total;
+}`;
+    }
+    const guard = "if (value > threshold) { total = total + value; }";
+    const verdict = async () => (await check(file, { adapter })).results[0]?.status;
+    await writeFile(subject, source("sumPositive", "total += value > threshold ? value : 0n;"));
+    expect(await verdict()).toBe("proved");
+    await writeFile(subject, source("sumPositive", guard));
+    expect(await verdict()).toBe("proved");
+    const unit = await emit(file, { adapter });
+    expect(unit).toContain("theorem implLoop0Conforms");
+    expect(unit).toContain("using (PositiveSum.nonnegative)");
+
+    await writeFile(subject, `import { accumulate } from "./accumulate.ts";
+export function sumPositive(values: readonly bigint[]): bigint { return accumulate(values); }`);
+    await writeFile(helper, source("accumulate", `${guard} else { total += 0n; }`));
+    expect(await verdict()).toBe("proved");
+    await writeFile(helper, source("accumulate", guard.replace(">", "<")));
+    expect(await verdict()).toBe("unproved");
+  });
+}, 20_000);
+
 test("transitive imports are snapshotted and a change to their resolution invalidates a verdict", async () => {
   await fixture(async directory => {
     const file = join(directory, "subject.proof.ts"), dependency = join(directory, "dependency.ts");
@@ -169,7 +205,10 @@ leanTest("a zero divisor cannot prove a success property or the wrong exception"
       `expect(() => divide(${inputs})).toThrow("TypeError");`,
     ]) {
       await writeFile(file, sidecar("divide", "divide", "./" + source, schemas, inputs, assertion));
-      expect((await check(file, { adapter })).results[0]?.status).toBe("unproved");
+      const events: CheckProgress[] = [];
+      const result = await check(file, { adapter, onProgress: event => events.push(event) });
+      expect(result.results[0]?.status).toBe("unproved");
+      expect(events.find(event => event.kind === "finished")).toMatchObject({ indices: [0], statuses: ["unproved"] });
     }
   });
 }, 20_000);
@@ -185,6 +224,7 @@ leanTest("progress visits each Lean item before the shared snapshot check", asyn
   const startedSecond = events.findIndex(event => event.kind === "running" && event.file === files[0] &&
     event.indices.length === 1 && event.indices[0] === 1);
   expect(completedFirst).toBeGreaterThan(0);
+  expect(events[completedFirst]).toMatchObject({ statuses: ["proved"] });
   expect(startedSecond).toBeGreaterThan(completedFirst);
   expect(events.at(-1)).toEqual({ kind: "validating" });
 }, 30_000);
