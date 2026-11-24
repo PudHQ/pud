@@ -29,8 +29,20 @@ lean --version
 | Functional | [Parity](.examples/iff.ts) | [Evenness](.examples/is-even.proof.ts) · [Matching parity](.examples/same-parity.proof.ts) |
 | Imperative | [Linear search](.examples/linear-search.ts) | [First match with an early return](.examples/linear-search.proof.ts) |
 | Functional | [Content dispatch](.examples/content-dispatch.ts) | [Narrowing text or parts with `Array.isArray`](.examples/content-dispatch.proof.ts) |
+| Imperative | [Array sum](.examples/array-sum.ts) | [Exact sum](.examples/array-sum.proof.ts) |
+| Imperative | [Array membership](.examples/array-contains.ts) | [Membership with `break`](.examples/array-contains.proof.ts) |
+| Imperative | [Sortedness](.examples/is-sorted.ts) | [Nondecreasing adjacent pairs](.examples/is-sorted.proof.ts) |
+| Imperative | [Maximum element](.examples/max-element.ts) | [List maximum with an empty-list default](.examples/max-element.proof.ts) |
+| Imperative | [Nested loops](.examples/nested-loop-invariants.ts) | [One visit per ordered pair](.examples/nested-loop-invariants.proof.ts) |
+| Imperative | [Count odd elements](.examples/for-continue.ts) | [Skipping even values with `continue`](.examples/for-continue.proof.ts) |
+| Functional | [Integer maximum](.examples/math-min-max-int.ts) | [Greatest of three inputs](.examples/math-min-max-int.proof.ts) |
+| Functional | [ZigZag encoding](.examples/zigzag.ts) | [Encode a signed integer](.examples/zigzag-encode.proof.ts) · [Decode a nonnegative code](.examples/zigzag-decode.proof.ts) |
+| Functional | [Wide bigint operations](.examples/bigint-bits.ts) | [70-bit left shift](.examples/shift-wide.proof.ts) · [Low 64 bits](.examples/low-64.proof.ts) |
+| Functional | [Truthiness](.examples/truthiness.ts) | [Boolean condition](.examples/boolean-truthiness.proof.ts) · [Bigint condition](.examples/bigint-truthiness.proof.ts) |
 
 Parity, linear search, and content dispatch were adapted from a random draw of LemmaScript’s TypeScript examples. The parity and search ports use `bigint`. Search uses `for…of` and exits at the first match. Content dispatch retains its text-or-parts input and treats each part as an opaque element in Lean. [Upstream examples](https://github.com/midspiral/LemmaScript/tree/966272f70ea708ba8d84e95bafa610c3e2b8a1d3/examples) · [LemmaScript license](.examples/lemmascript-license.txt)
+
+The ten follow-up ports use exact `bigint` arithmetic and `for…of` for array traversal. Sortedness accepts the empty list. Maximum element returns zero for the empty list. The nested-loop example uses the array length as its iteration count, and the scalar maximum uses bigint comparisons. The two ZigZag sidecars check their exports against the same signed-integer-to-code relation.
 
 Pass a sidecar path to check it individually. Use `--emit` to inspect the generated Lean, with a property title when the suite has several active properties. The `.examples` directory keeps these suites out of discovery by the current Dafny and Rocq CLI.
 
@@ -55,8 +67,10 @@ bun run demo:lean --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 
 ## What a pass establishes
 
-The generated claim quantifies over the declared inputs and applies the matcher to the result of the generated implementation. Scalar expressions reuse Pud’s TypeScript reader. Lean `Id.run do` represents local assignment, branching, and early returns. A `for…of` loop with a single bigint accumulator assignment lowers to `List.foldl`. Loops with branching and early return use Lean’s `for` over a list.
+The generated claim quantifies over the declared inputs and applies the matcher to the result of the generated implementation. Scalar expressions reuse Pud’s TypeScript reader. Lean `Id.run do` represents local assignment, branching, and early returns. A `for…of` loop with a single bigint accumulator assignment lowers to `List.foldl`. Other `for…of` loops use Lean’s `for` over a list, including unlabelled `break` and `continue`.
 
 The runner applies Lean simplification, case splits, and integer arithmetic to active properties unless they provide a proof term. A fresh Lean module checks the resulting certificate against the generated claim and audits its axiom dependencies. An open goal, a mismatched theorem, or a dependency on `sorryAx` fails the command. The runner checks that the sidecar, implementation, and local Lean modules still match the files it read before reporting a pass. [Lean proof validation](https://lean-lang.org/doc/reference/latest/ValidatingProofs/)
 
-The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. Bigint remainder uses `Int.tmod` and requires a positive literal divisor. A block-bodied subject has a final return. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
+The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. An `if` condition can be a boolean or a bigint, with zero treated as false. A block-bodied subject has a final return. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
+
+Bigint division and remainder take positive literal divisors and lower to `Int.tdiv` and `Int.tmod`, which truncate toward zero. A nonnegative literal shift count lowers to multiplication by a power of two. AND with a literal mask of consecutive low bits lowers to the nonnegative residue modulo the mask plus one, including for negative inputs. [ECMAScript bigint operations](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-bigint-type)

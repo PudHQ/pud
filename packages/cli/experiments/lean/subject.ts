@@ -69,7 +69,7 @@ export function lowerSubject(file: string, symbol: string, source: string): Subj
 
   function line(indent: number, code: string) { lines.push(" ".repeat(indent) + code); }
 
-  function emitArrayGuard(node: Extract<Statement, { type: "IfStatement" }>, bindings: Map<string, Binding>, indent: number) {
+  function emitArrayGuard(node: Extract<Statement, { type: "IfStatement" }>, bindings: Map<string, Binding>, indent: number, inLoop: boolean) {
     const test = node.test;
     if (test.type !== "CallExpression" || test.callee.type !== "MemberExpression" || test.callee.computed ||
         test.callee.object.type !== "Identifier" || test.callee.object.name !== "Array" ||
@@ -83,19 +83,25 @@ export function lowerSubject(file: string, symbol: string, source: string): Subj
     narrowed.set(name, { sort: "items", code });
     line(indent, `match ${value.code} with`);
     line(indent, `| some ${code} =>`);
-    branch(node.consequent, narrowed, indent + 2);
+    branch(node.consequent, narrowed, indent + 2, inLoop);
     line(indent, "| none =>");
-    if (node.alternate) branch(node.alternate, bindings, indent + 2);
+    if (node.alternate) branch(node.alternate, bindings, indent + 2, inLoop);
     else line(indent + 2, "pure ()");
     return true;
   }
 
-  function statement(node: Statement, bindings: Map<string, Binding>, indent: number): void {
+  function statement(node: Statement, bindings: Map<string, Binding>, indent: number, inLoop: boolean): void {
     switch (node.type) {
       case "EmptyStatement": return;
       case "ReturnStatement": {
         if (!node.argument) invalid(file, node, "Return a value.");
         line(indent, `return ${returned(node.argument, bindings)}`);
+        return;
+      }
+      case "BreakStatement":
+      case "ContinueStatement": {
+        if (!inLoop || node.label) invalid(file, node, "Loop control must be unlabelled and inside a for-of loop.");
+        line(indent, node.type === "BreakStatement" ? "break" : "continue");
         return;
       }
       case "VariableDeclaration": {
@@ -122,13 +128,16 @@ export function lowerSubject(file: string, symbol: string, source: string): Subj
         return;
       }
       case "IfStatement": {
-        if (emitArrayGuard(node, bindings, indent)) return;
-        const test = ofSort(file, node.test, readValue(file, node.test, bindings), "boolean");
+        if (emitArrayGuard(node, bindings, indent, inLoop)) return;
+        const value = readValue(file, node.test, bindings);
+        const test = value.sort === "integer"
+          ? `(decide (${value.code} ≠ (0 : Int)))`
+          : ofSort(file, node.test, value, "boolean");
         line(indent, `if ${test} then`);
-        branch(node.consequent, bindings, indent + 2);
+        branch(node.consequent, bindings, indent + 2, inLoop);
         if (node.alternate) {
           line(indent, "else");
-          branch(node.alternate, bindings, indent + 2);
+          branch(node.alternate, bindings, indent + 2, inLoop);
         }
         return;
       }
@@ -144,7 +153,7 @@ export function lowerSubject(file: string, symbol: string, source: string): Subj
         const inner = node.body.type === "BlockStatement" && node.body.body.length === 1 ? node.body.body[0] : node.body;
         if (inner?.type !== "ExpressionStatement" || inner.expression.type !== "AssignmentExpression") {
           line(indent, `for ${itemCode} in ${values} do`);
-          branch(node.body, loopScope, indent + 2);
+          branch(node.body, loopScope, indent + 2, true);
           return;
         }
         const target = nameOf(file, inner.expression.left), accumulator = bindings.get(target);
@@ -160,11 +169,12 @@ export function lowerSubject(file: string, symbol: string, source: string): Subj
     }
   }
 
-  function branch(node: Statement, bindings: ReadonlyMap<string, Binding>, indent: number) {
+  function branch(node: Statement, bindings: ReadonlyMap<string, Binding>, indent: number, inLoop: boolean) {
     const inner = new Map(bindings);
     const statements = node.type === "BlockStatement" ? node.body : [node];
-    for (const child of statements) statement(child, inner, indent);
-    if (statements.at(-1)?.type !== "ReturnStatement") line(indent, "pure ()");
+    for (const child of statements) statement(child, inner, indent, inLoop);
+    const last = statements.at(-1)?.type;
+    if (last !== "ReturnStatement" && last !== "BreakStatement" && last !== "ContinueStatement") line(indent, "pure ()");
   }
 
   function finalReturn(node: Node | undefined) {
@@ -173,7 +183,7 @@ export function lowerSubject(file: string, symbol: string, source: string): Subj
   }
 
   const body = fn.body.body;
-  for (const node of body.slice(0, -1)) statement(node, scope, 2);
+  for (const node of body.slice(0, -1)) statement(node, scope, 2, false);
   line(2, `return ${finalReturn(body.at(-1))}`);
   if (arrayGuard && shadowsArray) invalid(file, arrayGuard, "Array.isArray requires an unshadowed Array built-in.");
   return { params, result, itemType, definition: `${header} Id.run do\n${lines.join("\n")}` };

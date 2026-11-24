@@ -81,12 +81,28 @@ export function readValue(file: string, node: Node, scope: ReadonlyMap<string, V
   const lookup = (name: string, at: Node) => scope.get(name) ?? invalid(file, at, `Unknown binding '${name}'.`);
   if (node.type === "Identifier") return lookup(node.name, node);
   const expr = readExpression(file, node, n => {
-    if (n.type === "BinaryExpression" && n.operator === "%") {
+    if (n.type === "BinaryExpression" && (n.operator === "%" || n.operator === "/")) {
+      const operation = n.operator === "%" ? "remainder" : "division";
       if (n.right.type !== "BigIntLiteral" || BigInt(n.right.value) <= 0n) {
-        invalid(file, n.right, "Bigint remainder needs a positive literal divisor.");
+        invalid(file, n.right, `Bigint ${operation} needs a positive literal divisor.`);
       }
       const dividend = ofSort(file, n.left, readValue(file, n.left, scope), "integer");
-      return ref("integer", `(Int.tmod ${dividend} (${BigInt(n.right.value)} : Int))`);
+      const leanOperator = n.operator === "%" ? "Int.tmod" : "Int.tdiv";
+      return ref("integer", `(${leanOperator} ${dividend} (${BigInt(n.right.value)} : Int))`);
+    }
+    if (n.type === "BinaryExpression" && n.operator === "<<") {
+      if (n.right.type !== "BigIntLiteral") invalid(file, n.right, "Bigint left shift needs a nonnegative literal count.");
+      const value = ofSort(file, n.left, readValue(file, n.left, scope), "integer");
+      return ref("integer", `(${value} * (2 : Int) ^ (${BigInt(n.right.value)} : Nat))`);
+    }
+    if (n.type === "BinaryExpression" && n.operator === "&") {
+      const mask = n.right.type === "BigIntLiteral" ? BigInt(n.right.value) : undefined;
+      if (mask === undefined || (mask & (mask + 1n)) !== 0n) {
+        invalid(file, n.right, "Bigint bitwise AND needs a literal mask with only consecutive low bits set.");
+      }
+      const value = ofSort(file, n.left, readValue(file, n.left, scope), "integer");
+      // A low-bit mask is the nonnegative residue, including for negative inputs.
+      return ref("integer", `(${value} % (${mask + 1n} : Int))`);
     }
     if (n.type !== "Identifier") return undefined;
     const { sort, code } = lookup(n.name, n);
