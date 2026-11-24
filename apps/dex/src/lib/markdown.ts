@@ -5,6 +5,30 @@ import { parseNoteDate } from "./note-date";
 
 export const markdown = new MarkdownIt({ html: false, linkify: true }).use(footnote);
 
+markdown.core.ruler.after("block", "warning_callout", ({ tokens }) => {
+  const levels = new Set<number>();
+  for (const [index, token] of tokens.entries()) {
+    if (token.type === "blockquote_close" && levels.delete(token.level)) token.type = "warning_callout_close";
+    if (token.type !== "blockquote_open" || tokens[index + 1]?.type !== "paragraph_open") continue;
+
+    const paragraph = tokens[index + 2];
+    const marker = /^\[!WARNING\][ \t]*(?:\n|$)/i.exec(paragraph.content);
+    if (!marker) continue;
+
+    token.type = "warning_callout_open";
+    levels.add(token.level);
+    paragraph.content = paragraph.content.slice(marker[0].length);
+    if (!paragraph.content) tokens.splice(index + 1, 3);
+  }
+});
+
+markdown.renderer.rules.warning_callout_open = () =>
+  '<aside class="callout-warning" aria-label="Warning">\n'
+  + '<div class="callout-title" aria-hidden="true"><span>!</span>Warning</div>\n'
+  + '<div class="callout-body"><img class="callout-mascot" src="/pud-robot.png" width="64" height="64" alt="">\n'
+  + '<div class="callout-content">\n';
+markdown.renderer.rules.warning_callout_close = () => "</div></div>\n</aside>\n";
+
 function footnoteIds(token: Token) {
   const { id, subId = 0 } = token.meta as { id: number; subId?: number };
   const number = id + 1;
@@ -78,7 +102,12 @@ export function parseNote(source: string, filename: string) {
     : "";
   if (titleLine) tokens.splice(0, 3);
   const title = typeof meta.title === "string" && meta.title.trim() ? meta.title.trim() : titleLine || filename;
-  const firstBlock = tokens.findIndex(token => token.type === "paragraph_open" || token.type === "footnote_block_open");
+  let calloutDepth = 0;
+  const firstBlock = tokens.findIndex(token => {
+    if (token.type === "warning_callout_open") calloutDepth++;
+    if (token.type === "warning_callout_close") calloutDepth--;
+    return calloutDepth === 0 && (token.type === "paragraph_open" || token.type === "footnote_block_open");
+  });
   const intro = tokens[firstBlock]?.type === "paragraph_open" ? plain(tokens[firstBlock + 1].children ?? []) : "";
   const summary = typeof meta.summary === "string" ? meta.summary : intro.length > 160 ? intro.slice(0, 157).trimEnd() + "…" : intro;
   const headingId = slug(titleLine || title);
@@ -95,5 +124,6 @@ export function parseNote(source: string, filename: string) {
     typeof value === "string" ? [value] : Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
   const author = typeof meta.author === "string" ? meta.author.trim() || undefined : undefined;
   const date = parseNoteDate(meta.date);
-  return { title, titleFootnotes, headingId, summary, tokens, author, date, aliases: strings(meta.aliases), tags: strings(meta.tags), url: meta.url };
+  const updatedAt = parseNoteDate(meta["updated-at"]);
+  return { title, titleFootnotes, headingId, summary, tokens, author, date, updatedAt, aliases: strings(meta.aliases), tags: strings(meta.tags), url: meta.url };
 }

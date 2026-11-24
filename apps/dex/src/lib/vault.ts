@@ -14,6 +14,7 @@ export interface Note {
   summary: string;
   author?: string;
   date?: string;
+  updatedAt?: string;
   tags: string[];
   aliases: string[];
   url?: string;
@@ -54,7 +55,7 @@ export function buildVault(files: Record<string, string>, assets: Record<string,
     const note: Note = {
       file, folder, id, href: "/notes/" + id + "/", title: parsed.title,
       titleFootnotes: parsed.titleFootnotes, headingId: parsed.headingId,
-      summary: parsed.summary, author: parsed.author, date: parsed.date,
+      summary: parsed.summary, author: parsed.author, date: parsed.date, updatedAt: parsed.updatedAt,
       aliases: parsed.aliases, tags: parsed.tags,
       url: httpUrl(parsed.url)?.href, html: "", backlinks: [],
     };

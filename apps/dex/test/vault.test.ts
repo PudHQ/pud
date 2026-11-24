@@ -13,13 +13,38 @@ describe("Markdown vault", () => {
 
   test("frontmatter dates keep valid calendar dates and omit invalid values", () => {
     const { notes } = buildVault({
-      "Bare.md": "---\ndate: 2026-11-21\n---\nA note.",
-      "Impossible.md": "---\ndate: 2025-02-29\n---\nA note.",
+      "Bare.md": "---\ndate: 2026-11-21\nupdated-at: 2026-11-24\n---\nA note.",
+      "Impossible.md": "---\ndate: 2025-02-29\nupdated-at: 2026-11-31\n---\nA note.",
       "Quoted.md": "---\ndate: '2024-02-29'\n---\nA note.",
       "Timestamp.md": "---\ndate: 2026-11-21T01:00:00Z\n---\nA note.",
       "Undated.md": "A note.",
+      "Updated only.md": "---\nupdated-at: '2026-11-23'\n---\nA revised note.",
     });
-    expect(notes.map(note => note.date)).toEqual(["2026-11-21", undefined, "2024-02-29", undefined, undefined]);
+    expect(notes.map(note => note.date)).toEqual(["2026-11-21", undefined, "2024-02-29", undefined, undefined, undefined]);
+    expect(notes.map(note => note.updatedAt)).toEqual(["2026-11-24", undefined, undefined, undefined, undefined, "2026-11-23"]);
+  });
+
+  test("warning callouts keep their links and leave the note summary to the prose", () => {
+    const { notes: [entry, guide], links } = buildVault({
+      "Entry.md": [
+        "# Entry",
+        "> [!WARNING]\n> Read [[Guide]] and [the source](https://example.org/).",
+        "> [!WARNING]\n>\n> A **second warning**.",
+        "The note's own summary.",
+        "> A regular quote.",
+        "```md\n> [!WARNING]\n```",
+      ].join("\n\n"),
+      "Guide.md": "A guide.",
+    });
+    expect(entry.summary).toBe("The note's own summary.");
+    expect(entry.html.startsWith('<aside class="callout-warning" aria-label="Warning">')).toBe(true);
+    expect(entry.html.match(/<\/aside>/g)).toHaveLength(2);
+    expect(entry.html).toContain('<a href="/notes/guide/">Guide</a>');
+    expect(entry.html).toContain("<p>A <strong>second warning</strong>.</p>");
+    expect(entry.html).toContain("<blockquote>\n<p>A regular quote.</p>\n</blockquote>");
+    expect(entry.html).toContain('<pre><code class="language-md">&gt; [!WARNING]\n</code></pre>');
+    expect(guide.backlinks).toEqual([entry]);
+    expect(links).toContainEqual(expect.objectContaining({ href: "https://example.org/", sources: [entry] }));
   });
 
   test("nested directories retain their children, full paths and descendant entries", () => {

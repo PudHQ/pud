@@ -18,7 +18,7 @@ const author = note.author ? authors.get(note.author) : undefined;
     <div class={activeBar}><span class="inline-flex teletext:hidden"><Icon name="note" /></span><Breadcrumbs folder={note.folder} /></div>
     <div class={reading}>
       <h1 class:list={[readingTitle, "has-[+[data-byline]]:mb-1.25"]} id={note.headingId}>{note.title}<Fragment set:html={note.titleFootnotes} /></h1>
-      {(note.author || note.date) && <div class="mb-4 flex flex-col items-start gap-1.25 text-small text-slate-600 teletext:text-cyan-100" data-byline>
+      {(note.author || note.date || note.updatedAt) && <div class="mb-4 flex flex-col items-start gap-1.25 text-small text-slate-600 teletext:text-cyan-100" data-byline>
         {note.author && <p class="flex min-w-0 items-center gap-1.25">By {author
           ? <a class:list={[link, "inline-flex items-center gap-1.75"]} href={author.href} rel="author">
             <span class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-vermilion teletext:rounded-none teletext:bg-blue-800">
@@ -26,7 +26,10 @@ const author = note.author ? authors.get(note.author) : undefined;
             </span>{author.name}
           </a>
           : note.author}</p>}
-        {note.date && <time class="font-mono text-xs whitespace-nowrap" datetime={note.date}>{formatNoteDate(note.date)}</time>}
+        {(note.date || note.updatedAt) && <p class="flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs">
+          {note.date && note.date !== note.updatedAt && <time datetime={note.date}>{formatNoteDate(note.date)}</time>}
+          {note.updatedAt && <span>Updated <time datetime={note.updatedAt}>{formatNoteDate(note.updatedAt)}</time></span>}
+        </p>}
       </div>}
       {note.url && <a class:list={[link, favicon, "inline-flex min-h-7 items-center gap-1.5 bg-slate-100 px-2 py-0.5 font-mono text-small/normal teletext:bg-blue-950"]}
         href={note.url} {...outboundAttributes(note.url)}>Visit {new URL(note.url).hostname} ↗</a>}

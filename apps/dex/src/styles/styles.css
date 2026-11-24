@@ -319,6 +319,30 @@
   .prose :is(td, th) { @apply border border-line px-2.5 py-1; }
   .prose .unresolved { @apply border-b border-dashed text-zinc-600; }
 
+  .prose .callout-warning {
+    @apply my-4 border border-t-amber-300 border-r-amber-700 border-b-amber-700 border-l-amber-300 bg-amber-50 shadow-window;
+  }
+
+  .prose .callout-title {
+    @apply flex items-center gap-2 border-b border-amber-400 bg-linear-to-r from-amber-300 to-amber-100
+      px-2.5 py-1 font-pixel text-lg/tight font-bold tracking-wide text-amber-950 uppercase;
+  }
+
+  .prose .callout-title > span {
+    @apply grid size-4.5 shrink-0 place-items-center bg-amber-950 text-base/none text-amber-100;
+  }
+
+  .prose .callout-title::after {
+    @apply ml-auto h-3 w-8 shrink-0 border border-amber-800 bg-amber-300 content-(--content-empty);
+    background-image: repeating-linear-gradient(135deg, var(--color-amber-900) 0 --spacing(.75), transparent --spacing(.75) --spacing(1.5));
+  }
+
+  .prose .callout-body { @apply flex items-center gap-3 px-3 py-2.5 text-small/relaxed phone:gap-2.5; }
+  .prose .callout-mascot { @apply size-16 shrink-0 object-contain phone:size-12; }
+  .prose .callout-content { @apply min-w-0; }
+  .prose .callout-content > :first-child { @apply mt-0; }
+  .prose .callout-content > :last-child { @apply mb-0; }
+
   .footnote-ref { @apply leading-0; }
   .footnote-ref a { @apply underline-offset-2; }
   .footnotes { @apply mt-6 border-t border-line pt-1.5 text-ui text-slate-600; }
@@ -331,5 +355,9 @@
     & .prose :is(pre, :not(pre) > code) { @apply bg-blue-950 text-cyan-100; }
     & .prose :is(.unresolved, .footnotes) { @apply text-zinc-300; }
     & .prose :is(.footnote-item, .footnote-ref a):target { @apply bg-blue-950; }
+    & .prose .callout-warning { @apply border-amber-300 bg-black text-zinc-100 shadow-none; }
+    & .prose .callout-title { @apply border-amber-300 bg-amber-300 bg-none text-black; }
+    & .prose .callout-title > span { @apply bg-black text-amber-300; }
+    & .prose .callout-title::after { @apply border-black; }
   }
 }
