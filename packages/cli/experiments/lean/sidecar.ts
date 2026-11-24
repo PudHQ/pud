@@ -2,7 +2,7 @@ import type { CallExpression, Node } from "@babel/types";
 import { invalid, parseSourceModule } from "@pud/model/source";
 import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { leanTypes, nameOf, ofSort, readValue, type Value } from "./syntax.ts";
+import { isScalar, leanTypes, nameOf, ofSort, readValue, type Value } from "./syntax.ts";
 import { lowerSubject, type Subject } from "./subject.ts";
 
 export type Property = { name: string; line: number } & (
@@ -18,8 +18,8 @@ function directCall(node: Node | undefined, name: string): CallExpression | unde
   if (node?.type === "CallExpression" && !node.typeArguments && node.callee.type === "Identifier" && node.callee.name === name) return node;
 }
 
-function memberCall(node: Node | undefined) {
-  if (node?.type !== "CallExpression" || node.typeArguments || node.callee.type !== "MemberExpression" ||
+function memberCall(node: Node | undefined, allowTypeArguments = false) {
+  if (node?.type !== "CallExpression" || (!allowTypeArguments && node.typeArguments) || node.callee.type !== "MemberExpression" ||
       node.callee.computed || node.callee.property.type !== "Identifier") return;
   return { call: node, receiver: node.callee.object, name: node.callee.property.name };
 }
@@ -76,27 +76,34 @@ function leanTerm(file: string, node: Node | undefined, scope: Scope): string {
 
 const operators = { eq: "=", gt: ">", gte: "≥", lt: "<", lte: "≤" } as const;
 
-function schema(file: string, node: Node | undefined, value: Value, scope: Scope): string[] {
+function schema(file: string, node: Node | undefined, value: Value, scope: Scope, itemType?: string): string[] {
   const chain = memberCall(node);
   if (!chain) return invalid(file, node, "Expected a Lean schema chain.");
   const { call, receiver, name } = chain;
   if (named(receiver, "lean")) {
-    if (value.sort === "integers" && name === "array") {
+    if (((value.sort === "integers" || value.sort === "items") && name === "array") ||
+        (value.sort === "textOrItems" && name === "textOrArray")) {
       const [item] = arity(file, call, 1);
-      const element = memberCall(item);
-      if (element?.name === "int" && named(element.receiver, "lean") && !element.call.arguments.length) return [];
+      const element = memberCall(item, true);
+      if (element && named(element.receiver, "lean") && !element.call.arguments.length) {
+        const types = element.call.typeArguments?.type === "TSTypeParameterInstantiation" ? element.call.typeArguments.params : [];
+        if (value.sort === "integers" && element.name === "int" && !element.call.typeArguments) return [];
+        if (value.sort !== "integers" && element.name === "opaque" && types.length === 1 &&
+            types[0]?.type === "TSTypeReference" && !types[0].typeArguments && types[0].typeName.type === "Identifier" &&
+            types[0].typeName.name === itemType) return [];
+      }
     } else if ((value.sort === "integer" && name === "int") || (value.sort === "boolean" && name === "bool")) {
       arity(file, call, 0);
       return [];
     }
     return invalid(file, node, `Expected a ${leanTypes[value.sort]} schema.`);
   }
-  const clauses = schema(file, receiver, value, scope);
+  const clauses = schema(file, receiver, value, scope, itemType);
   const [arg] = arity(file, call, 1);
-  if (name === "satisfies" && value.sort !== "integers") {
+  if (name === "satisfies" && value.sort !== "textOrItems") {
     return [...clauses, `((${leanTerm(file, arg, scope)} ${value.code}) : Prop)`];
   }
-  if (!Object.hasOwn(operators, name) || value.sort === "integers" || (value.sort === "boolean" && name !== "eq")) {
+  if (!Object.hasOwn(operators, name) || !isScalar(value.sort) || (value.sort === "boolean" && name !== "eq")) {
     return invalid(file, node, `Unknown ${leanTypes[value.sort]} matcher '${name}'.`);
   }
   const rhs = ofSort(file, arg!, readValue(file, arg!, scope), value.sort);
@@ -111,7 +118,7 @@ function compileProperty(file: string, subject: Subject, binding: string, node: 
   if (domain.length !== byName.size) invalid(file, inputSchemas, "Declare one input schema per function parameter.");
   const premises = domain.flatMap(({ key, value }) => {
     const parameter = byName.get(key) ?? invalid(file, value, `No parameter named '${key}'.`);
-    return schema(file, value, parameter, emptyScope);
+    return schema(file, value, parameter, emptyScope, subject.itemType);
   });
   const scope = new Map<string, Value>();
   const inputs = fields(file, params[0], "ObjectPattern");
@@ -164,14 +171,14 @@ function compileProperty(file: string, subject: Subject, binding: string, node: 
     const [expression] = arity(file, expect, 1);
     if (expression?.type !== "Identifier" || !aliases.has(expression.name)) checkSubjectCall(expression);
     const [matcher] = arity(file, to.call, 1);
-    const clauses = schema(file, matcher, result, scope);
+    const clauses = schema(file, matcher, result, scope, subject.itemType);
     if (!clauses.length) invalid(file, matcher, "Add a constraint to the result schema.");
     conclusions.push(...clauses);
   }
   if (!conclusions.length) invalid(file, node, "Add an assertion or use it.todo().");
 
-  const binders = subject.params.map(param => `(${param.code} : ${leanTypes[param.sort]})`).join(" ");
-  const args = subject.params.map(param => param.code).join(" ");
+  const binders = [subject.itemType && "(Item : Type)", ...subject.params.map(param => `(${param.code} : ${leanTypes[param.sort]})`)].filter(Boolean).join(" ");
+  const args = [subject.itemType && "(Item := Item)", ...subject.params.map(param => param.code)].filter(Boolean).join(" ");
   const claim = [binders && `∀ ${binders},`, ...premises.map(p => `${p} →`), `let result := impl ${args}`.trimEnd(),
     conclusions.join(" ∧\n")].filter(Boolean).join("\n");
   return { kind: "claim", name, line: node.loc!.start.line, claim, proof } satisfies Property;

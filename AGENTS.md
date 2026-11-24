@@ -5,3 +5,5 @@ At the start of every run, read the [skills index](skills/README.md) and determi
 ```sh
 find "$(git rev-parse --show-toplevel)/skills" -type f -name '*.md' -print -exec cat {} \;
 ```
+
+Use the [PudDex reference skill](skills/puddex-reference/SKILL.md) whenever existing project context could inform the task. Before finishing, use the [PudDex notes skill](skills/puddex-notes/SKILL.md) to record useful findings or findings that took substantive work to establish.

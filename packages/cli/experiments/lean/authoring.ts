@@ -1,8 +1,8 @@
-type Value = bigint | boolean | readonly bigint[];
+type Value = bigint | boolean | string | readonly unknown[];
 declare const valueType: unique symbol;
 declare const termType: unique symbol;
 
-interface Schema<T extends Value> {
+interface Schema<T> {
   readonly [valueType]: T;
 }
 
@@ -24,11 +24,17 @@ interface BoolSchema extends Schema<boolean> {
   satisfies(term: LeanTerm): BoolSchema;
 }
 
+interface ArraySchema<T> extends Schema<readonly T[]> {
+  satisfies(term: LeanTerm): ArraySchema<T>;
+}
+
 // Bun reads these declarations as syntax in a *.proof.ts file.
 export declare const lean: {
   int(): IntSchema;
   bool(): BoolSchema;
-  array(items: IntSchema): Schema<readonly bigint[]>;
+  opaque<T>(): Schema<T>;
+  array<T>(items: Schema<T>): ArraySchema<T>;
+  textOrArray<T>(items: Schema<T>): Schema<string | readonly T[]>;
   use(file: string): void;
   ref(name: string, ...args: Value[]): LeanTerm;
   inline(term: string, ...args: Value[]): LeanTerm;

@@ -26,6 +26,11 @@ lean --version
 | Functional | [Export quota](.examples/admit.ts) | [Boolean assertions and an inline Lean predicate](.examples/admit.proof.ts) |
 | Imperative | [Balance debit](.examples/debit.ts) | [Local mutation, a branch, and an exact debit](.examples/debit.proof.ts) |
 | Imperative | [Sum positive values](.examples/sum-positive.ts) | [A loop, a named Lean proof, and a TODO](.examples/sum-positive.proof.ts) |
+| Functional | [Parity](.examples/iff.ts) | [Evenness](.examples/is-even.proof.ts) · [Matching parity](.examples/same-parity.proof.ts) |
+| Imperative | [Linear search](.examples/linear-search.ts) | [First match with an early return](.examples/linear-search.proof.ts) |
+| Functional | [Content dispatch](.examples/content-dispatch.ts) | [Narrowing text or parts with `Array.isArray`](.examples/content-dispatch.proof.ts) |
+
+Parity, linear search, and content dispatch were adapted from a random draw of LemmaScript’s TypeScript examples. The parity and search ports use `bigint`. Search uses `for…of` and exits at the first match. Content dispatch retains its text-or-parts input and treats each part as an opaque element in Lean. [Upstream examples](https://github.com/midspiral/LemmaScript/tree/966272f70ea708ba8d84e95bafa610c3e2b8a1d3/examples) · [LemmaScript license](.examples/lemmascript-license.txt)
 
 Pass a sidecar path to check it individually. Use `--emit` to inspect the generated Lean, with a property title when the suite has several active properties. The `.examples` directory keeps these suites out of discovery by the current Dafny and Rocq CLI.
 
@@ -40,6 +45,7 @@ bun run demo:lean --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 | Sidecar | Lean |
 | --- | --- |
 | `lean.int()`, `lean.bool()`, `lean.array(lean.int())` | `Int`, `Bool`, `List Int` |
+| `lean.array(lean.opaque<T>())`, `lean.textOrArray(lean.opaque<T>())` | `List Item`, `Option (List Item)` for an opaque element type |
 | Integer `.eq`, `.gt`, `.gte`, `.lt`, `.lte` | `=`, `>`, `≥`, `<`, `≤` |
 | Boolean `.eq` | Boolean equality |
 | `given(predicate)` | An additional premise |
@@ -49,8 +55,8 @@ bun run demo:lean --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 
 ## What a pass establishes
 
-The generated claim quantifies over the declared inputs and applies the matcher to the result of the generated implementation. Scalar expressions reuse Pud’s TypeScript reader. Lean `Id.run do` represents local assignment and branching. The supported `for…of` loop lowers one bigint accumulator assignment to `List.foldl`.
+The generated claim quantifies over the declared inputs and applies the matcher to the result of the generated implementation. Scalar expressions reuse Pud’s TypeScript reader. Lean `Id.run do` represents local assignment, branching, and early returns. A `for…of` loop with a single bigint accumulator assignment lowers to `List.foldl`. Loops with branching and early return use Lean’s `for` over a list.
 
 The runner applies Lean simplification, case splits, and integer arithmetic to active properties unless they provide a proof term. A fresh Lean module checks the resulting certificate against the generated claim and audits its axiom dependencies. An open goal, a mismatched theorem, or a dependency on `sorryAx` fails the command. The runner checks that the sidecar, implementation, and local Lean modules still match the files it read before reporting a pass. [Lean proof validation](https://lean-lang.org/doc/reference/latest/ValidatingProofs/)
 
-The supported subject fragment is synchronous scalar arithmetic and booleans, initialized locals, `if`, and a single-assignment accumulator loop over an ordinary dense `readonly bigint[]`. A block-bodied subject has a final return. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
+The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. Bigint remainder uses `Int.tmod` and requires a positive literal divisor. A block-bodied subject has a final return. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
