@@ -49,7 +49,7 @@ export async function pack(destination = join(root, "dist")) {
   const stage = await mkdtemp(join(tmpdir(), "pud-pack-"));
   try {
     const build = await Bun.build({
-      entrypoints: [join(cli, "src/cli.ts"), join(cli, "src/index.ts")],
+      entrypoints: [join(cli, "src/cli.ts"), join(cli, "src/index.ts"), join(cli, "src/lean/index.ts")],
       root: join(cli, "src"),
       outdir: stage,
       target: "bun",
@@ -65,7 +65,10 @@ export async function pack(destination = join(root, "dist")) {
     const types = "./types/cli/src/index.d.ts";
     await writeFile(join(stage, "package.json"), JSON.stringify({
       name: manifest.name, version: manifest.version, type: "module", license: "MIT",
-      exports: { ".": { types, default: "./index.js" } }, types,
+      exports: {
+        ".": { types, default: "./index.js" },
+        "./lean": { types: "./types/cli/src/lean/index.d.ts", default: "./lean/index.js" },
+      }, types,
       bin: { pud: "./cli.js" },
     }, null, 2));
     await mkdir(destination, { recursive: true });

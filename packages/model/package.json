@@ -11,7 +11,8 @@
     "./source": "./src/source.ts",
     "./dafny": "./src/dafny.ts",
     "./verify": "./src/verify.ts",
-    "./adapter": "./src/adapter.ts"
+    "./adapter": "./src/adapter.ts",
+    "./assistant": "./src/assistant.ts"
   },
   "dependencies": {
     "@babel/parser": "catalog:",

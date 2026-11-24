@@ -1,8 +1,8 @@
-import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { basename, dirname, extname, resolve } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import type { Node, ObjectExpression, StringLiteral } from "@babel/types";
 import type { ReviewedProperty } from "./adapter.ts";
-import { invalid, parseSourceModule } from "./source.ts";
+import { invalid, parseSourceModule, resolveTypeScriptImport } from "./source.ts";
 
 interface Subject {
   binding: string;
@@ -27,37 +27,6 @@ export interface AutoDefinition extends Subject {
 }
 export type ProofDefinition = RocqDefinition | AutoDefinition;
 type Imports = Map<string, Pick<ProofDefinition, "source" | "subject">>;
-
-function implementationPath(file: string, specifier: StringLiteral, base: string): string {
-  const path = specifier.value;
-  if (!/^\.\.?\//.test(path)) invalid(file, specifier, "Import the implementation using a relative path.");
-  const direct = resolve(base, path);
-  let target = direct;
-  let canonical: string;
-  try {
-    if (!path.endsWith(".ts")) {
-      // A sole matching .ts file is unambiguous. Keep its logical path so a retargeted symlink is visible.
-      const name = basename(direct);
-      const candidates = !extname(name) && !path.endsWith("/") ? readdirSync(dirname(direct)).filter(entry =>
-        entry === name || (entry.startsWith(name + ".") && !entry.slice(name.length + 1).includes("."))) : [];
-      if (candidates.length === 1 && candidates[0] === name + ".ts") target = direct + ".ts";
-      else {
-        // Bun caches resolutions in the calling process. Ask a fresh resolver about competing files or directory entries.
-        const run = Bun.spawnSync([process.execPath, "--preserve-symlinks", "-e",
-          "process.stdout.write(Bun.resolveSync(process.argv[1], process.argv[2]))", path, base], { stderr: "ignore" });
-        if (run.exitCode !== 0) throw new Error("Unresolved import");
-        target = run.stdout.toString();
-      }
-    }
-    canonical = realpathSync(target);
-    if (!statSync(canonical).isFile()) throw new Error("Expected a file");
-  }
-  catch { return invalid(file, specifier, `Cannot resolve '${path}' from this proof file.`); }
-  if (!canonical.endsWith(".ts") || canonical.endsWith(".d.ts")) {
-    invalid(file, specifier, `'${path}' resolves to ${canonical}. Pud needs a .ts implementation file.`);
-  }
-  return target;
-}
 
 function literalValue(node: Node): Node {
   while (node.type === "TSAsExpression" || node.type === "TSSatisfiesExpression") node = node.expression;
@@ -95,7 +64,7 @@ export function readManifest(file: string, source?: string, inputs?: ManifestInp
   function resolveImport(specifier: StringLiteral) {
     const cached = paths.get(specifier.value);
     if (cached) return cached;
-    const resolveAgain = () => implementationPath(file, specifier, base);
+    const resolveAgain = () => resolveTypeScriptImport(file, specifier, base);
     const target = resolveAgain();
     paths.set(specifier.value, target);
     if (!specifier.value.endsWith(".ts")) inputs?.trackImport(target, resolveAgain);

@@ -26,6 +26,7 @@ Run this from a checkout with the workspace set up. It prints both properties an
 | `UNPROVED` | The claim is still open. Read the proof diagnostic and use the emitted model to see what the prover received. |
 | `UNSUPPORTED` | Pud found a construct outside the selected model. The report points to the restriction. |
 | `ERROR` | An input or tool error prevented the check. Read the diagnostic and rerun after addressing it. |
+| `TODO` | The suite marks the property as pending. It creates no proof obligation and has no effect on the exit status. |
 
 The exit status is `0` when all properties pass, `1` for an open or disproved claim, and `2` for unsupported input or an error. Exit `2` takes precedence in a mixed run.
 
@@ -46,4 +47,4 @@ Run `bun run --silent demo:rocq` from the repository root with Rocq installed. T
 
 For a failure, start with the reported call and identify the predicate clause it breaks. For an open proof after a refactor, inspect the generated claim and the proof step that failed. `bun run --silent pud --emit packages/cli/demo/bounds.proof.ts max` prints the Rocq unit for the checkout’s current implementation. [Replay script](https://github.com/rorz/pud/blob/main/packages/cli/demo/replay.ts) · [Reviewed property](https://github.com/rorz/pud/blob/main/packages/cli/demo/bounds.proof.ts)
 
-For Dafny’s contract vocabulary, see the reference manual. To inspect the model and claim for the separate Lean prototype, follow the linear-search example. [[Bookmarks/dafny-reference-manual|Dafny reference manual]] · [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]]
+For Dafny’s contract vocabulary, see the reference manual. To inspect the model and claim produced by the Lean adapter, follow the linear-search example. [[Bookmarks/dafny-reference-manual|Dafny reference manual]] · [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]]

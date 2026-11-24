@@ -13,7 +13,7 @@ With no paths, Pud discovers *.proof.ts under the current directory.
 --emit     Print the verification unit for one property without running the prover or replay.
 --verbose  Show reviewed properties and full diagnostics.
 --json     Print machine-readable results.
-Exit: 0 all proved, 1 unproved or disproved, 2 unsupported, invalid input or tool error.`;
+Exit: 0 all active properties proved, 1 unproved or disproved, 2 unsupported, invalid input or tool error.`;
 
 const skipped = new Set(["node_modules", "dist", "out", "build", "coverage"]);
 function discover(dir: string): string[] {
@@ -48,7 +48,7 @@ async function main(args: string[]): Promise<number> {
     } catch (e) { errors.push((e as Error).message); }
   }
   const reports = await checkFiles([...files.values()]);
-  const counts = { proved: 0, disproved: 0, unproved: 0, unsupported: 0, error: errors.length };
+  const counts = { proved: 0, disproved: 0, unproved: 0, unsupported: 0, error: errors.length, todo: 0 };
   for (const report of reports) for (const r of report.results) counts[r.status]++;
   const code = counts.error || counts.unsupported ? 2 : counts.disproved || counts.unproved ? 1 : 0;
   if (json) console.log(JSON.stringify({ files: reports, counts, ...(errors.length ? { errors } : {}) }, null, 2));

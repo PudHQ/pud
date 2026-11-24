@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const toolchain = readFileSync(new URL("./lean-toolchain", import.meta.url), "utf8").trim();
@@ -25,24 +24,6 @@ function shim(home: string, name: "lean" | "elan") {
 
 function elanEnv(home: string) {
   return { ...process.env, ELAN_HOME: home, ELAN_TOOLCHAIN: toolchain };
-}
-
-export function leanCommand() {
-  const userElan = resolve(process.env.ELAN_HOME || join(homedir(), ".elan"));
-  const env: NodeJS.ProcessEnv = { ...process.env, ELAN_TOOLCHAIN: toolchain };
-  if (process.env.ELAN_HOME) env.ELAN_HOME = userElan;
-
-  const localShim = shim(checkoutElan, "lean");
-  const override = process.env.PUD_LEAN;
-  if (override) {
-    const binary = /[/\\]/.test(override) ? resolve(override) : Bun.which(override) ?? override;
-    return { binary, env: binary === localShim ? elanEnv(checkoutElan) : env };
-  }
-
-  if (Bun.which(localShim)) return { binary: localShim, env: elanEnv(checkoutElan) };
-
-  const binary = Bun.which("lean") ?? Bun.which(shim(userElan, "lean")) ?? "lean";
-  return { binary, env };
 }
 
 async function run(binary: string, args: string[], env = process.env) {

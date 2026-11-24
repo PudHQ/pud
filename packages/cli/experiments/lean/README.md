@@ -1,6 +1,6 @@
 # TypeScript proofs with Lean
 
-A `*.proof.ts` suite describes an imported TypeScript export. Bun reads the suite and the implementation as source, generates the Lean implementation and claim, and asks Lean to certify that claim. Input schemas set the quantified domain. Matcher chains state what the result must satisfy for every input in that domain.
+A `*.proof.ts` suite describes an imported TypeScript export. Pud reads the suite and implementation as source. The Lean adapter generates the implementation and claim in Lean and asks it to certify the claim. Input schemas set the quantified domain. Matcher chains state what the result must satisfy for every input in that domain. [Configure a proof assistant](../../README.md#configure-a-proof-assistant)
 
 ## Run the examples
 
@@ -8,6 +8,7 @@ Run `bun run setup` from the repository root. If the Bun dependencies are alread
 
 ```sh
 bun run demo:lean
+bun run pud check packages/cli/experiments/lean/.examples
 ```
 
 In a terminal, the report groups properties by file and shows timings, verdicts, and the source location of any Lean diagnostic. Set `NO_COLOR=1` for monochrome output. Piped output uses plain status rows and a run summary.
@@ -44,26 +45,28 @@ Parity, linear search, and content dispatch were adapted from a random draw of L
 
 The ten follow-up ports use exact `bigint` arithmetic and `for…of` for array traversal. Sortedness accepts the empty list. Maximum element returns zero for the empty list. The nested-loop example uses the array length as its iteration count, and the scalar maximum uses bigint comparisons. The two ZigZag sidecars check their exports against the same signed-integer-to-code relation.
 
-Pass a sidecar path to check it individually. Use `--emit` to inspect the generated Lean, with a property title when the suite has several active properties. The `.examples` directory keeps these suites out of discovery by the current Dafny and Rocq CLI.
+Pass a sidecar path to check it individually. Use `--emit` to inspect the generated Lean, with a property title when the suite has several active properties. The hidden `.examples` directory makes this set opt-in during repository-wide discovery. The project config selects Lean for the examples when using `pud`. [Example configuration](pud.config.ts)
 
 ```sh
-bun run demo:lean --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
+bun run pud --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 ```
 
 ## Sidecar syntax
 
-`describe(exportedFunction, callback)` binds the suite to the named TS import. Each `it` declares one schema per parameter and calls the export with those inputs in parameter order. `expect(result).to(lean.int().gte(lower).lte(upper))` adds the conjunction `lower ≤ result ∧ result ≤ upper`. Calls to `given` add cross-input constraints before the assertions.
+`describe(exportedFunction, callback)` binds the suite to the named TS import. Each `it` declares one schema per parameter and calls the export with those inputs in parameter order. `expect(result).to(pud.bigint().gte(lower).lte(upper))` adds the conjunction `lower ≤ result ∧ result ≤ upper`. Calls to `given` add cross-input constraints before the assertions.
 
 | Sidecar | Lean |
 | --- | --- |
-| `lean.int()`, `lean.bool()`, `lean.array(lean.int())` | `Int`, `Bool`, `List Int` |
-| `lean.array(lean.opaque<T>())`, `lean.textOrArray(lean.opaque<T>())` | `List Item`, `Option (List Item)` for an opaque element type |
+| `pud.bigint()`, `pud.boolean()`, `pud.array(pud.bigint())` | `Int`, `Bool`, `List Int` |
+| `pud.array(pud.opaque<T>())`, `pud.textOrArray(pud.opaque<T>())` | `List Item`, `Option (List Item)` for an opaque element type |
 | Integer `.eq`, `.gt`, `.gte`, `.lt`, `.lte` | `=`, `>`, `≥`, `<`, `≤` |
 | Boolean `.eq` | Boolean equality |
 | `given(predicate)` | An additional premise |
 | `it.todo(title)` | A reported TODO with zero proof obligations |
 
-`.satisfies(lean.ref("Namespace.predicate", ...args))` applies a named Lean predicate to the explicit arguments followed by the value under assertion. `.satisfies(lean.inline("fun … => …", ...args))` works the same way with a literal Lean term. `lean.use("./helper.lean")` adds a local Lean module. `it(...).by(lean.ref("Namespace.theorem"))` or `it(...).by(lean.inline("by …"))` supplies a term of the exact generated claim type.
+`pud.int()` and `pud.bool()` are aliases for `pud.bigint()` and `pud.boolean()`.
+
+Import `pud` from `pud.config.ts` to use native predicates or proofs in `pud.describe()`. Use `.satisfies(lean.ref("Namespace.predicate", ...args))` to apply a named Lean predicate to the explicit arguments followed by the value under assertion. A `lean` tagged template can build the same predicate and interpolate in-scope TypeScript expressions. `use(lean.module("./helper.lean"))` adds a local module. `it(...).by(lean.ref("Namespace.theorem"))` or a tagged `by` term supplies a certificate of the exact generated claim type. [Template example](.examples/admit.proof.ts) · [Named lemma example](.examples/linear-search.proof.ts)
 
 ## What a pass establishes
 

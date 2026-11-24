@@ -1,14 +1,14 @@
-import { describe, expect, given, it, lean } from "../authoring.ts";
+import { describe, expect, given, it, pud } from "@pud/cli";
 import { clamp } from "./clamp.ts";
 
 describe(clamp, () => {
   it("keeps the result between ordered bounds", {
-    value: lean.int(),
-    lower: lean.int(),
-    upper: lean.int(),
+    value: pud.bigint(),
+    lower: pud.bigint(),
+    upper: pud.bigint(),
   }, ({ value, lower, upper }) => {
     given(lower <= upper);
     const result = clamp(value, lower, upper);
-    expect(result).to(lean.int().gte(lower).lte(upper));
+    expect(result).to(pud.bigint().gte(lower).lte(upper));
   });
 });

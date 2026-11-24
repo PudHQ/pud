@@ -61,6 +61,47 @@ test("an unrelated TypeScript app can install the archive offline, typecheck a s
       'export {pricing as adapter} from "./pricing-adapter";\n' + await readFile(join(cwd, "quote.proof.ts"), "utf8"));
     const custom = JSON.parse(run(["run", "pud", "check", "custom.proof.ts", "--json"], 2));
     expect(custom.files[0].results[0]).toMatchObject({ status: "unsupported", detail: "Missing pricing model for quote" });
+
+    await writeFile(join(cwd, "pud.config.ts"), [
+      'import { defineConfig } from "@pud/cli";',
+      'import { leanAdapter } from "@pud/cli/lean";',
+      'const pud = defineConfig({ adapter: leanAdapter({ executable: "./missing-lean" }) });',
+      'export default pud;',
+    ].join("\n"));
+    await writeFile(join(cwd, "lean.proof.ts"), [
+      'import pud from "./pud.config";',
+      'import { lean } from "@pud/cli/lean";',
+      'import { quote } from "./quote";',
+      'pud.describe(quote, ({ it, expect }) => {',
+      '  it("subtracts one cent", { cents: pud.bigint() }, ({ cents }) => {',
+      `    expect(quote(cents)).to(pud.bigint().satisfies(lean\`fun (result : Int) => result = \${cents} - 1\`));`,
+      '  }).by(lean`by intro cents; rfl`);',
+      '});',
+    ].join("\n"));
+    await writeFile(join(cwd, "native-types.ts"), [
+      'import { defineConfig, pud } from "@pud/cli";',
+      'import { lean } from "@pud/cli/lean";',
+      'import { quote } from "./quote";',
+      '// @ts-expect-error portable helpers require a configured native scope',
+      'pud.bigint().satisfies(lean`fun _ => True`);',
+      'const rocq = defineConfig({ adapter: { id: "rocq", prepare() { throw new Error("type fixture"); } } });',
+      'rocq.describe(quote, ({ it, expect, use }) => {',
+      '  // @ts-expect-error a Lean module cannot be used with Rocq',
+      '  use(lean.module("./helper.lean"));',
+      '  const claim = it("subtracts one", { cents: rocq.bigint() }, ({ cents }) => {',
+      '    // @ts-expect-error a Lean term cannot be used as a Rocq predicate',
+      '    expect(quote(cents)).to(rocq.bigint().satisfies(lean`fun _ => True`));',
+      '  });',
+      '  // @ts-expect-error a Lean theorem cannot certify a Rocq property',
+      '  claim.by(lean.ref("Quote.correct"));',
+      '});',
+    ].join("\n"));
+    run([tsc, "-p", "."]);
+    const leanUnit = run(["run", "pud", "--emit", "lean.proof.ts"]);
+    expect(leanUnit).toContain("def impl (p0 : Int) : Int");
+    expect(leanUnit).toContain("result = (p0) - 1");
+    expect(leanUnit).toContain("theorem checked : claim");
+
     const notices = await readFile(join(cwd, "node_modules/@pud/cli/THIRD-PARTY-NOTICES"), "utf8");
     expect(notices).toContain("@babel/parser@");
     expect(notices).toContain("chalk@");

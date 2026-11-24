@@ -1,15 +1,13 @@
-import { describe, expect, it, lean } from "../authoring.ts";
+import { lean } from "@pud/cli/lean";
+import pud from "../pud.config.ts";
 import { nestedSum } from "./nested-loop-invariants.ts";
 
-lean.use("./nested-loop-invariants-lemmas.lean");
+pud.describe(nestedSum, ({ it, expect, use }) => {
+  use(lean.module("./nested-loop-invariants-lemmas.lean"));
 
-describe(nestedSum, () => {
   it("counts exactly one visit per ordered pair of positions", {
-    values: lean.array(lean.int()),
+    values: pud.array(pud.bigint()),
   }, ({ values }) => {
-    expect(nestedSum(values)).to(lean.int().satisfies(lean.inline(
-      "fun (values : List Int) (result : Int) => result = (values.length : Int) ^ 2",
-      values,
-    )));
+    expect(nestedSum(values)).to(pud.bigint().satisfies(lean`(fun (values : List Int) (result : Int) => result = (values.length : Int) ^ 2) ${values}`));
   }).by(lean.ref("NestedSum.correct"));
 });

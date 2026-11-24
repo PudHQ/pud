@@ -1,13 +1,11 @@
-import { describe, expect, it, lean } from "../authoring.ts";
+import { lean } from "@pud/cli/lean";
+import pud from "../pud.config.ts";
 import { numCond } from "./truthiness.ts";
 
-describe(numCond, () => {
+pud.describe(numCond, ({ it, expect }) => {
   it("converts zero to zero and every nonzero bigint to one", {
-    value: lean.int(),
+    value: pud.bigint(),
   }, ({ value }) => {
-    expect(numCond(value)).to(lean.int().satisfies(lean.inline(
-      "fun (value result : Int) => result = if value = 0 then 0 else 1",
-      value,
-    )));
+    expect(numCond(value)).to(pud.bigint().satisfies(lean`(fun (value result : Int) => result = if value = 0 then 0 else 1) ${value}`));
   });
 });

@@ -2,15 +2,19 @@ import { readFileSync, realpathSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { Counterexample, Predicate, SubjectSource } from "@pud/model/adapter";
+import type { ProofAssistant } from "@pud/model/assistant";
 import { readManifest, type AutoDefinition, type ProofDefinition, type RocqDefinition } from "@pud/model/manifest";
+import { parseSourceModule } from "@pud/model/source";
 import { Unsupported } from "@pud/model/typescript";
 import { prepareSubject } from "./automatic.ts";
 import { findCounterexample, observedReturn } from "./counterexample.ts";
 import { rocq, ProofFailure } from "./rocq.ts";
+import { checkSuite, emitSuite, findConfig } from "./suite-check.ts";
+import { readSuite, type Suite } from "./suite.ts";
 import { translate, translateSource } from "./translate.ts";
 
 export interface CheckResult {
-  status: "proved" | "disproved" | "unproved" | "unsupported" | "error";
+  status: "proved" | "disproved" | "unproved" | "unsupported" | "error" | "todo";
   name?: string;
   subject?: string;
   spec?: string;
@@ -19,9 +23,18 @@ export interface CheckResult {
   detail?: string;
   diagnostic?: string;
   counterexample?: Counterexample;
+  assistant?: string;
 }
 
 export interface CheckReport { file: string; results: CheckResult[] }
+
+export interface CheckOptions {
+  adapter?: ProofAssistant;
+}
+
+export interface EmitOptions extends CheckOptions {
+  property?: string;
+}
 
 function location(p: ProofDefinition) {
   return { name: p.name, subject: p.subject, spec: p.spec, property: p.property?.expression, line: p.property?.line };
@@ -156,16 +169,48 @@ class SourceSnapshots {
 
 type ImportPath = { path: string; resolveAgain: () => string };
 type Plan = { file: string; error: CheckResult }
+  | { file: string; origin: string; suite: Suite; config?: string; dependencies: Set<string>; results: CheckResult[] }
   | { file: string; definitions: ProofDefinition[]; results: Map<ProofDefinition, CheckResult>; imports: ImportPath[] };
 
+function snapshotReader(snapshots: SourceSnapshots, dependencies?: Set<string>) {
+  return (file: string) => {
+    const path = resolve(file);
+    dependencies?.add(path);
+    const input = snapshots.read(path);
+    if ("error" in input) throw input.error;
+    return input;
+  };
+}
+
+function remappedImports(imports: readonly ImportPath[]) {
+  const changed = new Map<string, Error>();
+  for (const { path, resolveAgain } of imports) {
+    try { if (resolveAgain() === path) continue; } catch { /* the import may now be missing or unsupported */ }
+    changed.set(path, new Error(`The import of ${path} changed during verification. Rerun pud check.`));
+  }
+  return changed;
+}
+
 /** Check a batch against the same sidecars, subjects, linked scripts and adapter-declared model files. */
-export async function checkFiles(files: readonly string[]): Promise<CheckReport[]> {
+export async function checkFiles(files: readonly string[], options: CheckOptions = {}): Promise<CheckReport[]> {
   const snapshots = new SourceSnapshots();
   const dependencies = new Map<ProofDefinition, Set<string>>();
   const plans = files.map((file): Plan => {
     try {
       const manifest = snapshots.read(file);
       if ("error" in manifest) throw manifest.error;
+      if (!file.endsWith(".proof.ts")) throw new Error(`Expected a *.proof.ts file: ${file}`);
+      const config = findConfig(manifest.canonical);
+      const suite = readSuite(file, manifest.canonical, manifest.source, parseSourceModule(file, manifest.source), config);
+      if (suite) {
+        if (suite.properties.some(property => property.kind === "claim")) {
+          snapshots.read(suite.subject.file);
+          if (config && !options.adapter) snapshots.read(config);
+          for (const module of suite.modules) snapshots.read(module.file);
+        }
+        return { file, suite, config, origin: manifest.canonical, dependencies: new Set(), results: [] };
+      }
+      if (options.adapter) throw new Unsupported("The proof assistant option applies to describe() suites.");
       const imports: ImportPath[] = [];
       const definitions = readManifest(file, manifest.source, {
         origin: manifest.canonical,
@@ -181,6 +226,10 @@ export async function checkFiles(files: readonly string[]): Promise<CheckReport[
 
   for (const plan of plans) {
     if ("error" in plan) continue;
+    if ("suite" in plan) {
+      plan.results = await checkSuite(plan.suite, plan.config, options, snapshotReader(snapshots, plan.dependencies));
+      continue;
+    }
     const { definitions, results } = plan;
     for (const p of definitions) {
       if (results.has(p)) continue;
@@ -208,11 +257,19 @@ export async function checkFiles(files: readonly string[]): Promise<CheckReport[
   return plans.map(plan => {
     const { file } = plan, manifestChange = changed.get(resolve(file));
     if ("error" in plan) return { file, results: [manifestChange ? failure(manifestChange) : plan.error] };
-    const remapped = new Map<string, Error>();
-    for (const { path, resolveAgain } of plan.imports) {
-      try { if (resolveAgain() === path) continue; } catch { /* the import may now be missing or unsupported */ }
-      remapped.set(path, new Error(`The import of ${path} changed during verification. Rerun pud check.`));
+    if ("suite" in plan) {
+      const dependency = [...plan.dependencies].find(path => changed.has(path));
+      const configChange = !options.adapter && plan.results.some(result => result.status !== "todo") && findConfig(plan.origin) !== plan.config
+        ? new Error(`The project configuration for ${file} changed during verification. Rerun pud check.`) : undefined;
+      const remapped = plan.results.some(result => result.status !== "todo")
+        ? remappedImports(plan.suite.imports).values().next().value : undefined;
+      const change = configChange ?? remapped ?? (dependency ? changed.get(dependency) : undefined);
+      return { file, results: plan.results.map(result => {
+        const error = manifestChange ?? (result.status !== "todo" ? change : undefined);
+        return error ? { ...failure(error), name: result.name, line: result.line, subject: result.subject, assistant: result.assistant } : result;
+      }) };
     }
+    const remapped = remappedImports(plan.imports);
     return { file, results: plan.definitions.map(p => {
       const proofInput = p.proof !== undefined ? p.proof : p.adapter?.file;
       const dependency = [...(dependencies.get(p) ?? [])].find(path => changed.has(path));
@@ -224,8 +281,8 @@ export async function checkFiles(files: readonly string[]): Promise<CheckReport[
 }
 
 /** Check one sidecar without writing reports to stdout or importing the sidecar as executable JS. */
-export async function check(file: string): Promise<CheckReport> {
-  return (await checkFiles([file]))[0]!;
+export async function check(file: string, options?: CheckOptions): Promise<CheckReport> {
+  return (await checkFiles([file], options))[0]!;
 }
 
 function select(definitions: ProofDefinition[], name?: string): ProofDefinition {
@@ -243,8 +300,24 @@ function select(definitions: ProofDefinition[], name?: string): ProofDefinition 
 }
 
 /** Emit the same verification unit as pud --emit, without running a prover. */
-export async function emit(file: string | ProofDefinition, selector?: string): Promise<string> {
-  const p = typeof file === "string" ? select(readManifest(file), selector) : file;
+export async function emit(file: string | ProofDefinition, selector?: string | EmitOptions): Promise<string> {
+  const options = typeof selector === "string" ? { property: selector } : selector ?? {};
+  if (typeof file === "string") {
+    if (!file.endsWith(".proof.ts")) throw new Error(`Expected a *.proof.ts file: ${file}`);
+    const snapshots = new SourceSnapshots(), read = snapshotReader(snapshots);
+    const manifest = read(file);
+    const config = findConfig(manifest.canonical);
+    const suite = readSuite(file, manifest.canonical, manifest.source, parseSourceModule(file, manifest.source), config);
+    if (suite) {
+      const unit = await emitSuite(suite, config, options, read);
+      const changed = snapshots.changes().values().next().value ?? remappedImports(suite.imports).values().next().value;
+      if (changed) throw changed;
+      if (!options.adapter && findConfig(manifest.canonical) !== config) throw new Error(`The project configuration for ${file} changed during emission.`);
+      return unit;
+    }
+  }
+  if (options.adapter) throw new Unsupported("The proof assistant option applies to describe() suites.");
+  const p = typeof file === "string" ? select(readManifest(file), options.property) : file;
   if (p.proof !== undefined) return rocq.emit(translate(p.source, p.subject, p.property));
   const { subject, backend } = await prepareSubject(p);
   return backend.emit(subject.model, subject.bind(p.property).claim);

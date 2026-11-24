@@ -4,7 +4,7 @@ import { terminalInk, verdictColor } from "./terminal.ts";
 export function display(file: string, r: CheckResult, verbose: boolean, out: NodeJS.WriteStream) {
   const writer = (line: string) => out.write(line + "\n");
   const ink = terminalInk(out);
-  const badges = { proved: "PASS", disproved: "FAIL", unproved: "UNPROVED", unsupported: "UNSUPPORTED", error: "ERROR" } as const;
+  const badges = { proved: "PASS", disproved: "FAIL", unproved: "UNPROVED", unsupported: "UNSUPPORTED", error: "ERROR", todo: "TODO" } as const;
   const verdict = badges[r.status];
   const badge = verdictColor(ink, verdict).bold(verdict.padEnd(9));
   const target = r.name ?? (r.spec ? `${r.subject} vs ${r.spec}` : r.subject);
@@ -41,7 +41,7 @@ export function displayReport({ file, results }: CheckReport, verbose: boolean, 
 }
 
 export function displaySummary(counts: Record<CheckResult["status"], number>, elapsedMs: number, out: NodeJS.WriteStream) {
-  const labels = { proved: "passed", disproved: "failed", unproved: "unproved", unsupported: "unsupported", error: "errors" };
+  const labels = { proved: "passed", disproved: "failed", unproved: "unproved", unsupported: "unsupported", error: "errors", todo: "todo" };
   const tally = (Object.keys(counts) as (keyof typeof counts)[]).filter(k => counts[k]).map(k => `${counts[k]} ${labels[k]}`);
   out.write(`\n${tally.join(" · ")}  ${(elapsedMs / 1000).toFixed(1)}s\n`);
 }

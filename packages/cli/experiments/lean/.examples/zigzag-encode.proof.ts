@@ -1,15 +1,16 @@
-import { describe, expect, it, lean } from "../authoring.ts";
+import { lean } from "@pud/cli/lean";
+import pud from "../pud.config.ts";
 import { encode } from "./zigzag.ts";
 
-lean.use("./zigzag-spec.lean");
+pud.describe(encode, ({ it, expect, use }) => {
+  use(lean.module("./zigzag-spec.lean"));
 
-describe(encode, () => {
   it("encodes signed values as nonnegative codes with the correct parity", {
-    value: lean.int(),
+    value: pud.bigint(),
   }, ({ value }) => {
-    expect(encode(value)).to(lean.int().satisfies(lean.ref("ZigZag.represents", value)));
-  }).by(lean.inline(`by
+    expect(encode(value)).to(pud.bigint().satisfies(lean.ref("ZigZag.represents", value)));
+  }).by(lean`by
   intro value
   simp [ZigZag.represents, impl, Id.run]
-  split <;> omega`));
+  split <;> omega`);
 });

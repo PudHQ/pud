@@ -1,13 +1,11 @@
-import { describe, expect, it, lean } from "../authoring.ts";
+import { lean } from "@pud/cli/lean";
+import pud from "../pud.config.ts";
 import { boolCond } from "./truthiness.ts";
 
-describe(boolCond, () => {
+pud.describe(boolCond, ({ it, expect }) => {
   it("converts true to one and false to zero", {
-    value: lean.bool(),
+    value: pud.boolean(),
   }, ({ value }) => {
-    expect(boolCond(value)).to(lean.int().satisfies(lean.inline(
-      "fun (value : Bool) (result : Int) => result = if value then 1 else 0",
-      value,
-    )));
+    expect(boolCond(value)).to(pud.bigint().satisfies(lean`(fun (value : Bool) (result : Int) => result = if value then 1 else 0) ${value}`));
   });
 });

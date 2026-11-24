@@ -82,7 +82,9 @@ Put a `*.proof.ts` beside a function. Import `proof` and the function, then expo
 
 For a first run, copy [seats.ts](packages/cli/demo/seats.ts) and [seats.proof.ts](packages/cli/demo/seats.proof.ts) into your app, then run `bunx --no-install pud check`. Change `available - requested` to `available + requested` and rerun to see the input that breaks the rule.
 
-Pud checks properties automatically with Dafny, and can also check an explicit Rocq proof. To check the debit properties in this checkout, run
+Default-export properties use Dafny for automatic checks or Rocq for linked proofs. For a Vitest-style suite with schema chains, select a proof assistant in `pud.config.ts`. Lean is available through `@pud/cli/lean`. [Configure a proof assistant](packages/cli/README.md#configure-a-proof-assistant)
+
+To check the debit properties in this checkout, run
 
 ```sh
 bun run pud check experiments/debit-endpoint/debit.proof.ts
@@ -106,6 +108,7 @@ Dafny is set up on first use and shared across projects in your user cache. Pud 
 | [Pud model](packages/model/src/model.ts)                                        | Typed expressions, local bindings, branches, returns and domain-specific operations. The data structures have no parser or solver dependencies.                                                                                                                                              |
 | [TypeScript frontend](packages/model/src/typescript.ts)                         | Read ordinary control flow from the parsed function. The pure frontend binds `bigint` and `boolean`. A domain adapter can give meaning to additional values and effects.                                                                                                                     |
 | [Adapter and backend interfaces](packages/model/src/adapter.ts)                 | A domain adapter models an export, binds each predicate, and replays the original implementation. A proof backend emits and verifies a claim and can suggest inputs for replay. Adapter authors can import the types from `@pud/cli`. Custom adapters and backends are trusted project code. |
+| [Proof assistant interface](packages/model/src/assistant.ts)                    | A configured assistant prepares the TypeScript snapshot, emits a claim from the suite's schemas and constraints, and returns an individual verdict for each claim. [Lean adapter](packages/cli/src/lean/index.ts) |
 | [Dafny](packages/model/src/dafny.ts) and [Rocq](packages/cli/src/rocq-model.ts) | Render the shared model. Dafny checks automatic properties. Rocq checks explicit proofs of pure functions.                                                                                                                                                                                   |
 | [Postgres replay](packages/postgres/src/postgres.ts)                            | Apply application migrations to an isolated PGlite database. The example’s separate [ledger adapter](experiments/debit-endpoint/ledger.ts) supplies its formal SQL semantics.                                                                                                                |
 

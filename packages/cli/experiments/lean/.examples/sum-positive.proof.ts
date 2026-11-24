@@ -1,13 +1,14 @@
-import { describe, expect, it, lean } from "../authoring.ts";
+import { lean } from "@pud/cli/lean";
+import pud from "../pud.config.ts";
 import { sumPositive } from "./sum-positive.ts";
 
-lean.use("./sum-positive-lemmas.lean");
+pud.describe(sumPositive, ({ it, expect, use }) => {
+  use(lean.module("./sum-positive-lemmas.lean"));
 
-describe(sumPositive, () => {
   it("returns a nonnegative total for every input list", {
-    values: lean.array(lean.int()),
+    values: pud.array(pud.bigint()),
   }, ({ values }) => {
-    expect(sumPositive(values)).to(lean.int().gte(0n));
+    expect(sumPositive(values)).to(pud.bigint().gte(0n));
   }).by(lean.ref("PositiveSum.nonnegative"));
 
   it.todo("adding a nonpositive element leaves the sum unchanged");

@@ -1,12 +1,13 @@
-import { describe, expect, it, lean } from "../authoring.ts";
+import { lean } from "@pud/cli/lean";
+import pud from "../pud.config.ts";
 import { isSorted } from "./is-sorted.ts";
 
-lean.use("./is-sorted-lemmas.lean");
+pud.describe(isSorted, ({ it, expect, use }) => {
+  use(lean.module("./is-sorted-lemmas.lean"));
 
-describe(isSorted, () => {
   it("returns true exactly when every adjacent pair is nondecreasing", {
-    values: lean.array(lean.int()),
+    values: pud.array(pud.bigint()),
   }, ({ values }) => {
-    expect(isSorted(values)).to(lean.bool().satisfies(lean.ref("Sorted.adjacentPairs", values)));
+    expect(isSorted(values)).to(pud.boolean().satisfies(lean.ref("Sorted.adjacentPairs", values)));
   }).by(lean.ref("Sorted.correct"));
 });
