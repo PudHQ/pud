@@ -46,7 +46,7 @@ The first command reports one `PASS`. The second prints the file that defines `i
 
 The runner checks that the supplied theorem has the type of the emitted claim and audits its axiom dependencies. A `PASS` establishes the claim over the generated model. Connecting that claim to the TypeScript call depends on the lowering and the model’s input domain, here a dense array of bigints. An `UNPROVED` result carries the Lean diagnostic. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]]
 
-The search example entered the suite alongside two other ports that exercise different parts of the translator. [[First Mate's Log/Verification/Lean/random-lemmascript-examples|What the LemmaScript ports exercised]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|How the adapter boundary was tested]]
+The search example entered the suite alongside two other ports that exercise different parts of the translator. [[First Mate's Log/Verification/Lean/random-lemmascript-examples|What the LemmaScript ports exercised]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Calls, exceptions, and termination|How Pud, LemmaScript, and Lynx model execution]]
 
 ## State a quantified property
 
