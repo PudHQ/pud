@@ -1,22 +1,23 @@
 import { Chalk } from "chalk";
+import { pudBanner, verdictBadge, verdictMark } from "../../packages/cli/src/terminal.ts";
 import type { ContractResult, Report } from "./lib.ts";
 import type { ReplayWitness } from "./replay.ts";
 
 export const ink = new Chalk({ level: process.env.NO_COLOR === undefined ? undefined : 0 });
 
 export function banner(subject: string): string {
-  return `🍮 ${ink.bold("pud")}  ${subject}`;
+  return pudBanner(process.stdout, subject);
 }
 
 const badges = {
-  proved: ink.bgGreen.black.bold(" PASS "),
-  disproved: ink.bgRed.white.bold(" FAIL "),
-  unproved: ink.bgYellow.black.bold(" UNPROVED "),
-  unsupported: ink.bgYellow.black.bold(" UNSUPPORTED "),
-  error: ink.bgRed.white.bold(" ERROR "),
+  proved: verdictBadge(ink, "PASS"),
+  disproved: verdictBadge(ink, "FAIL"),
+  unproved: verdictBadge(ink, "UNPROVED"),
+  unsupported: verdictBadge(ink, "UNSUPPORTED"),
+  error: verdictBadge(ink, "ERROR"),
 };
 
-const marks = { proved: ink.green("✓"), disproved: ink.red("×"), unproved: ink.yellow("?") };
+const marks = { proved: verdictMark(ink, "PASS"), disproved: verdictMark(ink, "FAIL"), unproved: verdictMark(ink, "UNPROVED") };
 const verdicts = [["disproved", "failed"], ["unproved", "unproved"], ["proved", "proved"]] as const;
 
 function tally(contracts: ContractResult[]): string {

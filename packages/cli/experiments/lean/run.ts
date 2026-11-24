@@ -1,12 +1,19 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { leanReporter, type LeanResult } from "./reporter.ts";
 import { readSidecar, type Property } from "./sidecar.ts";
 import { leanCommand } from "./toolchain.ts";
 
 const examples = fileURLToPath(new URL("./.examples/", import.meta.url));
+const usage = `Usage: bun run demo:lean [FILE.proof.ts ...]
+       bun run demo:lean --emit FILE.proof.ts [PROPERTY]
+
+With no files, check every Lean example.
+--emit     Print the generated Lean for one property.
+--help     Show this help.`;
 const trustedAxioms = new Set(["propext", "Quot.sound", "Classical.choice"]);
 const autoProof = `by
   simp only [claim]
@@ -84,8 +91,7 @@ function audit(module: string, lean: ReturnType<typeof leanAt>) {
 function check(file: string) {
   const input = snapshots();
   const suite = readSidecar(resolve(file), input.read);
-  const location = relative(process.cwd(), file);
-  const results: { status: "PASS" | "FAIL" | "TODO"; property: Property; diagnostic?: string }[] = [];
+  const results: LeanResult[] = [];
   const dir = mkdtempSync(join(tmpdir(), "pud-lean-"));
   try {
     const lean = leanAt(dir);
@@ -96,8 +102,9 @@ function check(file: string) {
       return module;
     });
     for (const [i, property] of suite.properties.entries()) {
+      const { name, line } = property;
       if (property.kind === "todo") {
-        results.push({ status: "TODO", property });
+        results.push({ status: "TODO", name, line });
         continue;
       }
       try {
@@ -105,27 +112,26 @@ function check(file: string) {
         if (!suite.subject) throw new Error("Missing subject for an active property.");
         lean(module, generate(suite.subject.definition, property, imports), true);
         audit(module, lean);
-        results.push({ status: "PASS", property });
+        results.push({ status: "PASS", name, line });
       } catch (error) {
-        results.push({ status: "FAIL", property, diagnostic: (error as Error).message });
+        results.push({ status: "FAIL", name, line, diagnostic: (error as Error).message });
       }
     }
     input.confirm();
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  for (const { status, property, diagnostic } of results) {
-    const message = `${status.padEnd(5)} ${property.name}  ${location}:${property.line}`;
-    if (diagnostic) console.error(`${message}\n${indent(diagnostic)}`);
-    else console.log(message);
-  }
-  return results.every(result => result.status !== "FAIL");
+  return results;
 }
 
 function main(args: string[]) {
+  if (args.length === 1 && (args[0] === "--help" || args[0] === "-h")) {
+    console.log(usage);
+    return 0;
+  }
   if (args[0] === "--emit") {
     const [, file, title] = args;
-    if (!file || args.length > 3) throw new Error("Usage: bun run demo:lean --emit FILE.proof.ts [PROPERTY]");
+    if (!file || args.length > 3) throw new Error(usage);
     const input = snapshots();
     const suite = readSidecar(resolve(file), input.read);
     const active = suite.properties.filter(property => property.kind === "claim");
@@ -135,13 +141,15 @@ function main(args: string[]) {
     process.stdout.write(generate(suite.subject.definition, matches[0]!, suite.support.map((_, i) => `PudSupport${i}`)));
     return 0;
   }
+  if (args.some(arg => arg.startsWith("-"))) throw new Error(usage);
   const files = args.length ? args : readdirSync(examples).filter(file => file.endsWith(".proof.ts")).sort().map(file => join(examples, file));
-  let passed = true;
+  const reporter = leanReporter(files);
   for (const file of files) {
-    try { if (!check(file)) passed = false; }
-    catch (error) { console.error(`ERROR ${relative(process.cwd(), file)}\n${indent((error as Error).message)}`); passed = false; }
+    const started = performance.now();
+    try { reporter.report(file, check(file), performance.now() - started); }
+    catch (error) { reporter.error(file, (error as Error).message); }
   }
-  return passed ? 0 : 1;
+  return reporter.finish();
 }
 
 if (import.meta.main) {

@@ -1,18 +1,12 @@
-import chalk, { chalkStderr } from "chalk";
 import type { CheckReport, CheckResult } from "./check.ts";
-
-if (process.env.NO_COLOR) {
-  chalk.level = 0;
-  chalkStderr.level = 0;
-}
+import { terminalInk, verdictColor } from "./terminal.ts";
 
 export function display(file: string, r: CheckResult, verbose: boolean, out: NodeJS.WriteStream) {
-  const ok = r.status === "proved";
   const writer = (line: string) => out.write(line + "\n");
-  const ink = out === process.stderr ? chalkStderr : chalk;
-  const badges = { proved: "PASS", disproved: "FAIL", unproved: "UNPROVED", unsupported: "UNSUPPORTED", error: "ERROR" };
-  const paint = ok ? ink.green : r.status === "unproved" || r.status === "unsupported" ? ink.yellow : ink.red;
-  const badge = paint.bold(badges[r.status].padEnd(9));
+  const ink = terminalInk(out);
+  const badges = { proved: "PASS", disproved: "FAIL", unproved: "UNPROVED", unsupported: "UNSUPPORTED", error: "ERROR" } as const;
+  const verdict = badges[r.status];
+  const badge = verdictColor(ink, verdict).bold(verdict.padEnd(9));
   const target = r.name ?? (r.spec ? `${r.subject} vs ${r.spec}` : r.subject);
   const where = ink.dim(r.line ? `${file}:${r.line}` : file);
   writer(`${badge}  ${target ? target + "  " : ""}${where}`);

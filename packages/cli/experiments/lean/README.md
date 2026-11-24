@@ -10,6 +10,8 @@ Run `bun run setup` from the repository root. If the Bun dependencies are alread
 bun run demo:lean
 ```
 
+In a terminal, the report groups properties by file and shows timings, verdicts, and the source location of any Lean diagnostic. Set `NO_COLOR=1` for monochrome output. Piped output uses plain status rows and a run summary.
+
 To use `lean` directly in your current macOS or Linux shell, run this from the repository root.
 
 ```sh

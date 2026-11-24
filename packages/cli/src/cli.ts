@@ -3,6 +3,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { display, displayReport, displaySummary } from "./reporter.ts";
 import { checkFiles, emit } from "./check.ts";
+import { isInteractiveTerminal, pudBanner } from "./terminal.ts";
 
 const synopsis = `Usage: pud [check] [DIR | FILE.proof.ts ...] [--verbose | --json]
        pud --emit FILE.proof.ts [SUBJECT[.PROPERTY]]`;
@@ -53,6 +54,7 @@ async function main(args: string[]): Promise<number> {
   if (json) console.log(JSON.stringify({ files: reports, counts, ...(errors.length ? { errors } : {}) }, null, 2));
   else {
     const out = code ? process.stderr : process.stdout;
+    if (reports.length && isInteractiveTerminal(out)) out.write(`\n${pudBanner(out, "Proof check")}\n\n`);
     for (const report of reports) displayReport(report, verbose, out);
     for (const error of errors) out.write(error + "\n");
     if (reports.length) displaySummary(counts, performance.now() - started, out);
