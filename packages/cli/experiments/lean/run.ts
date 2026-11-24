@@ -1,9 +1,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { check, emit } from "@pud/cli";
+import { checkFiles, emit, type CheckProgress } from "@pud/cli";
 import { leanAdapter } from "@pud/cli/lean";
 import { leanReporter, type LeanResult } from "./reporter.ts";
+import { terminalProgress } from "../../src/terminal-progress.ts";
 
 const examples = fileURLToPath(new URL("./.examples/", import.meta.url));
 const usage = `Usage: bun run demo:lean [FILE.proof.ts ...]
@@ -29,9 +30,19 @@ async function main(args: string[]) {
   if (args.some(arg => arg.startsWith("-"))) throw new Error(usage);
   const files = args.length ? args : readdirSync(examples).filter(file => file.endsWith(".proof.ts")).sort().map(file => join(examples, file));
   const reporter = leanReporter(files);
-  for (const file of files) {
-    const started = performance.now();
-    const { results } = await check(file, { adapter });
+  const progress = terminalProgress();
+  const times: number[] = [];
+  let started = performance.now();
+  function onProgress(event: CheckProgress) {
+    if (event.kind === "suite" || event.kind === "validating") {
+      const now = performance.now();
+      if (event.kind === "validating" || event.index > 0) times.push(now - started);
+      started = now;
+    }
+    progress?.update(event);
+  }
+  const reports = await checkFiles(files, { adapter, onProgress }).finally(() => progress?.close());
+  for (const [index, { file, results }] of reports.entries()) {
     const checks: LeanResult[] = [];
     for (const result of results) {
       if (!result.name || !result.line) {
@@ -41,7 +52,7 @@ async function main(args: string[]) {
       checks.push({ name: result.name, line: result.line, diagnostic: result.diagnostic ?? result.detail,
         status: result.status === "proved" ? "PASS" : result.status === "todo" ? "TODO" : "FAIL" });
     }
-    if (checks.length) reporter.report(file, checks, performance.now() - started);
+    if (checks.length) reporter.report(file, checks, times[index] ?? 0);
   }
   return reporter.finish();
 }

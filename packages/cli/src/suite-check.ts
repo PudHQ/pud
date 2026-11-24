@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Unsupported } from "@pud/model/adapter";
 import type { NativeProofTerm, ProofAssistant, ProofClaim, ProofConstraint, ProofModule, ProofPredicate } from "@pud/model/assistant";
-import type { CheckOptions, CheckResult, EmitOptions } from "./check.ts";
+import type { CheckOptions, CheckResult, EmitOptions, ItemProgress } from "./check.ts";
 import { bindClaim, type Suite } from "./suite.ts";
 
 type Read = (file: string) => { canonical: string; source: string };
@@ -98,11 +98,12 @@ function failed(error: unknown): CheckResult {
   return { status: error instanceof Unsupported ? "unsupported" : "error", detail: error instanceof Error ? error.message : String(error) };
 }
 
-export async function checkSuite(suite: Suite, config: string | undefined, options: CheckOptions, read: Read): Promise<CheckResult[]> {
+export async function checkSuite(suite: Suite, config: string | undefined, options: CheckOptions, read: Read, report?: ItemProgress): Promise<CheckResult[]> {
   const results = new Map<ActiveProperty, CheckResult>();
   const active = suite.properties.filter(property => property.kind === "claim");
   let assistant: string | undefined;
   if (active.length) {
+    const indices = report && new Map(suite.properties.map((property, index) => [property, index]));
     try {
       const { adapter, subject } = await prepare(suite, config, options, read);
       assistant = adapter.id;
@@ -112,10 +113,19 @@ export async function checkSuite(suite: Suite, config: string | undefined, optio
           const claim = bindClaim(suite, property, subject);
           checkAssistant(claim, assistant);
           accepted.push({ property, claim });
-        } catch (error) { results.set(property, failed(error)); }
+        } catch (error) {
+          results.set(property, failed(error));
+          if (indices) report?.("finished", [indices.get(property)!]);
+        }
       }
       if (accepted.length) {
-        const outcomes = await subject.verify(accepted.map(item => item.claim), modulesFor(suite, assistant, read));
+        const running = indices && accepted.map(({ property }) => indices.get(property)!);
+        if (running) report?.("running", running);
+        const outcomes = await subject.verify(accepted.map(item => item.claim), modulesFor(suite, assistant, read),
+          report && running ? (index, state) => {
+            const item = running[index];
+            if (item !== undefined) report(state, [item]);
+          } : undefined);
         if (!Array.isArray(outcomes) || outcomes.length !== accepted.length || accepted.some((_, index) =>
           !["proved", "disproved", "unproved", "unsupported", "error"].includes(outcomes[index]?.status ?? ""))) {
           throw new Error("The proof assistant must return one verdict per submitted claim.");
@@ -128,6 +138,7 @@ export async function checkSuite(suite: Suite, config: string | undefined, optio
     } catch (error) {
       for (const property of active) if (!results.has(property)) results.set(property, failed(error));
     }
+    if (indices) report?.("finished", active.map(property => indices.get(property)!));
   }
   return suite.properties.map(property => ({
     ...(property.kind === "todo" ? { status: "todo" as const } : results.get(property)!),

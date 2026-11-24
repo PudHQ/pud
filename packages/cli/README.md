@@ -49,6 +49,8 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 
 Run `pud check clamp.proof.ts` to certify the claim, or `pud --emit clamp.proof.ts` to inspect the generated unit. `it.todo(title)` reports a pending property without asking the assistant for a verdict.
 
+The terminal shows queued, checking, and checked properties with elapsed time and a thin white bar for total progress. The final verdict comes after the input snapshot check. Piped output and `--json` give the final report without terminal animation.
+
 ### Check calls and exceptions
 
 With the Lean adapter, `describe(encode, …)` supplies the input signature and the observation can compose imported functions.
@@ -99,6 +101,8 @@ const unit = await emit("clamp.proof.ts", { adapter, property: "keeps the result
 `checkFiles(files, { adapter })` applies the same override to a batch. The explicit option takes precedence over project config. Pud checks native term IDs against the selected adapter before handing it a claim.
 
 Another assistant can implement `ProofAssistant` from `@pud/cli`. Its `prepare` method reads the named TypeScript export from the supplied snapshot and returns its signature, an emitter, and a verifier. Pud binds the sidecar's premises and assertions to that signature and supplies the verifier one claim per active property. For a custom native tag, import `native` from `@pud/cli` and declare `const term = native("assistant-id")` at file scope before `pud.describe`. [Adapter contract](../model/src/assistant.ts)
+
+Use `checkFiles(files, { onProgress })` for a live view. Suite events declare the queue and total item count. Running and finished events identify the items in the current suite, and the validating event marks the start of the input snapshot check. The returned reports carry the verdicts.
 
 ## Development
 

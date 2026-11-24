@@ -73,7 +73,8 @@ export interface PreparedProofAssistant {
   inspectCall?(call: ProofCall): ProofType;
   errors?: readonly ProofErrorKind[];
   emit(claim: ProofClaim, modules: readonly ProofModule[]): string | Promise<string>;
-  verify(claims: readonly ProofClaim[], modules: readonly ProofModule[]): Promise<readonly ProofOutcome[]>;
+  verify(claims: readonly ProofClaim[], modules: readonly ProofModule[],
+    onClaim?: (index: number, state: "running" | "finished") => void): Promise<readonly ProofOutcome[]>;
 }
 
 export interface ProofAssistant<Id extends string = string> {

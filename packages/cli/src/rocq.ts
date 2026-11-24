@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -6,25 +5,24 @@ import type { RocqDefinition } from "@pud/model/manifest";
 import type { ProofBackend } from "@pud/model/adapter";
 import type { Model } from "./translate.ts";
 import { subjectModule } from "./rocq-model.ts";
+import { runProver } from "./prover-process.ts";
 
 export class ProofFailure extends Error {}
 
 type LinkedProof = RocqDefinition & { script: string };
 
-function checkProof(manifest: LinkedProof, model: Model) {
+async function checkProof(manifest: LinkedProof, model: Model) {
   const dir = mkdtempSync(join(tmpdir(), "pud-"));
   const cmd = process.env.ROCQ || "rocq";
   const binary = cmd.includes("/") ? resolve(cmd) : cmd;
 
-  function compile(file: string, problem: string, Failure: new (message: string) => Error = Error) {
-    const run = spawnSync(binary, ["compile", "-q", "-Q", ".", "Pud", file], {
-      cwd: dir, encoding: "utf8", timeout: 60_000,
-    });
-    if (run.error && "code" in run.error && run.error.code === "ENOENT") {
-      throw new Error("Rocq was not found. Put rocq on PATH or set ROCQ to its executable.");
-    }
-    if (run.error) throw new Error(`Could not compile ${file}: ${run.error.message}`);
-    if (run.signal) throw new Error(`Rocq was stopped by ${run.signal}.`);
+  async function compile(file: string, problem: string, Failure: new (message: string) => Error = Error) {
+    const run = await runProver(binary, ["compile", "-q", "-Q", ".", "Pud", file], { cwd: dir, timeout: 60_000 })
+      .catch(error => {
+        if (error.code === "ENOENT") throw new Error("Rocq was not found. Put rocq on PATH or set ROCQ to its executable.");
+        if (error.signal) throw new Error(`Rocq was stopped by ${error.signal}.`);
+        throw new Error(`Could not compile ${file}: ${error.message}`);
+      });
     if (run.status !== 0 || !existsSync(join(dir, file + "o"))) {
       const log = [run.stdout, run.stderr].filter(Boolean).join("\n").trim()
         .replace(/"(?:\.\/)?Linked\.v"/g, () => JSON.stringify(manifest.proof));
@@ -35,9 +33,9 @@ function checkProof(manifest: LinkedProof, model: Model) {
 
   try {
     writeFileSync(join(dir, "Subject.v"), subjectModule(model));
-    compile("Subject.v", "Rocq could not compile the generated model. Check that Rocq 9 and its Stdlib are installed.");
+    await compile("Subject.v", "Rocq could not compile the generated model. Check that Rocq 9 and its Stdlib are installed.");
     writeFileSync(join(dir, "Linked.v"), manifest.script);
-    compile("Linked.v", "The linked proof did not compile.", ProofFailure);
+    await compile("Linked.v", "The linked proof did not compile.", ProofFailure);
 
     // Check the exact type in a fresh module. Only this invocation's output
     // counts: diagnostics printed by the linked script cannot attest to closure.
@@ -49,7 +47,7 @@ function checkProof(manifest: LinkedProof, model: Model) {
       "",
     ].join("\n"));
     const claim = manifest.property ? "the reviewed TypeScript property (Subject.claim)" : `Subject.agrees ${manifest.spec}`;
-    const assumptions = compile("Audit.v", `Expected ${manifest.theorem} to prove ${claim}.`, ProofFailure);
+    const assumptions = await compile("Audit.v", `Expected ${manifest.theorem} to prove ${claim}.`, ProofFailure);
     if (assumptions !== "Closed under the global context") {
       throw new ProofFailure(`Rocq did not certify an assumption-free theorem:\n${assumptions || "(no assumptions report)"}`);
     }
@@ -62,9 +60,7 @@ function checkProof(manifest: LinkedProof, model: Model) {
 export const rocq = {
   emit: (model: Model) => subjectModule(model),
   async verify(model: Model, claims: readonly LinkedProof[]) {
-    return claims.map(claim => {
-      checkProof(claim, model);
-      return true;
-    });
+    for (const claim of claims) await checkProof(claim, model);
+    return claims.map(() => true);
   },
 } satisfies ProofBackend<Model, LinkedProof>;

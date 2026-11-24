@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { check, emit, type ProofAssistant } from "../src/index.ts";
+import { check, checkFiles, emit, type CheckProgress, type ProofAssistant } from "../src/index.ts";
 import { leanCommand } from "../src/lean/command.ts";
 import { leanAdapter } from "../src/lean/index.ts";
 
@@ -44,25 +44,31 @@ async function evaluate(directory: string, file: string, inputs: readonly Input[
   const unit = await emit(file, { adapter, property });
   const stop = unit.indexOf("\ntheorem checked : claim :=");
   if (stop === -1) throw new Error("Expected an emitted proof unit.");
-  const applications = inputs.map(values => ["Pud.impl", ...values.map(value =>
+  const applications = (functionName: string) => inputs.map(values => [functionName, ...values.map(value =>
     typeof value === "bigint" ? `(${value} : Int)` : String(value))].join(" ")).join(",\n  ");
-  const observe = fallible
-    ? `fun outcome => match outcome with
+  const observeOutcome = `fun outcome => match outcome with
       | .ok value => "ok:" ++ toString value
       | .error .error => "throw:Error"
       | .error .rangeError => "throw:RangeError"
-      | .error .typeError => "throw:TypeError"`
-    : 'fun value => "ok:" ++ toString value';
+      | .error .typeError => "throw:TypeError"`;
+  const observe = fallible ? observeOutcome : 'fun value => "ok:" ++ toString value';
+  const source = unit.includes("\ndef implSource ")
+    ? `\n#eval String.intercalate "," ([${applications("Pud.implSource")}].map (fun e => (${observeOutcome}) (Pud.Scalar.evaluate e)))\n`
+    : "";
   const modelFile = join(directory, "Model.lean");
   await writeFile(modelFile, unit.slice(0, stop) + `\nend Pud
 
-#eval String.intercalate "," ([${applications}].map (${observe}))
-`);
+#eval String.intercalate "," ([${applications("Pud.impl")}].map (${observe}))
+${source}`);
   const run = Bun.spawnSync([command.binary, modelFile], {
     cwd: directory, env: command.env, stdout: "pipe", stderr: "pipe", timeout: 20_000,
   });
   if (!run.success) throw new Error(run.stdout.toString() + run.stderr.toString());
-  return (JSON.parse(run.stdout.toString().trim().split("\n").at(-1)!) as string).split(",");
+  const [implementation, reference] = run.stdout.toString().split("\n").filter(line => line.startsWith('"'))
+    .map(line => (JSON.parse(line) as string).split(","));
+  if (!implementation) throw new Error("Lean did not print the implementation observations.");
+  if (source) expect(reference).toEqual(implementation);
+  return implementation;
 }
 
 leanTest("the Lean model agrees with Bun on signed bigint calls, short circuits, exception order and catch", async () => {
@@ -167,6 +173,47 @@ leanTest("a zero divisor cannot prove a success property or the wrong exception"
     }
   });
 }, 20_000);
+
+leanTest("progress visits each Lean item before the shared snapshot check", async () => {
+  const events: CheckProgress[] = [];
+  const files = ["bigint-division.proof.ts", "zigzag-roundtrip.proof.ts"].map(file => join(examples, file));
+  const reports = await checkFiles(files, { adapter, onProgress: event => events.push(event) });
+  expect(reports.flatMap(report => report.results).map(result => result.status)).toEqual(["proved", "proved", "proved"]);
+  expect(events.filter(event => event.kind === "suite").map(event => [event.index, event.totalItems])).toEqual([[0, 3], [1, 3]]);
+  const completedFirst = events.findIndex(event => event.kind === "finished" && event.file === files[0] &&
+    event.indices.length === 1 && event.indices[0] === 0);
+  const startedSecond = events.findIndex(event => event.kind === "running" && event.file === files[0] &&
+    event.indices.length === 1 && event.indices[0] === 1);
+  expect(completedFirst).toBeGreaterThan(0);
+  expect(startedSecond).toBeGreaterThan(completedFirst);
+  expect(events.at(-1)).toEqual({ kind: "validating" });
+}, 30_000);
+
+leanTest("the lowering certificate catches a mistranslation outside the user property's domain", async () => {
+  await fixture(async directory => {
+    const unit = await emit(join(examples, "bigint-division.proof.ts"), {
+      adapter, property: "returns a quotient truncated toward zero for every nonzero divisor",
+    });
+    expect(unit).toContain("theorem sourceChecked : sourceClaim");
+    const implementation = unit.indexOf("\ndef impl ");
+    const mutated = unit.slice(0, implementation) + unit.slice(implementation)
+      .replace("Except.error .rangeError", "Except.error .typeError");
+    expect(mutated).not.toBe(unit);
+    async function run(source: string) {
+      const path = join(directory, "Certificate.lean");
+      await writeFile(path, source);
+      return Bun.spawnSync([command.binary, path], { cwd: directory, env: command.env, timeout: 20_000 });
+    }
+    const correct = await run(unit);
+    expect(correct.stdout.toString()).not.toContain("error:");
+    expect(correct.exitCode).toBe(0);
+    expect((await run(mutated)).exitCode).toBe(1);
+    const propertyOnly = mutated.slice(0, mutated.indexOf("\ntheorem implLowering")) +
+      mutated.slice(mutated.indexOf("\ndef claim : Prop :="), mutated.indexOf("\ndef sourceClaim : Prop :=")) +
+      mutated.slice(mutated.indexOf("\ntheorem checked : claim :="), mutated.indexOf("\ntheorem sourceChecked : sourceClaim")) + "\nend Pud\n";
+    expect((await run(propertyOnly)).exitCode).toBe(0);
+  });
+}, 30_000);
 
 leanTest("the checked loop and recursion agree with Bun and reject missing decreases", async () => {
   await fixture(async directory => {

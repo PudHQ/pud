@@ -11,7 +11,7 @@ bun run demo:lean
 bun run pud check packages/cli/experiments/lean/.examples
 ```
 
-In a terminal, the report groups properties by file and shows timings, verdicts, and the source location of any Lean diagnostic. Set `NO_COLOR=1` for monochrome output. Piped output uses plain status rows and a run summary.
+In a terminal, the live panel shows each item's state and a thin bottom bar for the whole run. The final report groups properties by file and shows timings, verdicts, and the source location of any Lean diagnostic. Set `NO_COLOR=1` for monochrome output. Piped output uses plain status rows and a run summary.
 
 To use `lean` directly in your current macOS or Linux shell, run this from the repository root.
 
@@ -95,3 +95,13 @@ The subject fragment includes synchronous scalar arithmetic and booleans, initia
 Bigint division and remainder use `Int.tdiv` and `Int.tmod` for nonzero divisors. A zero divisor produces `Except.error .rangeError`. The adapter also models explicit throws of unshadowed `Error`, `RangeError`, and `TypeError`, with the class as the observed payload. It sequences fallible expressions left to right, evaluates short-circuit branches lazily, and supports `try { return expression } catch { … }` with an unbound catch and no `finally`. [ECMAScript bigint operations](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-bigint-type) · [Catch example](.examples/safe-quotient.ts)
 
 A nonnegative literal shift count lowers to multiplication by a power of two. AND with a literal mask of consecutive low bits lowers to the nonnegative residue modulo the mask plus one, including for negative inputs. Run the differential suite with `bun test packages/cli/test/lean.test.ts` after `bun run setup:lean`. It compares generated Lean functions with Bun on signed inputs, large integers, exception paths, short-circuiting, and loops. The model assumes standard builtins and ignores runtime resource limits such as stack exhaustion. [Conformance tests](../../test/lean.test.ts)
+
+## Inspect the lowering proof
+
+For the scalar fragment, Pud builds a source expression from the frozen TypeScript AST and verifies that its evaluator agrees with the emitted implementation on every modeled input. The fragment includes bigint and boolean expressions, local bindings and assignments, branches, direct acyclic calls, and modeled throws and catches. The artifact includes `loweringCertificate` for outcome equality and `sourceChecked` for the sidecar property transferred to source evaluation.
+
+```sh
+bun run --silent pud --emit packages/cli/experiments/lean/.examples/zigzag-roundtrip.proof.ts
+```
+
+The countdown and dense-array fold helpers have their own proofs against execution relations. A property that uses a helper still relies on the translation of its loop body and state. A general guarantee also needs a correctness argument for reifying the TypeScript AST and for the model's relation to JavaScript execution. [Scalar semantics](../../src/lean/scalar.lean) · [Iteration semantics](../../src/lean/iteration.lean)

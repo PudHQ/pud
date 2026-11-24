@@ -28,8 +28,17 @@ export interface CheckResult {
 
 export interface CheckReport { file: string; results: CheckResult[] }
 
+/** Work in progress. Only the final report includes snapshot-validated verdicts. */
+export type CheckProgress =
+  | { kind: "suite"; file: string; index: number; total: number; totalItems: number; items: readonly { name: string; todo?: boolean }[] }
+  | { kind: "running" | "finished"; file: string; indices: readonly number[] }
+  | { kind: "validating" };
+
+export type ItemProgress = (kind: "running" | "finished", indices: readonly number[]) => void;
+
 export interface CheckOptions {
   adapter?: ProofAssistant;
+  onProgress?: (event: CheckProgress) => void;
 }
 
 export interface EmitOptions extends CheckOptions {
@@ -224,18 +233,37 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
     } catch (e) { return { file, error: failure(e) }; }
   });
 
-  for (const plan of plans) {
+  const progress = options.onProgress;
+  const totalItems = progress ? plans.reduce((count, plan) => count + ("error" in plan ? 0 : "suite" in plan
+    ? plan.suite.properties.filter(property => property.kind === "claim").length : plan.definitions.length), 0) : 0;
+  for (const [index, plan] of plans.entries()) {
+    if (progress) {
+      const items = "error" in plan ? [] : "suite" in plan
+        ? plan.suite.properties.map(property => ({ name: property.name, todo: property.kind === "todo" }))
+        : plan.definitions.map(property => ({ name: property.name ?? (property.spec ? `${property.subject} vs ${property.spec}` : property.subject) }));
+      progress({ kind: "suite", file: plan.file, index, total: plans.length, totalItems, items });
+    }
     if ("error" in plan) continue;
+    const report: ItemProgress | undefined = progress && ((kind, indices) => progress({ kind, file: plan.file, indices }));
     if ("suite" in plan) {
-      plan.results = await checkSuite(plan.suite, plan.config, options, snapshotReader(snapshots, plan.dependencies));
+      plan.results = await checkSuite(plan.suite, plan.config, options, snapshotReader(snapshots, plan.dependencies), report);
       continue;
     }
     const { definitions, results } = plan;
-    for (const p of definitions) {
+    for (const [item, p] of definitions.entries()) {
       if (results.has(p)) continue;
       const input = snapshots.read(p.source);
-      if ("error" in input) { results.set(p, failure(input.error, p)); continue; }
-      if (p.proof !== undefined) { results.set(p, await linked(p, input.source, snapshots.read(p.proof))); continue; }
+      if ("error" in input) {
+        results.set(p, failure(input.error, p));
+        report?.("finished", [item]);
+        continue;
+      }
+      if (p.proof !== undefined) {
+        report?.("running", [item]);
+        results.set(p, await linked(p, input.source, snapshots.read(p.proof)));
+        report?.("finished", [item]);
+        continue;
+      }
       const group = definitions.filter((d): d is AutoDefinition => d.proof === undefined && d.source === p.source && d.subject === p.subject);
       const paths = new Set<string>();
       for (const d of group) dependencies.set(d, paths);
@@ -248,11 +276,15 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
           return dependency.source;
         },
       };
+      const running = report && group.map(proof => definitions.indexOf(proof));
+      if (running) report?.("running", running);
       try { await automatic(group, results, subject); }
       catch (e) { for (const d of group) if (!results.has(d)) results.set(d, failure(e, d)); }
+      if (running) report?.("finished", running);
     }
   }
 
+  if (plans.length) progress?.({ kind: "validating" });
   const changed = snapshots.changes();
   return plans.map(plan => {
     const { file } = plan, manifestChange = changed.get(resolve(file));

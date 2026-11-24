@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { display, displayReport, displaySummary } from "./reporter.ts";
 import { checkFiles, emit } from "./check.ts";
 import { isInteractiveTerminal, pudBanner } from "./terminal.ts";
+import { terminalProgress } from "./terminal-progress.ts";
 
 const synopsis = `Usage: pud [check] [DIR | FILE.proof.ts ...] [--verbose | --json]
        pud --emit FILE.proof.ts [SUBJECT[.PROPERTY]]`;
@@ -47,14 +48,16 @@ async function main(args: string[]): Promise<number> {
       else errors.push(`Expected a directory or a *.proof.ts file. Received ${path}.`);
     } catch (e) { errors.push((e as Error).message); }
   }
-  const reports = await checkFiles([...files.values()]);
+  const progress = !json && files.size ? terminalProgress() : undefined;
+  if (progress) process.stderr.write(`\n${pudBanner(process.stderr, "Proof check")}\n\n`);
+  const reports = await checkFiles([...files.values()], { onProgress: progress?.update }).finally(() => progress?.close());
   const counts = { proved: 0, disproved: 0, unproved: 0, unsupported: 0, error: errors.length, todo: 0 };
   for (const report of reports) for (const r of report.results) counts[r.status]++;
   const code = counts.error || counts.unsupported ? 2 : counts.disproved || counts.unproved ? 1 : 0;
   if (json) console.log(JSON.stringify({ files: reports, counts, ...(errors.length ? { errors } : {}) }, null, 2));
   else {
     const out = code ? process.stderr : process.stdout;
-    if (reports.length && isInteractiveTerminal(out)) out.write(`\n${pudBanner(out, "Proof check")}\n\n`);
+    if (!progress && reports.length && isInteractiveTerminal(out)) out.write(`\n${pudBanner(out, "Proof check")}\n\n`);
     for (const report of reports) displayReport(report, verbose, out);
     for (const error of errors) out.write(error + "\n");
     if (reports.length) displaySummary(counts, performance.now() - started, out);

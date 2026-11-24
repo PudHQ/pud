@@ -109,7 +109,7 @@ function readSpecCall(file: string, node: Node, helpers: ReadonlySet<string> | u
 }
 
 export function asOutcome(value: Value): string {
-  return value.fallible ? value.code : `(Except.ok ${value.code})`;
+  return value.fallible ? value.code : `(Except.ok (${value.code}))`;
 }
 
 /** Sequence exactly the potentially throwing operands in JavaScript evaluation order. */

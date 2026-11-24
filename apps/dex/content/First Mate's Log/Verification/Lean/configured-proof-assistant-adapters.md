@@ -2,8 +2,8 @@
 author: codex
 date: 2026-11-24
 updated-at: 2026-11-24
-summary: Portable claims and how Pud, LemmaScript, and Lynx model calls, exceptions, and termination.
-tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, exceptions, termination, lemmascript, lynx]
+summary: How Pud checks linked TypeScript properties and what its lowering certificates establish compared with LemmaScript and Lynx.
+tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, exceptions, termination, semantics, translation-validation, lemmascript, lynx]
 ---
 # Configured proof assistant adapters
 
@@ -67,6 +67,24 @@ example (n d : Int) (nonzero : d ≠ 0) :
 
 example : divide (-5) 2 = .ok (-2) := by rfl
 ```
+
+## Road to semantic preservation
+
+1. **Define observable outcomes for scalar source expressions.** A typed Lean AST represents bigint and boolean operations, conditionals, local binding and assignment, ordered call arguments, throws, and catch recovery. Its evaluator specifies which subexpressions execute and where evaluation stops after a throw. [Scalar source evaluator](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/scalar.lean) · [ECMAScript logical operators](https://tc39.es/ecma262/#sec-binary-logical-operators)
+2. **Prove the primitive rewrites.** The source quotient uses sign and magnitude, and its remainder is the difference after subtracting the divisor times that quotient. Lean proves these agree with `Int.tdiv` and `Int.tmod` on nonzero inputs and preserves the modeled throw at zero. A separate theorem equates selecting the low bits of a finite two's-complement word with the emitted modulo. [Scalar primitive proofs](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/scalar.lean) · [ECMAScript bigint operations](https://tc39.es/ecma262/#sec-bigint-type)
+3. **Prove expression preservation.** By induction on the source expression, its explicit evaluation rules agree with a target denotation using Lean's `Except` sequencing. This covers short-circuit branches, left-to-right operand evaluation, and recovery after a modeled throw. [Preservation theorem](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/scalar.lean)
+4. **Check the actual emitted functions.** Pud reifies the frozen AST independently of the ordinary Lean printer. The generated unit checks each eligible function against that reification and uses the certificates for callees when checking a linked call. The ZigZag roundtrip includes a certificate for the composed observation. [Source reifier](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/scalar.ts) · [Lean emitter and audit](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/index.ts)
+5. **Transfer and audit the sidecar property.** The generated `sourceChecked` theorem rewrites the proved property over the modeled source evaluation. A fresh Lean module checks the types and axiom dependencies of both the lowering and source-property certificates. A regression changes only the emitted zero-divisor exception. Lean still accepts the ordinary nonzero property in isolation and rejects the lowering certificate. [Certificate regression](https://github.com/rorz/pud/blob/main/packages/cli/test/lean.test.ts)
+6. **Prove the loop helpers.** The emitted countdown helper agrees with a deterministic execution relation for guard failure, another iteration, and an abrupt throw. The dense-array fold helper agrees with left-to-right iteration and a unique final accumulator. These theorems handle the helper semantics. The AST-to-loop mapping and lowering of a particular loop's body and state still need program-level certificates. [Iteration proofs](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/iteration.lean)
+7. **Check source observations against the runtime.** The differential suite runs signed arithmetic, calls, short circuits, exceptions, and loops in Bun 1.4.2 and in the emitted model on 280 input and function pairs. It also evaluates the reified source model on the scalar cases. These checks give evidence about the model and the AST bridge. [Differential tests](https://github.com/rorz/pud/blob/main/packages/cli/test/lean.test.ts)
+
+The demo has 19 active properties with a whole-observation scalar certificate, five with an audited iteration helper theorem, and eight with a model-level property proof. These are counts for the demo, with one additional TODO. General array control flow, the opaque string-or-array case, and the bodies of recursive functions still need preservation proofs. The next compiler obligation is to verify source reification, name resolution, and the mapping from source loop state to the iteration relation. A runtime guarantee also needs correspondence with the admitted JavaScript semantics, including assumptions about dense arrays and standard built-ins. [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Coverage measurements]]
+
+## How close to the runtime
+
+- **Pud** starts at a frozen TypeScript AST and follows concrete source definitions for supported calls. It now validates the emitted scalar observation against a Lean model of source evaluation. Parsing, source reification, the host runtime's implementation of JavaScript semantics, and the remainder of the lowering remain trusted.
+- **Lynx** starts downstream of an Elixir or Erlang front end. It extracts Core Erlang from compiled BEAM debug information and models more of the runtime, including exception handling, effects, and concurrency. That is closer to the compiled program. Its own design describes the Core Erlang-to-Lean translation as a trust boundary. [Lynx design](https://github.com/josevalim/lynx/blob/49928b1f94687cc38dee81490d5301008cfc22f9/README.md) · [Core Erlang extraction](https://github.com/josevalim/lynx/blob/49928b1f94687cc38dee81490d5301008cfc22f9/lib/lynx/translation.ex#L353-L361)
+- **LemmaScript** starts at TypeScript source and emits verification artifacts for Dafny or Lean with Velvet. It supports a broader set of imperative TypeScript constructs and contract-driven verification. Its Lean backend can model external calls using contracts and turn throws into unreachable-branch obligations. Its design identifies lowerings as trusted and uses source, generated output, and proof regressions to check correspondence. [LemmaScript trust model](https://github.com/midspiral/LemmaScript/blob/966272f70ea708ba8d84e95bafa610c3e2b8a1d3/DESIGN.md#L97-L107) · [Lean backend](https://github.com/midspiral/LemmaScript/blob/966272f70ea708ba8d84e95bafa610c3e2b8a1d3/SPEC_LEAN.md)
 
 ## Other adapters
 

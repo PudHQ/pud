@@ -1,5 +1,6 @@
 import { getOuterBindingIdentifiers, traverseFast, type ArrowFunctionExpression, type AssignmentExpression, type FunctionDeclaration, type Node, type Program, type Statement } from "@babel/types";
 import { invalid } from "@pud/model/source";
+import { scalarSource } from "./scalar.ts";
 import { asOutcome, bigintLiteral, errorKinds, invoke, isScalar, leanTypes, nameOf, ofSort, readValue, sequence, tsSort, type ExecutableExpressions, type Sort, type Value } from "./syntax.ts";
 
 type Binding = Value & { mutable?: boolean };
@@ -13,8 +14,10 @@ export interface Subject {
   definition: string;
   fallible: boolean;
   countdown: boolean;
+  fold: boolean;
   recursive: boolean;
   callees: ReadonlySet<Subject>;
+  sourceExpression?: string;
 }
 
 function exits(node: Node | undefined): boolean {
@@ -73,7 +76,8 @@ export function lowerFunction(
   let arrayGuard: Node | undefined;
   let fallible = false;
   let countdown = false;
-  const callees = new Set<Subject>();
+  let fold = false;
+  const callTargets = new Map<string, Subject>();
   const executable: ExecutableExpressions = {
     fresh, recursive,
     call(node, read) {
@@ -85,7 +89,7 @@ export function lowerFunction(
       if (callee.itemType || node.arguments.length !== callee.params.length) {
         invalid(file, node, "Call a supported function with its exact argument count and types.");
       }
-      if (linked) callees.add(linked);
+      if (linked) callTargets.set(node.callee.name, linked);
       const args = node.arguments.map((arg, index) => {
         const value = read(arg);
         ofSort(file, arg, value, callee.params[index]!.sort);
@@ -290,6 +294,7 @@ export function lowerFunction(
             const stateCode = fresh();
             const { rhs } = assignment(inner.expression, new Map([...loopScope, [target, { ...accumulator, code: stateCode }]]));
             if (!rhs.fallible) {
+              fold = true;
               const step = `(fun (${stateCode} ${itemCode} : Int) => ${rhs.code})`;
               line(indent, `${accumulator.code} := List.foldl ${step} ${accumulator.code} ${values}`);
               return;
@@ -348,5 +353,6 @@ export function lowerFunction(
     termination = `\ntermination_by ${measure.code}.toNat\ndecreasing_by all_goals (simp_wf; try simp_all; omega)`;
   }
   const definition = `def ${[code, ...signature].join(" ")} : ${resultType} :=${body}${termination}`;
-  return { code, params, result, itemType, definition, fallible, countdown, recursive, callees };
+  return { code, params, result, itemType, definition, fallible, countdown, fold, recursive,
+    callees: new Set(callTargets.values()), sourceExpression: scalarSource(fn.body, params, result, callTargets) };
 }
