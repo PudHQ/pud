@@ -17,7 +17,9 @@ Pud is under active development. You can run the examples today or [join the alp
 
 ## Workspace
 
-Install the Bun version in [package.json](package.json) and the Node version in [.nvmrc](.nvmrc), then run `bun install --frozen-lockfile` from the repository root. The root Bun catalog pins dependencies for every workspace. PudDex uses a named TypeScript 6 catalog because the Astro checker supports TypeScript 5 and 6.
+Install the Bun version in [package.json](package.json) and the Node version in [.nvmrc](.nvmrc), then run `bun run setup` from the repository root. This installs Bun dependencies from the lockfile and provisions Elan with the pinned Lean toolchain in `.cache/elan`. Run `bun run demo:lean` to check the [Lean examples](packages/cli/experiments/lean/README.md).
+
+For Bun dependencies alone, run `bun install --frozen-lockfile`. The root Bun catalog pins dependencies for every workspace. PudDex uses a named TypeScript 6 catalog because the Astro checker supports TypeScript 5 and 6.
 
 | Workspace                                              | Purpose                                            |
 | ------------------------------------------------------ | -------------------------------------------------- |
@@ -28,7 +30,7 @@ Install the Bun version in [package.json](package.json) and the Node version in 
 | [Postgres](packages/postgres/README.md)                | Embedded PostgreSQL fixture for replay             |
 | [Debit endpoint](experiments/debit-endpoint/README.md) | Runnable experiment using the shared packages      |
 
-Run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` at the root to check the workspace and build both sites. The tests include proof replay and require [Rocq](https://rocq-prover.org/docs). Pud can provision Dafny on first use. CI runs the same commands and both proof demos. [Proof workflow](.github/workflows/proofs.yml)
+Run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` at the root to check the workspace and build both sites. The tests include proof replay and require [Rocq](https://rocq-prover.org/docs). Pud can provision Dafny on first use. CI runs those checks and the debit and Rocq demos. [Proof workflow](.github/workflows/proofs.yml)
 
 | Site                | Dev               | Build               | Preview               | Deploy               |
 | ------------------- | ----------------- | ------------------- | --------------------- | -------------------- |

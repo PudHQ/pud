@@ -10,6 +10,8 @@
     "experiments/debit-endpoint"
   ],
   "scripts": {
+    "setup": "\"$npm_execpath\" install --frozen-lockfile && \"$npm_execpath\" run setup:lean",
+    "setup:lean": "\"$npm_execpath\" packages/cli/experiments/lean/toolchain.ts",
     "dev:www": "\"$npm_execpath\" run --cwd apps/www dev",
     "dev:dex": "\"$npm_execpath\" run --cwd apps/dex dev",
     "build": "\"$npm_execpath\" run --filter './apps/*' build",
@@ -25,6 +27,7 @@
     "pack:cli": "\"$npm_execpath\" ./packages/cli/scripts/pack.ts",
     "demo": "\"$npm_execpath\" experiments/debit-endpoint/demo.ts",
     "demo:rocq": "\"$npm_execpath\" packages/cli/demo/replay.ts",
+    "demo:lean": "\"$npm_execpath\" packages/cli/experiments/lean/run.ts",
     "pud": "\"$npm_execpath\" packages/cli/src/cli.ts",
     "verify": "\"$npm_execpath\" run pud",
     "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
