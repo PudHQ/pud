@@ -51,6 +51,10 @@ async function prepare(suite: Suite, config: string | undefined, options: CheckO
   }
   const subject = await adapter.prepare({ file: canonical, source, name: suite.subject.name,
     readDependency: dependency => read(resolve(dirname(canonical), dependency)).source,
+    readModule(path, resolveAgain) {
+      if (resolveAgain) suite.imports.push({ path, resolveAgain });
+      return read(path);
+    },
   });
   if (!subject || !Array.isArray(subject.parameters) || !subject.result || typeof subject.emit !== "function" || typeof subject.verify !== "function") {
     throw new Error(`The ${adapter.id} adapter must provide a subject signature, emit(), and verify().`);

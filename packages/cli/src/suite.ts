@@ -1,5 +1,5 @@
 import type { CallExpression, Node, Program, StringLiteral } from "@babel/types";
-import type { NativeProofTerm, PreparedProofAssistant, ProofClaim, ProofComparison, ProofConstraint, ProofExpression, ProofPredicate, ProofTarget, ProofType } from "@pud/model/assistant";
+import type { NativeProofTerm, PreparedProofAssistant, ProofCall, ProofClaim, ProofComparison, ProofConstraint, ProofErrorKind, ProofExpression, ProofPredicate, ProofTarget, ProofType } from "@pud/model/assistant";
 import { invalid, resolveTypeScriptImport } from "@pud/model/source";
 import { dirname, resolve } from "node:path";
 
@@ -19,6 +19,7 @@ export interface Suite {
   file: string;
   source: string;
   subject: { file: string; name: string };
+  subjects: ReadonlyMap<string, { file: string; name: string }>;
   binding: string;
   properties: SuiteProperty[];
   modules: { assistant: string; file: string }[];
@@ -175,7 +176,7 @@ export function readSuite(file: string, origin: string, source: string, program:
     for (const { key, value } of fields(file, params[0], "ObjectPattern")) {
       if (!configuredHelpers.has(key)) invalid(file, value, `Unknown proof helper '${key}'.`);
       const name = identifier(file, value);
-      if (name === binding || native.has(name)) invalid(file, value, "Proof helpers cannot shadow the subject or a native tag.");
+      if (subjects.has(name) || native.has(name)) invalid(file, value, "Proof helpers cannot shadow an imported function or a native tag.");
       helpers.set(key, name);
     }
   }
@@ -220,7 +221,7 @@ export function readSuite(file: string, origin: string, source: string, program:
     }
   }
   if (!properties.length) invalid(file, describe, "Add at least one property or an it.todo().");
-  return { file, source, subject, binding, properties, modules, helpers, schemaBindings, native, configured, imports };
+  return { file, source, subject, subjects, binding, properties, modules, helpers, schemaBindings, native, configured, imports };
 }
 
 function expression(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<string, string>): ProofExpression {
@@ -370,7 +371,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
     return schemaConstraints(suite, value, type, { kind: "parameter", name: key }, emptyBindings);
   });
   const bindings = new Map<string, string>();
-  const reserved = new Set([...helpers.values(), ...suite.schemaBindings, ...suite.native.keys(), suite.binding]);
+  const reserved = new Set([...helpers.values(), ...suite.schemaBindings, ...suite.native.keys(), ...suite.subjects.keys()]);
   const inputs = fields(file, params[0], "ObjectPattern");
   if (inputs.length !== parameters.size) invalid(file, params[0], "Destructure every input in the property callback.");
   for (const { key, value } of inputs) {
@@ -379,18 +380,50 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
     if (bindings.has(alias) || reserved.has(alias)) invalid(file, value, "Input bindings cannot shadow the subject or proof helpers.");
     bindings.set(alias, key);
   }
-  const results = new Set<string>();
+  const results = new Map<string, ProofCall>();
   const assertions: ProofConstraint[] = [];
+  let observation: ProofCall | undefined;
+  let observationKey: string | undefined;
+  let resultType = subject.result;
+  let expectedError: ProofErrorKind | undefined;
 
-  function checkSubjectCall(node: Node | null | undefined) {
-    const call = directCall(node, suite.binding);
-    if (!call) invalid(file, node ?? undefined, `Call the imported ${suite.binding} directly.`);
-    const args = arity(file, call, parameters.size);
-    for (const [i, arg] of args.entries()) {
-      if (arg.type !== "Identifier" || bindings.get(arg.name) !== subject.parameters[i]!.name) {
-        invalid(file, arg, "Pass the declared inputs to the subject in parameter order.");
-      }
+  function readCall(node: Node | null | undefined): ProofCall {
+    const callee = node?.type === "CallExpression" && !node.typeArguments && node.callee.type === "Identifier"
+      ? node.callee.name : undefined;
+    const linked = callee && suite.subjects.get(callee);
+    if (!linked || node?.type !== "CallExpression") {
+      return invalid(file, node ?? undefined, "Call a named TypeScript import directly.");
     }
+    return {
+      kind: "call", callee: callee === suite.binding ? "subject" : linked,
+      args: node.arguments.map(arg => {
+        const parameter = arg.type === "Identifier" && bindings.get(arg.name);
+        return parameter ? { kind: "parameter", name: parameter } : readCall(arg);
+      }),
+    };
+  }
+
+  const includesSubject = (call: ProofCall): boolean => call.callee === "subject" ||
+    call.args.some(arg => arg.kind === "call" && includesSubject(arg));
+  function observe(call: ProofCall, at: Node) {
+    const key = JSON.stringify(call);
+    if (observationKey !== undefined && observationKey !== key) {
+      invalid(file, at, "Use one observed call expression per property.");
+    }
+    if (observationKey !== undefined) return;
+    observationKey = key;
+    const direct = call.callee === "subject" && call.args.every(arg => arg.kind === "parameter");
+    if (direct) {
+      if (call.args.length !== parameters.size || call.args.some((arg, index) =>
+        arg.kind !== "parameter" || arg.name !== subject.parameters[index]!.name)) {
+        invalid(file, at, "Pass the declared inputs to the subject in parameter order.");
+      }
+      return;
+    }
+    if (!includesSubject(call)) invalid(file, at, "The observed expression must call the subject of the suite.");
+    if (!subject.inspectCall) invalid(file, at, "The selected assistant does not support composed calls.");
+    resultType = subject.inspectCall(call);
+    observation = call;
   }
 
   for (const step of statements) {
@@ -398,14 +431,16 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       const local = step.declarations[0]!;
       const name = identifier(file, local.id);
       if (reserved.has(name) || bindings.has(name) || results.has(name)) invalid(file, local.id, "Use a fresh binding for the subject result.");
-      checkSubjectCall(local.init);
-      results.add(name);
+      if (expectedError) invalid(file, local, "Keep the throwing call inside expect's callback.");
+      const call = readCall(local.init);
+      observe(call, local);
+      results.set(name, call);
       continue;
     }
     if (step.type !== "ExpressionStatement") invalid(file, step, "Use given(), a subject call, or expect().to().");
     const given = directCall(step.expression, helpers.get("given"));
     if (given) {
-      if (assertions.length) invalid(file, step, "Put given() before the assertions.");
+      if (assertions.length || expectedError) invalid(file, step, "Put given() before the assertions.");
       const [condition] = arity(file, given, 1);
       const predicate = proofPredicate(suite, condition, bindings);
       premises.push(predicate.kind === "boolean"
@@ -414,16 +449,29 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       continue;
     }
     const to = memberCall(step.expression);
-    const expect = to?.name === "to" && directCall(to.receiver, helpers.get("expect"));
-    if (!to || !expect) invalid(file, step, "Use expect(result).to(pud.…).");
+    const expect = to && (to.name === "to" || to.name === "toThrow") && directCall(to.receiver, helpers.get("expect"));
+    if (!to || !expect) invalid(file, step, "Use expect(result).to(pud.…) or expect(() => call()).toThrow(error).");
     const [result] = arity(file, expect, 1);
-    if (result?.type !== "Identifier" || !results.has(result.name)) checkSubjectCall(result);
     const [matcher] = arity(file, to.call, 1);
-    const clauses = schemaConstraints(suite, matcher, subject.result, { kind: "result" }, bindings);
+    if (to.name === "toThrow") {
+      if (assertions.length || expectedError || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
+      if (result?.type !== "ArrowFunctionExpression" || result.async || result.typeParameters || result.params.length || result.body.type === "BlockStatement") {
+        invalid(file, result, "Use a parameterless arrow expression for a throwing call.");
+      }
+      const error = staticString(file, matcher);
+      if (!subject.errors?.some(kind => kind === error)) invalid(file, matcher, "Select an exception supported by the configured assistant.");
+      observe(readCall(result.body), result);
+      expectedError = error as ProofErrorKind;
+      continue;
+    }
+    if (expectedError) invalid(file, step, "Use one outcome per property.");
+    const local = result?.type === "Identifier" && results.get(result.name);
+    observe(local || readCall(result), result!);
+    const clauses = schemaConstraints(suite, matcher, resultType, { kind: "result" }, bindings);
     if (!clauses.length) invalid(file, matcher, "Add a constraint to the result schema.");
     assertions.push(...clauses);
   }
-  if (!assertions.length) invalid(file, property.call, "Add an assertion or use it.todo().");
+  if (!assertions.length && !expectedError) invalid(file, property.call, "Add an assertion or use it.todo().");
   const proof = property.proof && nativeTerm(suite, property.proof, emptyBindings);
-  return { premises, assertions, proof };
+  return { premises, assertions, proof, ...(observation && { observation }), ...(expectedError && { expectedError }) };
 }

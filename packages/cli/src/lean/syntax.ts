@@ -1,4 +1,4 @@
-import type { Node } from "@babel/types";
+import type { CallExpression, Node } from "@babel/types";
 import { ref, type Expr } from "@pud/model";
 import { invalid } from "@pud/model/source";
 import { readExpression } from "@pud/model/typescript";
@@ -11,7 +11,9 @@ export const leanTypes = {
   textOrItems: "Option (List Item)",
 };
 export type Sort = keyof typeof leanTypes;
-export type Value = { sort: Sort; code: string };
+export type Value = { sort: Sort; code: string; fallible?: boolean };
+
+export const errorKinds = { Error: "error", RangeError: "rangeError", TypeError: "typeError" } as const;
 
 export function isScalar(sort: Sort): sort is "integer" | "boolean" {
   return sort === "integer" || sort === "boolean";
@@ -77,7 +79,7 @@ function emit(expr: Expr): string {
   }
 }
 
-function readSpecCall(file: string, node: Node, helpers: ReadonlySet<string> | undefined, read: (node: Node) => Value): Expr | undefined {
+function readSpecCall(file: string, node: Node, helpers: ReadonlySet<string> | undefined, read: (node: Node) => Value): Value | undefined {
   if (node.type !== "CallExpression" || node.typeArguments || node.callee.type !== "MemberExpression" || node.callee.computed ||
       node.callee.object.type !== "Identifier" || !helpers?.has(node.callee.object.name) || node.callee.property.type !== "Identifier") return;
   const name = node.callee.property.name;
@@ -86,57 +88,139 @@ function readSpecCall(file: string, node: Node, helpers: ReadonlySet<string> | u
     if (node.arguments.length !== 1 || !input) invalid(file, node, `Pass one array to pud.${name}().`);
     const value = read(input);
     if (name === "sum") {
-      return ref("integer", `(List.sum ${ofSort(file, input, value, "integers")})`);
+      return { sort: "integer", code: `(List.sum ${ofSort(file, input, value, "integers")})` };
     }
     if (value.sort !== "integers" && value.sort !== "items") invalid(file, input, "Pass a supported array to pud.length().");
-    return ref("integer", `(Int.ofNat (List.length ${value.code}))`);
+    return { sort: "integer", code: `(Int.ofNat (List.length ${value.code}))` };
   }
   if (name === "modulo") {
     const [input, divisor] = node.arguments;
     if (node.arguments.length !== 2 || !input || divisor?.type !== "BigIntLiteral" || BigInt(divisor.value) <= 0n) {
       invalid(file, node, "Pass a bigint and a positive literal divisor to pud.modulo().");
     }
-    return ref("integer", `(${ofSort(file, input, read(input), "integer")} % (${BigInt(divisor.value)} : Int))`);
+    return { sort: "integer", code: `(${ofSort(file, input, read(input), "integer")} % (${BigInt(divisor.value)} : Int))` };
+  }
+  if (name === "quotient") {
+    const [input, divisor] = node.arguments;
+    if (node.arguments.length !== 2 || !input || !divisor) invalid(file, node, "Pass two bigints to pud.quotient().");
+    const lhs = ofSort(file, input, read(input), "integer"), rhs = ofSort(file, divisor, read(divisor), "integer");
+    return { sort: "integer", code: `(Int.tdiv ${lhs} ${rhs})` };
   }
 }
 
-export function readValue(file: string, node: Node, scope: ReadonlyMap<string, Value>, helpers?: ReadonlySet<string>): Value {
-  const lookup = (name: string, at: Node) => scope.get(name) ?? invalid(file, at, `Unknown binding '${name}'.`);
-  if (node.type === "Identifier") return lookup(node.name, node);
-  const read = (child: Node) => readValue(file, child, scope, helpers);
-  const expr = readExpression(file, node, n => {
-    const spec = readSpecCall(file, n, helpers, read);
-    if (spec) return spec;
-    if (n.type === "BinaryExpression" && (n.operator === "%" || n.operator === "/")) {
-      const operation = n.operator === "%" ? "remainder" : "division";
-      if (n.right.type !== "BigIntLiteral" || BigInt(n.right.value) <= 0n) {
-        invalid(file, n.right, `Bigint ${operation} needs a positive literal divisor.`);
-      }
-      const dividend = ofSort(file, n.left, read(n.left), "integer");
-      const leanOperator = n.operator === "%" ? "Int.tmod" : "Int.tdiv";
-      return ref("integer", `(${leanOperator} ${dividend} (${BigInt(n.right.value)} : Int))`);
-    }
-    if (n.type === "BinaryExpression" && n.operator === "<<") {
-      if (n.right.type !== "BigIntLiteral") invalid(file, n.right, "Bigint left shift needs a nonnegative literal count.");
-      const value = ofSort(file, n.left, read(n.left), "integer");
-      return ref("integer", `(${value} * (2 : Int) ^ (${BigInt(n.right.value)} : Nat))`);
-    }
-    if (n.type === "BinaryExpression" && n.operator === "&") {
-      const mask = n.right.type === "BigIntLiteral" ? BigInt(n.right.value) : undefined;
-      if (mask === undefined || (mask & (mask + 1n)) !== 0n) {
-        invalid(file, n.right, "Bigint bitwise AND needs a literal mask with only consecutive low bits set.");
-      }
-      const value = ofSort(file, n.left, read(n.left), "integer");
-      // A low-bit mask is the nonnegative residue, including for negative inputs.
-      return ref("integer", `(${value} % (${mask + 1n} : Int))`);
-    }
-    if (n.type !== "Identifier") return undefined;
-    const { sort, code } = lookup(n.name, n);
-    if (!isScalar(sort)) invalid(file, n, "Use arrays and unions as whole values.");
-    return ref(sort, code);
+export function asOutcome(value: Value): string {
+  return value.fallible ? value.code : `(Except.ok ${value.code})`;
+}
+
+/** Sequence exactly the potentially throwing operands in JavaScript evaluation order. */
+export function sequence(values: readonly Value[], fresh: () => string, finish: (codes: string[]) => Value): Value {
+  const steps: string[] = [];
+  const operands = values.map(value => {
+    if (!value.fallible) return value.code;
+    const name = fresh();
+    steps.push(`let ${name} ← ${value.code};`);
+    return name;
   });
-  if (expr.sort === "string") return invalid(file, node, "Strings are outside the Lean prototype.");
-  return { sort: expr.sort, code: emit(expr) };
+  const result = finish(operands);
+  if (!steps.length) return result;
+  return { sort: result.sort, fallible: true, code: `(do ${steps.join(" ")} ${asOutcome(result)})` };
+}
+
+export function invoke(callee: { code: string; result: Sort; fallible: boolean }, args: readonly Value[], fresh: () => string): Value {
+  return sequence(args, fresh, values => ({
+    sort: callee.result,
+    fallible: callee.fallible,
+    code: values.length ? `(${callee.code} ${values.join(" ")})` : callee.code,
+  }));
+}
+
+export interface ExecutableExpressions {
+  fresh(): string;
+  call(node: CallExpression, read: (value: Node) => Value): Value;
+  recursive: boolean;
+}
+
+export function bigintLiteral(node: Node): bigint | undefined {
+  if (node.type === "BigIntLiteral") return BigInt(node.value);
+  if (node.type === "UnaryExpression" && node.operator === "-" && node.argument.type === "BigIntLiteral") {
+    return -BigInt(node.argument.value);
+  }
+}
+
+export function readValue(
+  file: string, node: Node, scope: ReadonlyMap<string, Value>, helpers?: ReadonlySet<string>, executable?: ExecutableExpressions,
+): Value {
+  if (node.type === "Identifier") return scope.get(node.name) ?? invalid(file, node, `Unknown binding '${node.name}'.`);
+  const read = (child: Node) => readValue(file, child, scope, helpers, executable);
+  const fresh = () => executable?.fresh() ?? invalid(file, node, "A specification expression must be total.");
+  const spec = readSpecCall(file, node, helpers, read);
+  if (spec) return spec;
+  if (node.type === "CallExpression" && executable) return executable.call(node, read);
+
+  if (node.type === "BinaryExpression") {
+    const op = node.operator;
+    if (op === "/" || op === "%") {
+      const divisor = bigintLiteral(node.right);
+      if (!executable && (divisor === undefined || divisor === 0n)) {
+        invalid(file, node.right, "A specification division or remainder needs a nonzero bigint literal divisor.");
+      }
+      const left = read(node.left), right = read(node.right);
+      ofSort(file, node.left, left, "integer");
+      ofSort(file, node.right, right, "integer");
+      const operation = op === "%" ? "Int.tmod" : "Int.tdiv";
+      return sequence([left, right], fresh, ([lhs, rhs]) => divisor !== undefined && divisor !== 0n
+        ? { sort: "integer", code: `(${operation} ${lhs} ${rhs})` }
+        : { sort: "integer", fallible: true, code: `(if ${rhs} = 0 then Except.error .rangeError else Except.ok (${operation} ${lhs} ${rhs}))` });
+    }
+    if (op === "<<" || op === "&") {
+      const literal = node.right.type === "BigIntLiteral" ? BigInt(node.right.value) : undefined;
+      if (literal === undefined || (op === "&" && (literal & (literal + 1n)) !== 0n)) {
+        invalid(file, node.right, op === "<<" ? "Bigint left shift needs a nonnegative literal count."
+          : "Bigint bitwise AND needs a literal mask with only consecutive low bits set.");
+      }
+      const left = read(node.left);
+      ofSort(file, node.left, left, "integer");
+      return sequence([left], fresh, ([lhs]) => ({ sort: "integer",
+        code: op === "<<" ? `(${lhs} * (2 : Int) ^ (${literal} : Nat))` : `(${lhs} % (${literal + 1n} : Int))` }));
+    }
+  }
+
+  const conditional = (test: Value, yes: Value, no: Value): Value => {
+    ofSort(file, node, test, "boolean");
+    if (yes.sort !== no.sort) invalid(file, node, "A conditional needs two branches of the same type.");
+    const branchesThrow = yes.fallible || no.fallible;
+    const premise = executable?.recursive ? `_${fresh()} : ` : "";
+    return sequence([test], fresh, ([code]) => ({
+      sort: yes.sort, fallible: branchesThrow,
+      code: `(if ${premise}${code} then ${branchesThrow ? asOutcome(yes) : yes.code} else ${branchesThrow ? asOutcome(no) : no.code})`,
+    }));
+  };
+  if (node.type === "ConditionalExpression") return conditional(read(node.test), read(node.consequent), read(node.alternate));
+  if (node.type === "LogicalExpression" && (node.operator === "&&" || node.operator === "||")) {
+    const left = read(node.left), right = read(node.right);
+    ofSort(file, node.left, left, "boolean");
+    ofSort(file, node.right, right, "boolean");
+    if (left.fallible || right.fallible || executable?.recursive) {
+      const short = { sort: "boolean" as const, code: node.operator === "&&" ? "false" : "true" };
+      return node.operator === "&&" ? conditional(left, right, short) : conditional(left, short, right);
+    }
+    return { sort: "boolean", code: `(${left.code} ${node.operator} ${right.code})` };
+  }
+
+  const operands: Node[] = node.type === "BinaryExpression" ? [node.left, node.right] : node.type === "UnaryExpression" ? [node.argument] : [];
+  const values = operands.map(read);
+  return sequence(values, fresh, codes => {
+    const expr = readExpression(file, node, child => {
+      const i = operands.indexOf(child);
+      if (i === -1) return;
+      // The shared reader checks scalar operand types and chooses the result sort.
+      const value = values[i]!;
+      if (!isScalar(value.sort)) invalid(file, child, "Use arrays and unions as whole values.");
+      return ref(value.sort, codes[i]!);
+    });
+    if (expr.sort === "string") return invalid(file, node, "Strings are outside the Lean prototype.");
+    return { sort: expr.sort, code: emit(expr) };
+  });
 }
 
 export function ofSort<T extends Sort>(file: string, at: Node, value: Value, expected: T): string {

@@ -2,8 +2,8 @@
 author: codex
 date: 2026-11-24
 updated-at: 2026-11-24
-summary: Run the Lean adapter on TypeScript search and membership functions and read the claims it checks.
-tags: [verification, typescript, lean, quantifiers]
+summary: Run the Lean adapter, read a quantified claim, and follow it across TypeScript calls.
+tags: [verification, typescript, lean, quantifiers, call-graphs, exceptions]
 ---
 # Checking TypeScript with Lean
 
@@ -61,3 +61,15 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/array-contains-lemmas.lean)
 
 Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/cli/experiments/lean/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/README.md#sidecar-syntax)
+
+## Follow a call chain
+
+The ZigZag roundtrip sidecar uses `describe(encode, …)` for its input signature and calls both TypeScript exports in its observation.
+
+```ts
+expect(decode(encode(value))).to(pud.bigint().eq(value));
+```
+
+Run `bun run --silent pud check packages/cli/experiments/lean/.examples/zigzag-roundtrip.proof.ts`. The generated theorem includes both function bodies and quantifies over every signed bigint. Pud snapshots reachable module sources and rechecks their import resolutions.
+
+Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]

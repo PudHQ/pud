@@ -69,17 +69,20 @@ function checkSibling(file: string, fn: SubjectFunction, subject: string) {
   });
 }
 
+type FunctionOptions = { allowArrowFunctions: true; allowLocalFunctions?: boolean };
+
 export function selectSubject(program: Program, file: string, name: string): FunctionDeclaration;
-export function selectSubject(program: Program, file: string, name: string, options: { allowArrowFunctions: true }): SubjectFunction;
-export function selectSubject(program: Program, file: string, name: string, options?: { allowArrowFunctions: true }): SubjectFunction {
+export function selectSubject(program: Program, file: string, name: string, options: FunctionOptions): SubjectFunction;
+export function selectSubject(program: Program, file: string, name: string, options?: FunctionOptions): SubjectFunction {
   let fn: SubjectFunction | undefined;
   for (const stmt of program.body) {
     if (stmt.type === "ImportDeclaration" && stmt.importKind === "type") continue;
     if ((stmt.type === "ExportNamedDeclaration" || stmt.type === "ExportAllDeclaration") && stmt.exportKind === "type") continue;
     const exported = stmt.type === "ExportNamedDeclaration";
+    const selectable = exported || options?.allowLocalFunctions;
     const decl = exported ? stmt.declaration : stmt;
     if (decl?.type === "FunctionDeclaration") {
-      if (exported && decl.id?.name === name) fn = decl;
+      if (selectable && decl.id?.name === name) fn = decl;
       else checkSibling(file, decl, name);
       continue;
     }
@@ -90,7 +93,7 @@ export function selectSubject(program: Program, file: string, name: string, opti
         if (d.id.type !== "Identifier" || !options?.allowArrowFunctions || d.init?.type !== "ArrowFunctionExpression") {
           invalid(file, d, "Subject modules may contain only named functions, type-only declarations, or constants with supported initializers.");
         }
-        if (exported && d.id.name === name) {
+        if (selectable && d.id.name === name) {
           if (d.id.typeAnnotation) invalid(file, d.id, "Declare parameter and return types on the arrow function itself.");
           fn = d.init;
         } else checkSibling(file, d.init, name);
@@ -99,6 +102,9 @@ export function selectSubject(program: Program, file: string, name: string, opti
     }
     invalid(file, stmt, "Subject modules may contain only named functions, type-only declarations, or constants with supported initializers.");
   }
-  if (!fn) throw new Error(`${file}: No named function export '${name}'.`);
+  if (!fn) {
+    if (options?.allowLocalFunctions) return invalid(file, undefined, `Expected a directly declared function named '${name}'.`);
+    throw new Error(`${file}: No named function export '${name}'.`);
+  }
   return fn;
 }

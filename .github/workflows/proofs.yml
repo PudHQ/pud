@@ -15,9 +15,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: brew install rocq
       - run: bun install --frozen-lockfile
+      - run: bun run setup:lean
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run build
       - run: bun run test
       - run: bun run demo
       - run: bun run demo:rocq
+      - run: bun run demo:lean

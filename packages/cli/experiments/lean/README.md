@@ -1,6 +1,6 @@
 # TypeScript proofs with Lean
 
-A `*.proof.ts` suite describes an imported TypeScript export. Pud reads the suite and implementation as source. The Lean adapter generates the implementation and claim in Lean and asks it to certify the claim. Input schemas set the quantified domain. Matcher chains state what the result must satisfy for every input in that domain. [Configure a proof assistant](../../README.md#configure-a-proof-assistant)
+A `*.proof.ts` suite describes an imported TypeScript export. Pud reads the suite and the linked implementations as source. The Lean adapter generates the implementation and claim in Lean and asks it to certify the claim. Input schemas set the quantified domain. A property states the required return or exception for every input in that domain. [Configure a proof assistant](../../README.md#configure-a-proof-assistant)
 
 ## Run the examples
 
@@ -37,9 +37,12 @@ lean --version
 | Imperative | [Nested loops](.examples/nested-loop-invariants.ts) | [One visit per ordered pair](.examples/nested-loop-invariants.proof.ts) |
 | Imperative | [Count odd elements](.examples/for-continue.ts) | [Skipping even values with `continue`](.examples/for-continue.proof.ts) |
 | Functional | [Integer maximum](.examples/math-min-max-int.ts) | [Greatest of three inputs](.examples/math-min-max-int.proof.ts) |
-| Functional | [ZigZag encoding](.examples/zigzag.ts) | [Encode a signed integer](.examples/zigzag-encode.proof.ts) · [Decode a nonnegative code](.examples/zigzag-decode.proof.ts) |
+| Functional | [ZigZag encoding](.examples/zigzag.ts) | [Encode a signed integer](.examples/zigzag-encode.proof.ts) · [Decode a nonnegative code](.examples/zigzag-decode.proof.ts) · [Prove the composed roundtrip](.examples/zigzag-roundtrip.proof.ts) |
 | Functional | [Wide bigint operations](.examples/bigint-bits.ts) | [70-bit left shift](.examples/shift-wide.proof.ts) · [Low 64 bits](.examples/low-64.proof.ts) |
 | Functional | [Truthiness](.examples/truthiness.ts) | [Boolean condition](.examples/boolean-truthiness.proof.ts) · [Bigint condition](.examples/bigint-truthiness.proof.ts) |
+| Functional | [Bigint division](.examples/bigint-division.ts) | [Signed quotient and zero-divisor exception](.examples/bigint-division.proof.ts) |
+| Imperative | [Safe quotient](.examples/safe-quotient.ts) | [Catch a throw from an imported function](.examples/safe-quotient.proof.ts) |
+| Imperative | [Countdown and recursion](.examples/termination.ts) | [Decreasing while loop](.examples/countdown-sum.proof.ts) · [Decreasing recursive call](.examples/recursive-sum.proof.ts) |
 
 Parity, linear search, and content dispatch were adapted from a random draw of LemmaScript’s TypeScript examples. The parity and search ports use `bigint`. Search uses `for…of` and exits at the first match. Content dispatch retains its text-or-parts input and treats each part as an opaque element in Lean. [Upstream examples](https://github.com/midspiral/LemmaScript/tree/966272f70ea708ba8d84e95bafa610c3e2b8a1d3/examples) · [LemmaScript license](.examples/lemmascript-license.txt)
 
@@ -53,7 +56,7 @@ bun run pud --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 
 ## Sidecar syntax
 
-`describe(exportedFunction, callback)` binds the suite to the named TS import. Each `it` declares one schema per parameter and calls the export with those inputs in parameter order. `expect(result).to(pud.bigint().gte(lower).lte(upper))` adds the conjunction `lower ≤ result ∧ result ≤ upper`. Calls to `given` add cross-input constraints before the assertions.
+`describe(exportedFunction, callback)` binds the suite's input signature to the named TS import. Each `it` declares one schema per parameter. A direct observation calls the export with those inputs in parameter order. A composed observation can nest named imported calls, using the declared inputs as leaves and calling the suite's export somewhere in the expression. `expect(result).to(pud.bigint().gte(lower).lte(upper))` requires a successful return satisfying the conjunction `lower ≤ result ∧ result ≤ upper`. Calls to `given` add cross-input constraints before the assertions. [Composed observation](.examples/zigzag-roundtrip.proof.ts)
 
 | Sidecar | Lean |
 | --- | --- |
@@ -66,13 +69,14 @@ bun run pud --emit packages/cli/experiments/lean/.examples/clamp.proof.ts
 | `pud.forall(domain, value => predicate)` | Universal quantification with the domain as a premise |
 | `pud.exists(domain, value => predicate)` | Existential quantification with the domain as a conjunct |
 | `pud.and`, `pud.or`, `pud.not`, `pud.implies`, `pud.iff` | `∧`, `∨`, `¬`, `→`, `↔` |
+| `expect(() => call()).toThrow("RangeError")` | Equality to the modeled `Except.error` outcome |
 | `it.todo(title)` | A reported TODO with zero proof obligations |
 
 `pud.int()` and `pud.bool()` are aliases for `pud.bigint()` and `pud.boolean()`.
 
 Quantifier domains can be bound `readonly bigint[]` values or `pud.bigint()` and `pud.boolean()` schemas with optional constraints. Each callback is a unary arrow with an expression or a single return. Write ordinary scalar comparisons inside it and use the Pud connectives to combine symbolic predicates. Both refinements and `given()` accept symbolic predicates. [Membership example](.examples/array-contains.proof.ts) · [Maximum example](.examples/max-element.proof.ts)
 
-Specifications can use `pud.length(values)` for a bigint count of elements or `pud.sum(values)` for the sum of a bigint array. `pud.modulo(value, divisor)` expresses the nonnegative residue for a positive bigint literal divisor. [Array sum](.examples/array-sum.proof.ts) · [Parity](.examples/is-even.proof.ts)
+Specifications can use `pud.length(values)` for a bigint count of elements or `pud.sum(values)` for the sum of a bigint array. `pud.modulo(value, divisor)` expresses the nonnegative residue for a positive bigint literal divisor. `pud.quotient(n, d)` is a mathematical truncating quotient with value zero at `d = 0`. Use it under a nonzero precondition when specifying JavaScript division, and use `.toThrow()` for the zero case. [Array sum](.examples/array-sum.proof.ts) · [Parity](.examples/is-even.proof.ts) · [Division](.examples/bigint-division.proof.ts)
 
 Import `pud` from `pud.config.ts` to use native predicates or proofs in `pud.describe()`. Use `.satisfies(lean.ref("Namespace.predicate", ...args))` to apply a named Lean predicate to the explicit arguments followed by the value under assertion. A `lean` tagged template can build the same predicate and interpolate in-scope TypeScript expressions. [Native template example](../../README.md#use-native-proof-code)
 
@@ -80,10 +84,14 @@ Register local Lean definitions and lemmas with `use(lean.module("./helper.lean"
 
 ## What a pass establishes
 
-The generated claim quantifies over the declared inputs and applies the matcher to the result of the generated implementation. Scalar expressions reuse Pud’s TypeScript reader. Lean `Id.run do` represents local assignment, branching, and early returns. A `for…of` loop with a single bigint accumulator assignment lowers to `List.foldl`. Other `for…of` loops use Lean’s `for` over a list, including unlabelled `break` and `continue`.
+The generated claim quantifies over the declared inputs and applies the matcher to the generated implementation's outcome. The adapter links direct calls to same-file functions and relative named TypeScript imports with inert initialization. Module-level executable effects, cyclic imports, mutually recursive functions, and dynamic calls are outside this fragment. Pud rechecks the linked sources and import resolutions before reporting a pass.
+
+Lean `Id.run do` represents pure local assignment, branching, and early returns. A `for…of` loop with a single pure bigint accumulator assignment lowers to `List.foldl`. Other supported `for…of` loops use Lean’s `for` over a list, including unlabelled `break` and `continue`. A `while` loop may use `counter > literal` or `counter >= literal` and end each iteration with `counter -= positiveLiteral`. Lean proves that its distance to the bound decreases. Direct pure self-recursion uses the first bigint parameter's `.toNat` as its measure, and Lean checks each recursive call. [Countdown and recursion](.examples/termination.ts) · [Lean recursion](https://lean-lang.org/doc/reference/latest/Definitions/Recursive-Definitions/)
 
 The runner applies Lean simplification, case splits, and integer arithmetic to active properties unless they provide a proof term. A fresh Lean module checks the resulting certificate against the generated claim and audits its axiom dependencies. An open goal, a mismatched theorem, or a dependency on `sorryAx` fails the command. The runner checks that the sidecar, implementation, and local Lean modules still match the files it read before reporting a pass. [Lean proof validation](https://lean-lang.org/doc/reference/latest/ValidatingProofs/)
 
-The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. An `if` condition can be a boolean or a bigint, with zero treated as false. A block-bodied subject has a final return. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
+The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. An `if` condition can be a boolean or a bigint, with zero treated as false. The final statement of a block-bodied subject must return or throw on every path. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
 
-Bigint division and remainder take positive literal divisors and lower to `Int.tdiv` and `Int.tmod`, which truncate toward zero. A nonnegative literal shift count lowers to multiplication by a power of two. AND with a literal mask of consecutive low bits lowers to the nonnegative residue modulo the mask plus one, including for negative inputs. [ECMAScript bigint operations](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-bigint-type)
+Bigint division and remainder use `Int.tdiv` and `Int.tmod` for nonzero divisors. A zero divisor produces `Except.error .rangeError`. The adapter also models explicit throws of unshadowed `Error`, `RangeError`, and `TypeError`, with the class as the observed payload. It sequences fallible expressions left to right, evaluates short-circuit branches lazily, and supports `try { return expression } catch { … }` with an unbound catch and no `finally`. [ECMAScript bigint operations](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-bigint-type) · [Catch example](.examples/safe-quotient.ts)
+
+A nonnegative literal shift count lowers to multiplication by a power of two. AND with a literal mask of consecutive low bits lowers to the nonnegative residue modulo the mask plus one, including for negative inputs. Run the differential suite with `bun test packages/cli/test/lean.test.ts` after `bun run setup:lean`. It compares generated Lean functions with Bun on signed inputs, large integers, exception paths, short-circuiting, and loops. The model assumes standard builtins and ignores runtime resource limits such as stack exhaustion. [Conformance tests](../../test/lean.test.ts)

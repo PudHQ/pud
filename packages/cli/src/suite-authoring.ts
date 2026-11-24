@@ -1,4 +1,4 @@
-import type { ProofAssistant } from "@pud/model/assistant";
+import type { ProofAssistant, ProofErrorKind } from "@pud/model/assistant";
 
 type Value = bigint | boolean | string | readonly unknown[];
 type Subject = (...args: never[]) => Value;
@@ -70,6 +70,7 @@ interface SchemaBuilders<Id extends string> {
   length(items: readonly unknown[]): bigint;
   sum(items: readonly bigint[]): bigint;
   modulo(value: bigint, divisor: bigint): bigint;
+  quotient(value: bigint, divisor: bigint): bigint;
 }
 
 interface SuiteAuthoring<Id extends string> {
@@ -83,7 +84,10 @@ interface SuiteAuthoring<Id extends string> {
     todo(name: string): void;
   };
   given(condition: Predicate): void;
-  expect<T extends Value>(value: T): { to(schema: Schema<NoInfer<T>, Id>): void };
+  expect: {
+    <T extends Value>(value: T): { to(schema: Schema<NoInfer<T>, Id>): void };
+    (call: () => Value): { toThrow(error: ProofErrorKind): void };
+  };
   use(module: NativeModule<Id>): void;
 }
 
@@ -100,7 +104,7 @@ const schemaBuilders = {
   bigint: sourceOnly, boolean: sourceOnly, int: sourceOnly, bool: sourceOnly,
   opaque: sourceOnly, array: sourceOnly, textOrArray: sourceOnly,
   forall: sourceOnly, exists: sourceOnly, and: sourceOnly, or: sourceOnly, not: sourceOnly, implies: sourceOnly, iff: sourceOnly,
-  length: sourceOnly, sum: sourceOnly, modulo: sourceOnly,
+  length: sourceOnly, sum: sourceOnly, modulo: sourceOnly, quotient: sourceOnly,
 };
 export const pud: SchemaBuilders<never> = schemaBuilders;
 export const it: SuiteAuthoring<never>["it"] = Object.assign(sourceOnly.bind(undefined), { todo: sourceOnly });

@@ -17,6 +17,8 @@ export interface SubjectSource {
   /** Read a UTF-8 model input, relative to the subject's directory or by absolute path.
    * During a check the first read is shared across the batch and changes invalidate dependent results. */
   readDependency?(path: string): string;
+  /** Read a linked source with its canonical location and track any import resolution that selected it. */
+  readModule?(path: string, resolveAgain?: () => string): { canonical: string; source: string };
 }
 
 export interface Counterexample {

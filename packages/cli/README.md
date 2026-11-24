@@ -49,6 +49,22 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 
 Run `pud check clamp.proof.ts` to certify the claim, or `pud --emit clamp.proof.ts` to inspect the generated unit. `it.todo(title)` reports a pending property without asking the assistant for a verdict.
 
+### Check calls and exceptions
+
+With the Lean adapter, `describe(encode, …)` supplies the input signature and the observation can compose imported functions.
+
+```ts
+expect(decode(encode(value))).to(pud.bigint().eq(value));
+```
+
+A property can also assert the exact class of a modeled exception. The callback keeps the throwing call inside the observation.
+
+```ts
+expect(() => divide(numerator, divisor)).toThrow("RangeError");
+```
+
+`.to()` requires a successful return. `.toThrow()` accepts `"Error"`, `"RangeError"`, or `"TypeError"` in Lean suites. [Supported calls, outcomes, and termination](experiments/lean/README.md#what-a-pass-establishes)
+
 ### Use native proof code
 
 Import `pud` from your config when a property needs native code. Both `pud.describe()` and the schema builders carry the selected assistant's type.

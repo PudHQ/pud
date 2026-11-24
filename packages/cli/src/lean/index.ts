@@ -1,30 +1,52 @@
 import { parseExpression } from "@babel/parser";
 import type { Node } from "@babel/types";
 import { Unsupported, type SubjectSource } from "@pud/model/adapter";
-import type { NativeProofTerm, ProofAssistant, ProofClaim, ProofComparison, ProofConstraint, ProofExpression, ProofModule, ProofOutcome, ProofPredicate, ProofType } from "@pud/model/assistant";
+import type { NativeProofTerm, ProofAssistant, ProofCall, ProofClaim, ProofComparison, ProofConstraint, ProofErrorKind, ProofExpression, ProofModule, ProofOutcome, ProofPredicate, ProofType } from "@pud/model/assistant";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { native } from "../suite-authoring.ts";
 import { leanCommand, type LeanOptions } from "./command.ts";
-import { lowerSubject, type Subject } from "./subject.ts";
-import { leanTypes, ofSort, readProposition, readValue, type Sort, type Value } from "./syntax.ts";
+import { definitions, lowerProgram } from "./program.ts";
+import { errorKinds, invoke, leanTypes, ofSort, readProposition, readValue, type Sort, type Value } from "./syntax.ts";
 
 export type { LeanOptions } from "./command.ts";
 export const lean = native("lean");
 
 const trustedAxioms = new Set(["propext", "Quot.sound", "Classical.choice"]);
 const operators: Record<ProofComparison, string> = { eq: "=", gt: ">", gte: "≥", lt: "<", lte: "≤" };
-const autoProof = `by
+const modeledErrors = Object.keys(errorKinds) as ProofErrorKind[];
+const errors = `inductive ErrorKind where
+${Object.values(errorKinds).map(kind => `  | ${kind}`).join("\n")}
+  deriving DecidableEq, Repr`;
+const countdown = `def countdownWhile {m : Type → Type} [Monad m] {σ : Type}
+    (counter limit decrement : Int) (positive : 0 < decrement)
+    (step : Int → σ → m σ) (state : σ) : m (Int × σ) :=
+  if _above : counter > limit then do
+    let next ← step counter state
+    countdownWhile (counter - decrement) limit decrement positive step next
+  else pure (counter, state)
+termination_by (counter - limit).toNat
+decreasing_by omega
+
+@[simp] theorem countdownWhile_stop {m : Type → Type} [Monad m] {σ : Type}
+    (counter limit decrement : Int) (positive : 0 < decrement)
+    (step : Int → σ → m σ) (state : σ) (stopped : counter ≤ limit) :
+    countdownWhile counter limit decrement positive step state = pure (counter, state) := by
+  rw [countdownWhile]
+  simp [Int.not_lt.mpr stopped]`;
+
+const autoProof = (unfold: string, recursive: readonly string[]) => `by
   simp only [claim]
   intros
   first
   | rfl
-  | try simp_all [impl, Id.run, Int.add_nonneg, Int.tmod_eq_emod_of_nonneg, Int.tdiv_eq_ediv_of_nonneg]
+  | try simp_all [${unfold}, Int.add_nonneg, Int.tmod_eq_emod_of_nonneg, Int.tdiv_eq_ediv_of_nonneg]
     all_goals (repeat' (split <;> try simp_all))
-    all_goals (first | rfl | omega)
-  | try simp_all [impl, Id.run]
+    all_goals ((try simp (disch := omega) [Int.tmod_eq_emod_of_nonneg, Int.tdiv_eq_ediv_of_nonneg] at *) <;> (first | rfl | omega))${recursive.length ? `
+  | solve | simp_all (config := { maxSteps := 500 }) [${unfold}, ${recursive.join(", ")}]` : ""}
+  | try simp_all [${unfold}]
     all_goals (repeat' (first | split | constructor))
     all_goals ((try simp_all) <;> omega)`;
 
@@ -60,10 +82,44 @@ function readOperand<T>(
 
 function indent(code: string) { return code.split("\n").map(line => `  ${line}`).join("\n"); }
 
-function generate(subject: Subject, claim: ProofClaim, imports: readonly string[]) {
-  const { params, itemType, definition } = subject;
+type Program = ReturnType<typeof lowerProgram>;
+
+function observe(program: Program, observation?: ProofCall) {
+  const { root } = program;
+  const roots = new Set([root]);
+  const parameters = new Map(root.params.map(param => [param.name, param]));
+  let next = 0;
+  const fresh = () => `callArg${next++}`;
+  function call(node: ProofCall): Value {
+    const subject = node.callee === "subject" ? root : program.resolve(node.callee.file, node.callee.name);
+    if (subject.itemType || subject.params.length !== node.args.length) {
+      throw new Unsupported("Pass the full signature of each function in a composed call.");
+    }
+    roots.add(subject);
+    const args = node.args.map((arg, index) => {
+      const value = arg.kind === "call" ? call(arg) : parameters.get(arg.name);
+      if (value?.sort !== subject.params[index]!.sort) {
+        throw new Unsupported("Each argument in a composed call must match the callee's declared type.");
+      }
+      return value;
+    });
+    return invoke(subject, args, fresh);
+  }
+  const args = [root.itemType && "(Item := Item)", ...root.params.map(param => param.code)].filter(Boolean);
+  const value = observation ? call(observation) : {
+    sort: root.result, code: [root.code, ...args].join(" "), fallible: root.fallible,
+  };
+  return { value, linked: definitions([...roots]) };
+}
+
+function generate(program: Program, claim: ProofClaim, imports: readonly string[]) {
+  if (claim.expectedError ? !Object.hasOwn(errorKinds, claim.expectedError) || claim.assertions.length : !claim.assertions.length) {
+    throw new Unsupported("State either a return predicate or one modeled exception.");
+  }
+  const { params, itemType } = program.root;
+  const { value: execution, linked } = observe(program, claim.observation);
   const parameters = new Map(params.map(p => [p.name, p]));
-  const result: Value = { sort: subject.result, code: "result" };
+  const result: Value = { sort: execution.sort, code: "result" };
   let nextBinder = 0;
 
   function operand(expression: ProofExpression, locals: Scope, expected?: Sort) {
@@ -115,13 +171,22 @@ function generate(subject: Subject, claim: ProofClaim, imports: readonly string[
 
   const render = (constraint: ProofConstraint) => renderConstraint(constraint, emptyScope);
   const binders = [itemType && "(Item : Type)", ...params.map(param => `(${param.code} : ${leanTypes[param.sort]})`)].filter(Boolean).join(" ");
-  const args = [itemType && "(Item := Item)", ...params.map(param => param.code)].filter(Boolean).join(" ");
-  const proposition = [binders && `∀ ${binders},`, ...claim.premises.map(p => `${render(p)} →`), `let result := impl ${args}`.trimEnd(),
-    claim.assertions.map(render).join(" ∧\n")].filter(Boolean).join("\n");
+  const premises = claim.premises.map(p => `${render(p)} →`);
+  const assertions = claim.assertions.map(render).join(" ∧\n");
+  const goal = claim.expectedError
+    ? execution.fallible ? `(${execution.code}) = .error ErrorKind.${errorKinds[claim.expectedError]}` : "False"
+    : execution.fallible
+      ? `match (${execution.code}) with\n| .ok result =>\n${indent(assertions)}\n| .error _ => False`
+      : `let result := ${execution.code}\n${assertions}`;
+  const proposition = [binders && `∀ ${binders},`, ...premises, goal].filter(Boolean).join("\n");
+  const simplify = [...linked.filter(subject => !subject.recursive).map(subject => subject.code), "Id.run"].join(", ");
+  const recursive = linked.filter(subject => subject.recursive).map(subject => subject.code);
+  if (linked.some(subject => subject.countdown)) recursive.push("countdownWhile");
   return [
     "import Std", ...imports.map(module => `import ${module}`), "", "namespace Pud", "", "set_option autoImplicit false", "",
-    definition, "", "def claim : Prop :=", indent(proposition), "",
-    "theorem checked : claim :=", indent(claim.proof ? term(claim.proof, emptyScope) : autoProof), "", "end Pud", "",
+    errors, "", ...(linked.some(subject => subject.countdown) ? [countdown, ""] : []),
+    linked.map(subject => subject.definition).join("\n\n"), "", "def claim : Prop :=", indent(proposition), "",
+    "theorem checked : claim :=", indent(claim.proof ? term(claim.proof, emptyScope) : autoProof(simplify, recursive)), "", "end Pud", "",
   ].join("\n");
 }
 
@@ -166,10 +231,10 @@ function moduleNames(modules: readonly ProofModule[]) {
   });
 }
 
-function verify(subject: Subject, source: SubjectSource, options: LeanOptions, claims: readonly ProofClaim[], modules: readonly ProofModule[]): ProofOutcome[] {
+function verify(program: Program, source: SubjectSource, options: LeanOptions, claims: readonly ProofClaim[], modules: readonly ProofModule[]): ProofOutcome[] {
   const imports = moduleNames(modules);
   const units = claims.map(claim => {
-    try { return { unit: generate(subject, claim, imports) }; }
+    try { return { unit: generate(program, claim, imports) }; }
     catch (error) {
       if (!(error instanceof Unsupported)) throw error;
       return { outcome: { status: "unsupported", detail: error.message } as const };
@@ -204,12 +269,15 @@ export function leanAdapter(options: LeanOptions = {}): ProofAssistant<"lean"> {
   return {
     id: "lean",
     prepare(source) {
-      const subject = lowerSubject(source.file, source.name, source.source);
+      const program = lowerProgram(source);
+      const subject = program.root;
       return {
         parameters: subject.params.map(p => ({ name: p.name, type: proofType(p.sort, subject.itemType) })),
         result: proofType(subject.result, subject.itemType),
-        emit(claim, modules) { return generate(subject, claim, moduleNames(modules)); },
-        async verify(claims, modules) { return verify(subject, source, options, claims, modules); },
+        inspectCall(call) { return proofType(observe(program, call).value.sort, undefined); },
+        errors: modeledErrors,
+        emit(claim, modules) { return generate(program, claim, moduleNames(modules)); },
+        async verify(claims, modules) { return verify(program, source, options, claims, modules); },
       };
     },
   };

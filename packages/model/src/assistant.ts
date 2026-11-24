@@ -44,6 +44,16 @@ export interface ProofClaim {
   premises: readonly ProofConstraint[];
   assertions: readonly ProofConstraint[];
   proof?: NativeProofTerm;
+  observation?: ProofCall;
+  expectedError?: ProofErrorKind;
+}
+
+export type ProofErrorKind = "Error" | "RangeError" | "TypeError";
+
+export interface ProofCall {
+  kind: "call";
+  callee: "subject" | { file: string; name: string };
+  args: readonly (ProofCall | { kind: "parameter"; name: string })[];
 }
 
 export interface ProofModule {
@@ -60,6 +70,8 @@ export type ProofOutcome =
 export interface PreparedProofAssistant {
   parameters: readonly { name: string; type: ProofType }[];
   result: ProofType;
+  inspectCall?(call: ProofCall): ProofType;
+  errors?: readonly ProofErrorKind[];
   emit(claim: ProofClaim, modules: readonly ProofModule[]): string | Promise<string>;
   verify(claims: readonly ProofClaim[], modules: readonly ProofModule[]): Promise<readonly ProofOutcome[]>;
 }
