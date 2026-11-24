@@ -1,5 +1,6 @@
 import path from "node:path/posix";
 import { markdown, parseNote, plain, slug } from "./markdown";
+import { noteSortDate } from "./note-date";
 import { httpUrl, outboundAttributes } from "./web-links";
 import type { Token } from "markdown-it";
 
@@ -26,6 +27,8 @@ export interface SavedLink { href: string; title: string; host: string; sources:
 export interface Folder { name: string; path: string; id: string; href: string; notes: Note[]; children: Folder[] }
 
 const byTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title, "en", { numeric: true });
+const byNoteDate = (a: Note, b: Note) =>
+  (noteSortDate(b) ?? "").localeCompare(noteSortDate(a) ?? "") || byTitle(a, b);
 const slugPath = (file: string) => file.split("/").map(slug).join("/");
 const key = (file: string) => file.normalize("NFC").toLowerCase();
 const visible = (file: string) => !file.split("/").some(part => part.startsWith("."));
@@ -162,14 +165,14 @@ export function buildVault(files: Record<string, string>, assets: Record<string,
     }
     note.html = markdown.renderer.render(tokens, markdown.options, {});
   }
-  for (const note of notes) note.backlinks.sort(byTitle);
+  for (const note of notes) note.backlinks.sort(byNoteDate);
   const byFolder = (a: Folder, b: Folder) => a.name.localeCompare(b.name, "en", { numeric: true });
   for (const folder of folders.values()) {
-    folder.notes.sort(byTitle);
+    folder.notes.sort(byNoteDate);
     folder.children.sort(byFolder);
   }
-  for (const link of links.values()) link.sources.sort(byTitle);
-  notes.sort(byTitle);
+  for (const link of links.values()) link.sources.sort(byNoteDate);
+  notes.sort(byNoteDate);
   roots.sort(byFolder);
   return {
     notes, roots,

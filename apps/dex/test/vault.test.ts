@@ -20,8 +20,32 @@ describe("Markdown vault", () => {
       "Undated.md": "A note.",
       "Updated only.md": "---\nupdated-at: '2026-11-23'\n---\nA revised note.",
     });
-    expect(notes.map(note => note.date)).toEqual(["2026-11-21", undefined, "2024-02-29", undefined, undefined, undefined]);
-    expect(notes.map(note => note.updatedAt)).toEqual(["2026-11-24", undefined, undefined, undefined, undefined, "2026-11-23"]);
+    expect(Object.fromEntries(notes.map(({ title, date, updatedAt }) => [title, [date, updatedAt]]))).toEqual({
+      Bare: ["2026-11-21", "2026-11-24"],
+      Impossible: [undefined, undefined],
+      Quoted: ["2024-02-29", undefined],
+      Timestamp: [undefined, undefined],
+      Undated: [undefined, undefined],
+      "Updated only": [undefined, "2026-11-23"],
+    });
+  });
+
+  test("entry lists sort newest first by revision date or creation date", () => {
+    const citation = "See [[Guide]] and [the reference](https://example.org/).";
+    const vault = buildVault({
+      "Log/An undated note.md": citation,
+      "Log/Updated only.md": `---\nupdated-at: 2026-11-23\n---\n${citation}`,
+      "Log/Created.md": `---\ndate: 2026-11-23\n---\n${citation}`,
+      "Log/Nested/Invalid update.md": `---\ndate: 2026-11-22\nupdated-at: 2026-11-31\n---\n${citation}`,
+      "Log/Nested/Revised.md": `---\ndate: 2026-11-21\nupdated-at: 2026-11-24\n---\n${citation}`,
+      "Guide.md": "A guide.",
+    });
+    const titles = ["Revised", "Created", "Updated only", "Invalid update", "An undated note"];
+    expect(vault.notes.map(note => note.title)).toEqual([...titles, "Guide"]);
+    expect(vault.roots[0].notes.map(note => note.title)).toEqual(titles);
+    expect(vault.roots[0].children[0].notes.map(note => note.title)).toEqual(["Revised", "Invalid update"]);
+    expect(vault.notes.find(note => note.title === "Guide")?.backlinks.map(note => note.title)).toEqual(titles);
+    expect(vault.links[0].sources.map(note => note.title)).toEqual(titles);
   });
 
   test("warning callouts keep their links and leave the note summary to the prose", () => {

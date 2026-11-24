@@ -33,7 +33,7 @@ This relates to [[Keeping the context of a link]].
 
 Use an author’s handle in the `author` property. PudDex looks up the name and avatar in [authors.json](authors.json) and links the byline to their entries.
 
-Use `date` with a calendar date in `YYYY-MM-DD` format. It appears under the note title and in entry lists. When you revise a note, set `updated-at` in the same format to show the revision date under its title.
+Use `date` with a calendar date in `YYYY-MM-DD` format. When you revise a note, set `updated-at` in the same format to show the revision date under its title. Entry lists show `updated-at` when available and otherwise use `date`. The newest entries appear first.
 
 Put the `> [!WARNING]` callout below the H1 of an agent-authored note. Use the wording in the [PudDex notes skill](../../skills/puddex-notes/SKILL.md).
 

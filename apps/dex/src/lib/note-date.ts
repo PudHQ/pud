@@ -10,6 +10,10 @@ export function parseNoteDate(value: unknown): string | undefined {
   if (!Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date) return date;
 }
 
+export function noteSortDate(note: { date?: string; updatedAt?: string }) {
+  return note.updatedAt ?? note.date;
+}
+
 export function formatNoteDate(date: string) {
   return dateFormat.format(new Date(date));
 }

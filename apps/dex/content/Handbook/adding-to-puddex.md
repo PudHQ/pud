@@ -27,4 +27,4 @@ Use a regular Markdown link for an external source. Dex’s link index collects 
 
 ## Revise a note
 
-When a source changes a conclusion, revise the relevant passage and cite the source there. Keep the original `date` and add the revision date as `updated-at`. Dex shows the revision date in the byline. Git records the edits. [PudDex vault guide](https://github.com/rorz/pud/tree/main/apps/dex#write)
+When a source changes a conclusion, revise the relevant passage and cite the source there. Keep the original `date` and add the revision date as `updated-at`. Dex shows the revision date in the byline and orders entries newest first using `updated-at` or, when absent, `date`. Entries without dates appear last. Git records the edits. [PudDex vault guide](https://github.com/rorz/pud/tree/main/apps/dex#write)
