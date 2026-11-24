@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
+import { GitHubStarSpotlight } from "./github-star-spotlight";
 
 const repository = "rorz/pud";
 
@@ -36,8 +37,21 @@ async function StarCount() {
 
   const label = `${count.full} ${count.full === "1" ? "star" : "stars"}`;
   return (
-    <span title={label} className="font-mono text-star-count tabular-nums">
+    <span
+      title={label}
+      data-star-count
+      className="relative inline-flex min-h-6 min-w-8 items-center justify-center gap-1 rounded-md border border-pink-300/40
+        bg-linear-to-b from-violet-950 to-black px-1.5 font-mono text-star-count leading-none text-pink-100 tabular-nums
+        inset-shadow-xs inset-shadow-black group-data-charging:border-sky-200/75 group-data-charging:from-blue-950
+        group-data-charging:text-sky-50 group-data-charged:text-shadow-sm group-data-charged:text-shadow-cyan-200
+        motion-safe:transition-[color,border-color,--tw-gradient-from,text-shadow] motion-safe:duration-220
+        phone:row-start-2 phone:min-h-4 phone:min-w-0 phone:gap-0.5 phone:px-px phone:text-xs"
+    >
       <span aria-hidden="true">{count.short}</span>
+      <span aria-hidden="true" className="relative size-3 clip-star-crystal bg-star-facets
+        motion-safe:group-data-energized:animate-star-crystal phone:size-1.75">
+        <span className="absolute inset-0 bg-linear-to-br from-white via-cyan-200 to-blue-400 opacity-[var(--star-power,0)]" />
+      </span>
       <span className="sr-only">{label}</span>
     </span>
   );
@@ -45,16 +59,8 @@ async function StarCount() {
 
 export function GitHubStarLink() {
   return (
-    <a
-      href={`https://github.com/${repository}`}
-      className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap hover:text-cyan
-        focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-paper phone:flex-col phone:gap-0.5"
-    >
-      <span><span className="phone:sr-only">Star on </span>GitHub</span>
-      <span className="inline-flex items-center gap-1 text-cyan">
-        <span aria-hidden="true" className="leading-none">★</span>
-        <Suspense fallback={null}><StarCount /></Suspense>
-      </span>
-    </a>
+    <GitHubStarSpotlight href={`https://github.com/${repository}`}>
+      <Suspense fallback={null}><StarCount /></Suspense>
+    </GitHubStarSpotlight>
   );
 }

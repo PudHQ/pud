@@ -1,5 +1,13 @@
 @import "tailwindcss" source("./");
 
+@font-face {
+  font-family: Citrustime;
+  src: url("./fonts/citrustime.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 @theme {
   --color-paper: #f4f0e6;
   --color-ink: #17171c;
@@ -13,6 +21,7 @@
 
   --font-sans: system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
+  --font-citrustime: Citrustime, system-ui, sans-serif;
 
   --variation-wordmark: "opsz" 144, "slnt" 0, "wdth" 120, "GRAD" 66, "ROND" 65;
   --font-weight-wordmark: 758;
@@ -61,11 +70,49 @@
 
   --grid-template-columns-signup: minmax(0, 1fr) auto;
   --grid-template-columns-poster: minmax(0, 5fr) minmax(0, 7fr);
+  --grid-template-columns-star-mobile: max-content max-content;
 
   --clip-wordmark: polygon(0 0, 100% 0, calc(100% - 1.15rem) 100%, 0 100%);
   --clip-signup: polygon(0.6rem 0, 100% 0, 100% 100%, 0 100%);
   --clip-poster: polygon(0 0, 100% 0, 86% 100%, 0 100%);
   --clip-poster-phone: polygon(0 12%, 100% 0, 100% 100%, 0 100%);
+  --clip-star-crystal: polygon(50% 0, 64% 32%, 100% 38%, 74% 63%, 81% 100%, 50% 81%, 19% 100%, 26% 63%, 0 38%, 36% 32%);
+  --clip-star-glint: polygon(50% 0, 59% 38%, 100% 50%, 59% 62%, 50% 100%, 41% 62%, 0 50%, 41% 38%);
+  --clip-octocat-bolt: polygon(54% 0, 13% 55%, 46% 55%, 33% 100%, 95% 41%, 62% 41%, 81% 0);
+  --clip-star-return-arrow: polygon(0 53%, 32% 17%, 28% 40%, 60% 40%, 75% 34%, 84% 22%, 84% 8%,
+    96% 13%, 100% 27%, 94% 46%, 81% 58%, 64% 65%, 28% 63%, 33% 87%);
+
+  --background-image-star-chrome: linear-gradient(164deg, var(--color-violet-200), var(--color-pink-400) 24%,
+    var(--color-violet-950) 52%, var(--color-pink-500) 78%, var(--color-fuchsia-200));
+  --background-image-star-arc: conic-gradient(from 12deg, transparent 0 12%, var(--color-violet-300) 16%, var(--color-white) 20%,
+    var(--color-pink-300) 22%, transparent 28% 62%, var(--color-fuchsia-400) 66%, var(--color-cyan-200) 70%,
+    transparent 77% 100%);
+  --background-image-star-enamel: radial-gradient(ellipse at 19% 0%, color-mix(in srgb, var(--color-pink-400) 43%, transparent), transparent 62%),
+    linear-gradient(115deg, var(--color-violet-950) 8%, var(--color-fuchsia-950) 63%, var(--color-slate-950));
+  --background-image-star-chrome-hot: linear-gradient(164deg, var(--color-sky-200), var(--color-blue-500) 24%,
+    var(--color-blue-950) 52%, var(--color-blue-500) 78%, var(--color-cyan-200));
+  --background-image-star-arc-hot: conic-gradient(from 12deg, transparent 0 12%, var(--color-sky-300) 16%, var(--color-white) 20%,
+    var(--color-cyan-200) 22%, transparent 28% 62%, var(--color-blue-500) 66%, var(--color-cyan-200) 70%, transparent 77% 100%);
+  --background-image-star-enamel-hot: radial-gradient(ellipse at 19% 0%, color-mix(in srgb, var(--color-blue-500) 37%, transparent), transparent 62%),
+    linear-gradient(115deg, var(--color-blue-950) 8%, var(--color-slate-950) 74%);
+  --background-image-star-facets: conic-gradient(at 50% 53%,
+    var(--color-pink-100) 0deg 32deg, var(--color-pink-500) 32deg 73deg,
+    var(--color-white) 73deg 111deg, var(--color-pink-400) 111deg 144deg,
+    var(--color-indigo-200) 144deg 180deg, var(--color-fuchsia-600) 180deg 216deg,
+    var(--color-pink-200) 216deg 249deg, var(--color-fuchsia-400) 249deg 287deg,
+    var(--color-pink-100) 287deg 328deg, var(--color-white) 328deg 360deg);
+  --background-image-star-label-inset: linear-gradient(to bottom,
+    color-mix(in srgb, var(--color-blue-950) 94%, transparent),
+    color-mix(in srgb, var(--color-slate-950) 98%, transparent));
+  --text-shadow-star-emboss: 0 -0.65px var(--color-sky-100), -1px 0 var(--color-slate-950),
+    1px 0 var(--color-slate-950), 0 1px var(--color-sky-700), 0 2px var(--color-black),
+    0 3px 2px var(--color-black);
+  --background-image-octocat-relief: url("/github-octocat-relief.webp");
+  --background-size-octocat-relief: 200% 100%;
+  --background-image-star-curtain-paper: radial-gradient(ellipse at 35% 44%, var(--color-paper) 18%, transparent 77%),
+    radial-gradient(circle, color-mix(in srgb, var(--color-violet-700) 24%, transparent) 0.7px, transparent 1px),
+    linear-gradient(140deg, var(--color-sky-100), var(--color-violet-200) 57%, var(--color-rose-100));
+  --shadow-star-curtain-button: 0.2rem 0.2rem 0 var(--color-ink);
 
   --shadow-registration: var(--spacing-registration) var(--spacing-registration) var(--color-cyan);
   --drop-shadow-registration: var(--spacing-registration) var(--spacing-registration) 0 var(--color-cyan);
@@ -74,12 +121,94 @@
   --background-image-crt-glare: radial-gradient(ellipse at 24% -9%, color-mix(in srgb, var(--color-white) 13%, transparent), transparent 58%), linear-gradient(108deg, transparent 13%, color-mix(in srgb, var(--color-white) 3%, transparent) 27%, transparent 42%);
   --shadow-crt-glass: inset 0 0 1.34rem 0.2rem color-mix(in srgb, var(--color-black) 63%, transparent), inset 0 0 0.36rem var(--color-black);
   --animate-crt-refresh: crt-refresh 8s linear infinite;
+  --animate-star-rim: star-rim 5.4s linear infinite;
+  --animate-star-rim-hot: star-rim 1.48s linear infinite;
+  --animate-star-sheen: star-sheen 6.1s ease-in-out infinite;
+  --animate-star-sheen-preview: star-sheen 2.15s ease-in-out -0.96s infinite;
+  --animate-star-sheen-hot: star-sheen 1.32s ease-in-out infinite;
+  --animate-star-crystal: star-crystal 2.7s ease-in-out infinite;
+  --animate-star-twinkle: star-twinkle 3.9s ease-in-out infinite;
+  --animate-star-twinkle-offset: star-twinkle 3.1s ease-in-out -1.4s infinite;
+  --animate-star-twinkle-hot: star-twinkle 1.13s ease-in-out -0.43s infinite;
+  --animate-octocat-startle: octocat-startle 650ms cubic-bezier(.2, .76, .24, 1) both;
+  --animate-octocat-shudder: octocat-shudder 1.55s ease-in-out infinite;
+  --animate-star-curtain-in: star-curtain-in 630ms var(--curtain-delay, 0ms) both;
+  --animate-star-curtain-art: star-curtain-art 740ms var(--curtain-delay, 0ms) cubic-bezier(.16, .67, .26, 1) both;
+  --animate-star-curtain-out: star-curtain-out 355ms cubic-bezier(.5, .09, .78, .53) both;
+  --animate-star-curtain-backdrop: star-curtain-backdrop 475ms ease-out both;
+  --animate-star-curtain-backdrop-out: star-curtain-backdrop 355ms ease-out both reverse;
 
   @keyframes crt-refresh {
     from { translate: 0 -100%; }
     to { translate: 0 100%; }
   }
 
+  @keyframes star-rim {
+    to { rotate: 1turn; }
+  }
+
+  @keyframes star-sheen {
+    0%, 34% { translate: -135%; opacity: 0; }
+    47% { opacity: 0.73; }
+    68%, 100% { translate: 145%; opacity: 0; }
+  }
+
+  @keyframes star-crystal {
+    0%, 100% { rotate: calc(-9deg * var(--star-charge, 0)); scale: calc(1 - 0.02 * var(--star-charge, 0)); }
+    42% { rotate: calc(10deg * var(--star-charge, 0)); scale: calc(1 + 0.13 * var(--star-charge, 0)); }
+    59% { rotate: calc(4deg * var(--star-charge, 0)); scale: calc(1 + 0.02 * var(--star-charge, 0)); }
+  }
+
+  @keyframes star-twinkle {
+    0%, 29%, 64%, 100% { scale: 0.32; opacity: 0.12; }
+    43% { scale: 1.32; opacity: 1; }
+    52% { scale: 0.66; opacity: 0.43; }
+  }
+
+  @keyframes octocat-startle {
+    0% { transform: scale(.92); }
+    23% { transform: translateY(-2px) rotate(-10deg) scale(1.19, 1.27); }
+    44% { transform: rotate(9deg) scale(.97, .93); }
+    69% { transform: translateY(-1px) rotate(-4deg) scale(1.08); }
+    100% { transform: none; }
+  }
+
+  @keyframes octocat-shudder {
+    0%, 64%, 100% { transform: none; }
+    73% { transform: translateY(calc(-0.65px * var(--star-charge, 0))) rotate(calc(-6deg * var(--star-charge, 0))); }
+    83% { transform: translate(calc(0.5px * var(--star-charge, 0)), calc(-0.25px * var(--star-charge, 0))) rotate(calc(4deg * var(--star-charge, 0))); }
+  }
+
+  @keyframes star-curtain-in {
+    0% {
+      translate: calc(var(--curtain-side) * 106%) var(--curtain-rise, 0%);
+      animation-timing-function: cubic-bezier(.26, .55, .17, 1);
+    }
+    64% {
+      translate: calc(var(--curtain-side) * -1.9%) calc(var(--curtain-rise, 0%) * -.08);
+      animation-timing-function: cubic-bezier(.18, .68, .26, 1);
+    }
+    80% {
+      translate: calc(var(--curtain-side) * .95%) calc(var(--curtain-rise, 0%) * .045);
+      animation-timing-function: cubic-bezier(.27, .68, .41, 1);
+    }
+    96%, 100% { translate: 0 0; }
+  }
+
+  @keyframes star-curtain-art {
+    from { scale: 1.22; translate: calc(var(--curtain-depth) * 50px) calc(var(--curtain-rise) * .3); }
+    to { scale: 1.075; translate: 0 0; }
+  }
+
+  @keyframes star-curtain-out {
+    from { translate: var(--curtain-exit-start, 0); }
+    to { translate: calc(var(--curtain-side) * 106%) var(--curtain-rise, 0%); }
+  }
+
+  @keyframes star-curtain-backdrop {
+    0% { background-color: transparent; }
+    83%, 100% { background-color: var(--color-ink); }
+  }
 }
 
 @utility pixelated {
