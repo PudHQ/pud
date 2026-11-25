@@ -10,6 +10,7 @@ function activationTarget(element: Element | null) {
 
 function clickThroughLens(viewport: HTMLElement, event: MouseEvent) {
   if (!(event.target instanceof Element) || event.detail === 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (event.target.closest("#dex-entries-drawer")) return;
   const { left, top, width, height } = viewport.getBoundingClientRect();
   const x = (event.clientX - left) / width * 2 - 1;
   const y = (event.clientY - top) / height * 2 - 1;

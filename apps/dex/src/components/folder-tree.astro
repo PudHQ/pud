@@ -7,27 +7,39 @@ import { folderCount, summary, treeLink } from "../lib/styles";
 interface Props { folders: Folder[]; notes: Note[]; active?: string; level?: number }
 const { folders, notes, active, level = 0 } = Astro.props;
 const { pathname } = Astro.url;
-const notePage = pathname.startsWith("/notes/");
-const branch = `before:absolute before:inset-y-0 before:left-branch-line before:border-l before:border-dotted before:border-slate-400
-  last:before:bottom-auto last:before:h-3.75 after:pointer-events-none after:absolute after:top-3.5 after:left-branch-line after:w-3.25 after:border-t after:border-dotted after:border-slate-400`;
+const branch = `before:pointer-events-none before:absolute before:inset-y-0 before:left-branch-toggle before:ml-3
+  before:border-l before:border-dotted before:border-slate-400 last:before:bottom-auto last:before:h-4
+  after:pointer-events-none after:absolute after:top-4 after:left-branch-toggle after:ml-3 after:w-3
+  after:border-t after:border-dotted after:border-slate-400
+  phone:before:ml-5.5 phone:last:before:h-5.5 phone:after:top-5.5 phone:after:ml-5.5 phone:after:w-5.5`;
 const row = level > 0 ? `relative ${branch}` : "relative";
+const inset = "ml-branch-toggle pl-6 phone:pl-11";
+const label = "min-w-0 flex-1 wrap-anywhere";
 ---
-<ul style={`--branch-indent: ${7 + level * 13}px`}>
+<ul style={`--branch-indent: ${level * 10}px`}>
+  {level === 0 && <li class={inset}>
+    <a href="/" class={treeLink} aria-current={pathname === "/" ? "page" : undefined}>
+      <Icon name="book" /> <span class={label}>All entries</span>
+    </a>
+  </li>}
   {folders.map(folder => {
     const current = pathname === folder.href;
     const activeBranch = active === folder.path || active?.startsWith(folder.path + "/");
     const childNotes = folder.notes.filter(note => note.folder === folder.path);
     const disclosureLabel = "Contents of " + folder.path;
     return <li class={row}>
-      <a href={folder.href} class={treeLink} data-selected={current ? "" : undefined} aria-current={current ? "page" : undefined}>
-        <Icon name={active === folder.path ? "open" : "folder"} /> {folder.name} <span class={folderCount}>{folder.notes.length}</span>
-      </a>
-      {(folder.children.length > 0 || childNotes.length > 0) && <details data-sidebar-disclosure={folder.href}
-        data-contains-current-note={notePage && activeBranch ? "" : undefined}
-        open={activeBranch || (level === 0 && folder.children.length > 0)}>
-        <summary class:list={[summary, `absolute top-0.25 left-branch-toggle z-1 grid h-6.75 w-3.75 place-items-center
+      <div class:list={[inset, "group/folder"]}>
+        <a href={folder.href} class={treeLink} aria-current={current ? "page" : undefined}>
+          <span class="shrink-0 group-has-[+details[open]]/folder:hidden"><Icon name="folder" /></span>
+          <span class="hidden shrink-0 group-has-[+details[open]]/folder:block"><Icon name="open" /></span>
+          <span class={label}>{folder.name}</span> <span class={folderCount}>{folder.notes.length}</span>
+        </a>
+      </div>
+      {(folder.children.length > 0 || childNotes.length > 0) && <details open={activeBranch || (level === 0 && folder.children.length > 0)}>
+        <summary class:list={[summary, `absolute top-0 left-branch-toggle z-1 grid h-8 w-6 place-items-center
           before:grid before:size-2.75 before:place-items-center before:border before:border-chrome-edge before:bg-paper before:font-mono before:text-caption before:leading-none
-          before:content-(--disclosure-closed) expanded:before:content-(--disclosure-open)`]}
+          before:content-(--disclosure-closed) expanded:before:content-(--disclosure-open)
+          hover:before:bg-slate-100 focus-visible:-outline-offset-2 phone:size-11`]}
           aria-label={disclosureLabel} title={disclosureLabel}></summary>
         <Astro.self folders={folder.children} notes={childNotes} active={active} level={level + 1} />
       </details>}
@@ -36,10 +48,11 @@ const row = level > 0 ? `relative ${branch}` : "relative";
   {notes.map(note => {
     const current = pathname === note.href;
     return <li class={row}>
-      <a href={note.href} class={treeLink} title={note.title} data-selected={current ? "" : undefined} aria-current={current ? "page" : undefined}>
-        <NoteIcon note={note} />
-        <span class="truncate">{note.title}</span>
-      </a>
+      <div class={inset}>
+        <a href={note.href} class={treeLink} aria-current={current ? "page" : undefined}>
+          <NoteIcon note={note} /> <span class={label}>{note.title}</span>
+        </a>
+      </div>
     </li>;
   })}
 </ul>

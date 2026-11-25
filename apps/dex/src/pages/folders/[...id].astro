@@ -7,4 +7,6 @@ export function getStaticPaths() {
 }
 const { folder } = Astro.props;
 ---
-<Shell title={folder.path} folder={folder.path}><Listing title={folder.name} folderPath={folder.path} notes={folder.notes} /></Shell>
+<Shell title={folder.path} folder={folder.path}>
+  <Listing title={folder.name} folderPath={folder.path} folders={folder.children} notes={folder.notes} />
+</Shell>

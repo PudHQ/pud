@@ -12,7 +12,6 @@ import { link, teletextKey, teletextKeyFace } from "../lib/styles";
 import CrtDisplay from "../components/crt-display.astro";
 import Masthead from "../components/site-masthead.astro";
 import Icon from "../components/dex-icon.astro";
-import FolderTree from "../components/folder-tree.astro";
 import PageMelt from "../components/page-melt.astro";
 import SidebarPanel from "../components/sidebar-panel.astro";
 import SponsorBadge from "../components/sponsor-badge.astro";
@@ -24,11 +23,12 @@ import WidgetBar from "../components/widget-bar.astro";
 interface Props { title: string; description?: string; author?: string; home?: boolean; folder?: string }
 const { title, description = "The Pud company wiki, work log, and collection of links.", author, home, folder } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const { notes, roots, links } = vault;
+const { notes, links } = vault;
 ---
 <!doctype html>
 <html lang="en" data-dex-home={home ? "" : undefined}
   class="scrollbar-gutter-stable bg-desktop font-sans leading-ui text-ink [font-synthesis:var(--font-synthesis-ui)]
+    has-[#dex-entries-drawer:modal]:overflow-hidden phone:scroll-pt-12 phone:noscript:scroll-pt-0
     teletext:scroll-pt-16 teletext:scroll-pb-88 teletext:bg-black teletext:scheme-dark
     phone:portrait:teletext:overflow-hidden landscape:not-stacked:pointer-coarse:teletext:scroll-pb-6"
   transition:animate="none">
@@ -55,7 +55,8 @@ const { notes, roots, links } = vault;
     teletext:[&_:where(:focus-visible)]:outline-amber-100 phone:teletext:pb-5 phone:portrait:teletext:h-dvh crt:teletext:p-0">
     <CrtDisplay />
     <div data-crt-viewport class="contents crt:block crt:h-dvh crt:w-full crt:overflow-hidden">
-    <div class="contents crt:flex crt:h-full crt:flex-col crt:overflow-auto crt:overscroll-contain crt:scrollbar-none crt:px-4 crt:pt-3 crt:teletext:pt-16">
+    <div class="contents crt:flex crt:h-full crt:flex-col crt:overflow-auto crt:overscroll-contain crt:scrollbar-none crt:px-4 crt:pt-3
+      crt:has-[#dex-entries-drawer:modal]:overflow-hidden crt:phone:scroll-pt-12 crt:teletext:pt-16">
     <a class:list={[link, "sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-2 focus:z-7 focus:bg-white focus:p-2.25 teletext:focus:bg-blue-950"]} href="#content">Skip to content</a>
     <a data-teletext-exit data-astro-reload href={Astro.url.pathname} aria-keyshortcuts="Escape"
       class:list={[teletextKey, "fixed top-3 left-3 z-6 hidden w-fit rounded-lg text-sm teletext:grid"]}>
@@ -85,15 +86,9 @@ const { notes, roots, links } = vault;
           <WidgetBar />
         </div>
         <TeletextHeader />
-        <div class="my-2 grid grow grid-cols-workspace gap-2 narrow:grid-cols-workspace-narrow phone:my-1.5 phone:flex phone:flex-col phone:gap-1.5
+        <div class="my-2 grid grow grid-cols-workspace gap-2 phone:my-1.5 phone:flex phone:flex-col phone:gap-1.5
           teletext:my-1.5 teletext:flex teletext:flex-col">
-          <aside class="grid min-w-0 teletext:hidden">
-            <SidebarPanel label="Entries" icon="folder">
-              <div class="p-1.25 text-small">
-                <FolderTree folders={roots} notes={notes.filter(note => !note.folder)} active={folder} />
-              </div>
-            </SidebarPanel>
-          </aside>
+          <SidebarPanel {folder} />
           <main id="content" class="flex min-w-0 flex-col focus:outline-none phone:grow" tabindex="-1"><slot /></main>
         </div>
         <footer class="flex min-h-6.25 items-center border border-t-slate-400 border-r-chrome-highlight border-b-chrome-highlight border-l-slate-400 px-1.75 py-0.5 teletext:hidden">
@@ -128,13 +123,4 @@ const { notes, roots, links } = vault;
   if (analytics) {
     document.addEventListener("astro:page-load", () => analytics.capture("$pageview"));
   }
-
-  const disclosures = "[data-sidebar-disclosure]";
-  document.addEventListener("astro:before-swap", ({ newDocument }) => {
-    const currentPanels = new Map(Array.from(document.querySelectorAll<HTMLDetailsElement>(disclosures),
-      panel => [panel.dataset.sidebarDisclosure, panel.open]));
-    for (const panel of newDocument.querySelectorAll<HTMLDetailsElement>(disclosures)) {
-      panel.open = panel.hasAttribute("data-contains-current-note") || (currentPanels.get(panel.dataset.sidebarDisclosure) ?? panel.open);
-    }
-  });
 </script>

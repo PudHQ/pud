@@ -1,13 +1,135 @@
 ---
+import FolderTree from "./folder-tree.astro";
 import Icon from "./dex-icon.astro";
+import { vault } from "../lib/content";
 import { bar, panel } from "../lib/styles";
 
-interface Props { label: string; icon: "folder" | "link" }
-const { label, icon } = Astro.props;
+interface Props { folder?: string }
+const { folder } = Astro.props;
 ---
-<nav class={panel} aria-label={label}>
-  <h2 class:list={[bar, "bg-panel-bar text-slate-800 phone:min-h-8"]}>
-    <Icon name={icon} /> {label}
-  </h2>
-  <slot />
-</nav>
+<aside data-entries-navigation transition:persist="dex-entries-navigation" transition:animate="none"
+  class="min-w-0 phone:sticky phone:top-0 phone:z-3 phone:[&>nav]:hidden
+    phone:noscript:static phone:noscript:[&>nav]:flex teletext:hidden">
+  <button data-entries-trigger type="button" disabled aria-haspopup="dialog" aria-controls="dex-entries-drawer" aria-expanded="false"
+    class="hidden min-h-11 w-full items-center justify-between border border-t-chrome-highlight border-r-chrome-shadow
+      border-b-chrome-shadow border-l-chrome-highlight bg-panel-bar px-2.75 text-ui font-panel text-navy shadow-window
+      hover:bg-chrome-highlight focus-visible:-outline-offset-3 active:bg-chrome phone:flex phone:noscript:hidden">
+    <span class="inline-flex items-center gap-2"><Icon name="folder" /> Entries</span>
+    <Icon name="menu" size={16} />
+  </button>
+
+  <nav data-entries-tree aria-labelledby="dex-entries-title"
+    class:list={[panel, "sticky top-0 flex max-h-dvh flex-col phone:static phone:min-h-0 phone:max-h-none phone:grow"]}>
+    <div class="flex shrink-0 items-center justify-between bg-panel-bar text-slate-800 group-open/drawer:bg-navy group-open/drawer:text-white">
+      <h2 id="dex-entries-title" class={bar}><Icon name="folder" /> Entries</h2>
+      <button data-entries-close type="button" aria-label="Close entries"
+        class="hidden size-11 place-items-center border-l border-white/25 hover:bg-selected
+          focus-visible:-outline-offset-3 focus-visible:outline-amber-200 group-open/drawer:grid">
+        <Icon name="close" size={18} />
+      </button>
+    </div>
+    <div data-entries-scroll class="min-h-0 overflow-y-auto overscroll-contain p-1.25 text-small/5">
+      <FolderTree folders={vault.roots} notes={vault.notes.filter(note => !note.folder)} active={folder} />
+    </div>
+  </nav>
+
+  <dialog id="dex-entries-drawer" aria-labelledby="dex-entries-title"
+    class="group/drawer fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-7/8 max-w-sm flex-col overflow-hidden
+      border border-t-chrome-highlight border-r-chrome-shadow border-b-chrome-shadow border-l-chrome-highlight
+      bg-chrome p-1 text-ink shadow-xl shadow-black/40 backdrop:bg-black/55 open:flex
+      motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out motion-safe:starting:-translate-x-full">
+  </dialog>
+</aside>
+
+<script>
+  import { mountRouteElement } from "../lib/mount-route-element";
+  import { teletextChange } from "../lib/teletext";
+
+  mountRouteElement<HTMLElement>("[data-entries-navigation]", (sidebar, signal) => {
+    const nav = sidebar.querySelector<HTMLElement>("[data-entries-tree]")!;
+    const scroller = sidebar.querySelector<HTMLElement>("[data-entries-scroll]")!;
+    const trigger = sidebar.querySelector<HTMLButtonElement>("[data-entries-trigger]")!;
+    const close = sidebar.querySelector<HTMLButtonElement>("[data-entries-close]")!;
+    const drawer = sidebar.querySelector("dialog")!;
+    const compact = matchMedia("(width <= 640px)");
+    const destinations = new Map(Array.from(nav.querySelectorAll<HTMLAnchorElement>("a[href]"), link => [link.pathname, link] as const));
+    let current = destinations.get(location.pathname);
+    let revealPending = true;
+    let focusContent = false;
+
+    function revealCurrent() {
+      if (!revealPending || !current?.getClientRects().length) return;
+      revealPending = false;
+      const row = current.getBoundingClientRect();
+      const view = scroller.getBoundingClientRect();
+      if (row.top < view.top) scroller.scrollTop += row.top - view.top;
+      else if (row.bottom > view.bottom) scroller.scrollTop += row.bottom - view.bottom;
+    }
+
+    function placeTree() {
+      const focusWasInTree = nav.contains(document.activeElement);
+      if (drawer.open) drawer.close();
+      if (compact.matches) drawer.append(nav);
+      else sidebar.insertBefore(nav, drawer);
+      revealPending = true;
+      revealCurrent();
+      if (focusWasInTree) {
+        const entry = current?.getClientRects().length ? current : destinations.get("/");
+        (compact.matches ? trigger : entry)?.focus({ preventScroll: true });
+      }
+    }
+
+    function selectDestination() {
+      const next = destinations.get(location.pathname);
+      if (next !== current) {
+        current?.removeAttribute("aria-current");
+        current = next;
+        current?.setAttribute("aria-current", "page");
+        let branch = current?.closest("li")?.querySelector<HTMLDetailsElement>(":scope > details") ?? current?.closest("details");
+        for (; branch; branch = branch.parentElement?.closest("details")) branch.open = true;
+        revealPending = true;
+      }
+      revealCurrent();
+    }
+
+    trigger.addEventListener("click", () => {
+      trigger.focus({ preventScroll: true });
+      drawer.showModal();
+      close.focus({ preventScroll: true });
+      trigger.setAttribute("aria-expanded", "true");
+      revealCurrent();
+    }, { signal });
+    close.addEventListener("click", () => drawer.close(), { signal });
+    drawer.addEventListener("close", () => trigger.setAttribute("aria-expanded", String(drawer.open)), { signal });
+    drawer.addEventListener("click", event => {
+      if (event.target === drawer) {
+        const { left, right, top, bottom } = drawer.getBoundingClientRect();
+        if (event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom) drawer.close();
+      } else if (event.target instanceof Element && !event.defaultPrevented && event.button === 0
+        && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+        && event.target.closest<HTMLAnchorElement>('a[aria-current="page"]')?.href === location.href) {
+        event.preventDefault();
+        drawer.close();
+      }
+    }, { signal });
+
+    document.addEventListener("astro:before-swap", ({ viewTransition }) => {
+      if (compact.matches) {
+        // Keep client routing while skipping the phone viewport snapshots.
+        void viewTransition.ready.catch(() => {});
+        viewTransition.skipTransition();
+      }
+      focusContent = drawer.open;
+      if (focusContent) drawer.close();
+    }, { signal });
+    document.addEventListener("astro:after-swap", () => {
+      selectDestination();
+      if (focusContent) document.getElementById("content")?.focus({ preventScroll: true });
+      focusContent = false;
+    }, { signal });
+    document.addEventListener(teletextChange, revealCurrent, { signal });
+    compact.addEventListener("change", placeTree, { signal });
+    placeTree();
+    trigger.disabled = false;
+  });
+</script>

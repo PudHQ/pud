@@ -52,8 +52,7 @@
   --spacing-orbit-inset: 3.5%;
   --spacing-orbiter-rise: 17%;
   --spacing-orbiter-width: 27%;
-  --grid-template-columns-workspace: clamp(190px, 20vw, 224px) minmax(0, 1fr);
-  --grid-template-columns-workspace-narrow: 178px minmax(0, 1fr);
+  --grid-template-columns-workspace: clamp(210px, 27%, 272px) minmax(0, 1fr);
   --grid-template-columns-entry: 21px minmax(0, 1fr) minmax(0, max-content);
   --grid-template-columns-entry-stacked: 20px minmax(0, 1fr);
   --shadow-window: 1px 1px #435563;
@@ -163,9 +162,7 @@
 }
 
 @theme inline {
-  --spacing-branch-line: min(var(--branch-indent), 33%);
-  --spacing-branch-label: calc(min(var(--branch-indent), 33%) + --spacing(3.5));
-  --spacing-branch-toggle: calc(min(var(--branch-indent), 33%) - --spacing(1.75));
+  --spacing-branch-toggle: min(var(--branch-indent), 20%);
   --translate-orbit-x: var(--pud-x, 0px);
   --translate-orbit-y: var(--pud-y, 0px);
   --translate-foil-x: var(--foil-x, 0px);
@@ -276,7 +273,7 @@
 }
 
 @media (any-pointer: fine) and (forced-colors: none) {
-  :root[data-crt-cursor]:not([data-dex-teletext]):has([data-wallpaper-picker] input:not([value="plain"]):checked) {
+  :root[data-crt-cursor]:not([data-dex-teletext], :has(#dex-entries-drawer:modal)):has([data-wallpaper-picker] input:not([value="plain"]):checked) {
     &, :where(*) { cursor: none; }
     .dex-crt-cursor { display: block; }
   }

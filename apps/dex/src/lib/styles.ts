@@ -4,15 +4,17 @@ export const bar = "flex min-h-7.25 items-center gap-1.75 px-2.25 py-1 text-ui/s
 export const activeBar = `${bar} bg-navy text-white [&_:focus-visible]:outline-orange-300
   teletext:min-h-10 teletext:bg-blue-800 teletext:px-2.5 teletext:font-pixel teletext:text-xl teletext:font-normal teletext:uppercase`;
 
-export const link = `text-link underline underline-offset-3 visited:text-link-visited hover:text-link-hover
+export const linkColor = `text-link visited:text-link-visited hover:text-link-hover
   teletext:text-cyan-300 teletext:visited:text-fuchsia-300 teletext:hover:text-yellow-200`;
+export const link = `${linkColor} underline underline-offset-3`;
 export const favicon = `outbound:before:inline-block outbound:before:size-4 outbound:before:shrink-0
   outbound:before:bg-(image:--site-icon) outbound:before:bg-contain outbound:before:bg-center outbound:before:bg-no-repeat
   outbound:before:align-(--align-favicon) outbound:before:[image-rendering:var(--rendering-pixel)]`;
 
-export const treeLink = `group ml-branch-label flex min-h-7.25 items-center gap-1.5 px-1.25 py-1 wrap-anywhere text-ink
-  not-data-selected:hover:bg-slate-100 not-data-selected:hover:text-link data-selected:bg-selected data-selected:text-white phone:min-h-8`;
-export const folderCount = "ml-auto font-mono text-caption text-slate-600 group-data-selected:text-slate-200";
+export const treeLink = `group flex min-h-8 items-start gap-1.5 px-1.25 py-1.5 text-ink focus-visible:-outline-offset-2
+  not-aria-[current=page]:hover:bg-slate-100 not-aria-[current=page]:hover:text-link aria-[current=page]:bg-selected
+  aria-[current=page]:text-white phone:min-h-11 phone:py-3`;
+export const folderCount = "shrink-0 font-mono text-caption/5 whitespace-nowrap text-slate-600 tabular-nums group-aria-[current=page]:text-slate-200";
 export const summary = "list-none [&::-webkit-details-marker]:hidden";
 
 export const reading = "p-reading wrap-anywhere *:max-w-note teletext:px-2.5 teletext:py-4 teletext:*:max-w-none";

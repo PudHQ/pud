@@ -6,20 +6,24 @@ import { vault } from "../lib/content";
 import { formatNoteDate, noteSortDate } from "../lib/note-date";
 import { teletextNumbers } from "../lib/teletext-pages";
 import { outboundAttributes } from "../lib/web-links";
-import { activeBar, contentPanel, favicon, link } from "../lib/styles";
-import type { Note, SavedLink } from "../lib/vault";
-interface Props { title: string; notes?: Note[]; links?: SavedLink[]; heading?: "h1" | "h2"; folderPath?: string }
-const { title, notes = [], links, heading: Heading = "h1", folderPath } = Astro.props;
-const total = links ? links.length : notes.length;
+import { activeBar, contentPanel, favicon, link, linkColor } from "../lib/styles";
+import type { Folder, Note, SavedLink } from "../lib/vault";
+interface Props { title: string; folders?: Folder[]; notes?: Note[]; links?: SavedLink[]; heading?: "h1" | "h2"; folderPath?: string }
+const { title, folders = [], notes = [], links, heading: Heading = "h1", folderPath } = Astro.props;
+const entryTotal = links ? links.length : notes.length;
 const noun = links ? "link" : "entry";
 const plural = links ? "links" : "entries";
-const row = `grid grid-cols-entry items-start gap-2.25 border-t border-zinc-200 py-2.5 first:border-t-0
+const rowBorder = "border-t border-zinc-200 first:border-t-0 teletext:border-blue-950";
+const row = `${rowBorder} grid grid-cols-entry items-start gap-2.25 py-2.5
   stacked:grid-cols-entry-stacked stacked:gap-x-2 stacked:gap-y-px stacked:py-2.25
-  teletext:flex teletext:flex-col teletext:items-stretch teletext:gap-0 teletext:border-blue-950 teletext:py-0.5`;
-const entryTitle = `${link} text-entry font-bold wrap-anywhere decoration-1
+  teletext:flex teletext:flex-col teletext:items-stretch teletext:gap-0 teletext:py-0.5`;
+const entryLink = `${linkColor} text-entry font-bold wrap-anywhere
   teletext:flex teletext:min-h-9 teletext:items-baseline teletext:justify-between teletext:gap-2 teletext:px-2.5 teletext:py-1.5
   teletext:font-pixel teletext:text-lg/none teletext:font-normal teletext:no-underline teletext:focus-visible:bg-blue-800
   teletext:focus-visible:-outline-offset-2 teletext:data-teletext-selected:bg-blue-800`;
+const entryTitle = `${entryLink} underline underline-offset-3 decoration-1`;
+const entryIcon = "flex h-5.5 items-center justify-center teletext:hidden";
+const channel = "hidden shrink-0 font-sans font-extrabold text-amber-200 tabular-nums teletext:inline";
 const description = `mt-0.5 max-w-summary text-small/normal wrap-anywhere text-slate-600
   teletext:mt-0 teletext:max-w-none teletext:px-2.5 teletext:pb-1.5 teletext:text-xs/relaxed teletext:text-zinc-300`;
 const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere text-slate-600
@@ -29,7 +33,10 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
   <div class={activeBar}>
     <span class="inline-flex teletext:hidden"><Icon name={links ? "link" : "open"} /></span>
     <Heading class="font-section wrap-anywhere">{title}</Heading>
-    <span class="ml-auto shrink-0 font-mono text-caption font-normal text-slate-200 teletext:text-cyan-100" role="status" data-count data-one={noun} data-many={plural}>{total} {total === 1 ? noun : plural}</span>
+    <span class="ml-auto shrink-0 text-right font-mono text-caption font-normal text-slate-200 teletext:text-cyan-100" role="status">
+      {folders.length > 0 && <><span data-folder-count>{folders.length} {folders.length === 1 ? "folder" : "folders"}</span> · </>}
+      <span data-count data-one={noun} data-many={plural}>{entryTotal} {entryTotal === 1 ? noun : plural}</span>
+    </span>
   </div>
   <div class:list={["border-b border-line bg-zinc-200 px-2.5 py-1.75 teletext:border-blue-800 teletext:bg-black", !folderPath && "noscript:hidden teletext:hidden"]}>
     {folderPath && <Breadcrumbs folder={folderPath} class="mt-px mb-1.5" current />}
@@ -43,6 +50,17 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
     </label>
   </div>
   <ul class="px-3.25 phone:px-2.5 teletext:px-0">
+    {folders.map(folder => <li class={rowBorder} data-entry data-folder-entry data-keywords={folder.path}>
+      <a data-teletext-entry href={folder.href} class:list={[entryLink, `grid min-h-11 grid-cols-entry items-center gap-2.25 py-1.5
+        hover:bg-slate-100 focus-visible:-outline-offset-2 teletext:hover:bg-blue-950`]}>
+        <span class={entryIcon}><Icon name="folder" size={20} /></span>
+        <span class="underline underline-offset-3 decoration-1 teletext:no-underline">{folder.name}</span>
+        <span class="text-right font-mono text-caption font-normal whitespace-nowrap text-slate-600 teletext:hidden">
+          {folder.notes.length} {folder.notes.length === 1 ? "entry" : "entries"}
+        </span>
+        <span class={channel}>{teletextNumbers.get(folder.href)}</span>
+      </a>
+    </li>)}
     {links ? links.map(saved => <li class:list={[row, "relative"]} data-entry>
       <div class="col-start-2 min-w-0">
         <a data-teletext-entry class:list={[entryTitle, favicon, "outbound:before:absolute outbound:before:top-3 outbound:before:left-0.5 teletext:before:hidden"]}
@@ -54,11 +72,11 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
       const folder = vault.folders.find(group => group.path === note.folder);
       const date = noteSortDate(note);
       return <li class={row} data-entry data-keywords={[...note.tags, ...note.aliases, note.folder].join(" ")}>
-        <span class="flex h-5.5 items-center justify-center teletext:hidden"><NoteIcon note={note} size={20} /></span>
+        <span class={entryIcon}><NoteIcon note={note} size={20} /></span>
         <div class="min-w-0">
           <a data-teletext-entry class={entryTitle} href={note.href}>
             <span>{note.title}</span>
-            <span class="hidden shrink-0 font-sans font-extrabold text-amber-200 tabular-nums teletext:inline">{teletextNumbers.get(note.href)}</span>
+            <span class={channel}>{teletextNumbers.get(note.href)}</span>
           </a>
           {note.summary && <p class={description}>{note.summary}</p>}
         </div>
@@ -69,7 +87,9 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
       </li>;
     })}
   </ul>
-  <p class="p-4 text-ui text-slate-600 teletext:text-zinc-300" hidden={total > 0} data-empty>{total ? "No matches." : links ? "No links yet." : "No entries yet."}</p>
+  <p class="p-4 text-ui text-slate-600 teletext:text-zinc-300" hidden={entryTotal + folders.length > 0} data-empty>
+    {entryTotal + folders.length > 0 ? "No matches." : links ? "No links yet." : "No entries yet."}
+  </p>
 </section>
 <script>
   import { mountRouteElement } from "../lib/mount-route-element";
@@ -78,20 +98,25 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
   mountRouteElement<HTMLInputElement>("[data-filter]", (input, signal) => {
     const count = document.querySelector<HTMLElement>("[data-count]");
     if (!count) return;
+    const folderCount = document.querySelector<HTMLElement>("[data-folder-count]");
     const entries = Array.from(document.querySelectorAll<HTMLElement>("[data-entry]"), row => ({
-      row, text: (row.textContent + " " + (row.dataset.keywords ?? "")).toLocaleLowerCase(),
+      row, folder: row.hasAttribute("data-folder-entry"), text: (row.textContent + " " + (row.dataset.keywords ?? "")).toLocaleLowerCase(),
     }));
     const empty = document.querySelector<HTMLElement>("[data-empty]")!;
     const inTeletext = () => document.documentElement.hasAttribute(teletextAttribute);
     const update = () => {
       const words = inTeletext() ? [] : input.value.trim().toLocaleLowerCase().split(/\s+/);
       let shown = 0;
-      for (const { row, text } of entries) {
+      let shownFolders = 0;
+      for (const { row, folder, text } of entries) {
         row.hidden = !words.every(word => text.includes(word));
-        if (!row.hidden) shown++;
+        if (row.hidden) continue;
+        if (folder) shownFolders++;
+        else shown++;
       }
       count.textContent = shown + " " + (shown === 1 ? count.dataset.one : count.dataset.many);
-      empty.hidden = shown !== 0;
+      if (folderCount) folderCount.textContent = shownFolders + (shownFolders === 1 ? " folder" : " folders");
+      empty.hidden = shown + shownFolders !== 0;
     };
     const saveSearch = () => {
       const state = history.state;
@@ -107,7 +132,7 @@ const kind = `mt-0.75 text-right font-mono text-caption/normal wrap-anywhere tex
       if (navigationType !== "traverse") saveSearch();
     }, { signal });
     document.addEventListener("keydown", event => {
-      if (inTeletext()) return;
+      if (inTeletext() || (event.target instanceof Element && event.target.closest("dialog:modal"))) return;
       if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && !(event.target instanceof HTMLInputElement)) {
         event.preventDefault();
         input.focus();
