@@ -1,0 +1,13 @@
+{
+  "name": "pud",
+  "module": "index.ts",
+  "type": "module",
+  "version": "0.0.1",
+  "private": false,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}
