@@ -3,7 +3,6 @@
     "includes": [
       "apps/**",
       "packages/**",
-      "experiments/debit-endpoint/**",
       "package.json",
       "tsconfig*.json",
       "!!**/node_modules",

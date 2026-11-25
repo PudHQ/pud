@@ -1,6 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
+updated-at: 2026-11-25
 summary: A map of the language rules, runtime contracts, and proof obligations that connect a TypeScript export to a Lean verdict.
 tags: [verification, typescript, javascript, lean, coverage, effects, translation-validation, codex]
 ---
@@ -58,7 +59,7 @@ return total;
 | `value && value > 0n` | Truthiness and short-circuiting. The guard skips `undefined` and zero and tests the sign of the remaining values. |
 | `total += value` and `return total` | A proof that the initial zero and each executed step preserve `total >= 0n`, and that the final return reads that total. |
 
-Pud currently stops at the `ForStatement`. Isolated probes reject the Number literal, `.length`, and index access as well. With plain dense arrays, standard prototypes, and stable length, the extra read yields `undefined` and the guard skips the addition. The invariant above can establish the property for either traversal spelling. An equality to a reference sum is a stronger law. [Sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/sum-positive.proof.ts) · [Indexed access typing](https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess)
+Pud currently stops at the `ForStatement`. Isolated probes reject the Number literal, `.length`, and index access as well. With plain dense arrays, standard prototypes, and stable length, the extra read yields `undefined` and the guard skips the addition. The invariant above can establish the property for either traversal spelling. An equality to a reference sum is a stronger law. [Sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/sum-positive.proof.ts) · [Indexed access typing](https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess)
 
 ## Logging exercises the same call boundary as other effects
 

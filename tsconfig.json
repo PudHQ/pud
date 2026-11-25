@@ -18,7 +18,6 @@
     "noImplicitOverride": true
   },
   "include": [
-    "packages/**/*.ts",
-    "experiments/debit-endpoint/**/*.ts"
+    "packages/**/*.ts"
   ]
 }

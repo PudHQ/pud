@@ -1,4 +1,4 @@
-import type { debit, Auth, Session } from "./handler.ts";
+import { debit, type Auth, type Session } from "./handler.ts";
 
 function validId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.isWellFormed() && !value.includes("\0");
@@ -35,6 +35,4 @@ export function makeDebitRoute(transaction: typeof debit) {
   };
 }
 
-// The checker uses this same route with the verified snapshot of the transaction.
-// Loading the adapter must not execute the app module before the checker has read it.
-export const postDebit = makeDebitRoute(async (...args) => (await import("./handler.ts")).debit(...args));
+export const postDebit = makeDebitRoute(debit);

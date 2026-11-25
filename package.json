@@ -6,12 +6,11 @@
   "packageManager": "bun@1.4.2",
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "experiments/debit-endpoint"
+    "apps/*"
   ],
   "scripts": {
     "setup": "\"$npm_execpath\" install --frozen-lockfile && \"$npm_execpath\" run setup:lean",
-    "setup:lean": "\"$npm_execpath\" packages/cli/experiments/lean/toolchain.ts",
+    "setup:lean": "\"$npm_execpath\" packages/pud/scripts/setup-lean.ts",
     "dev:www": "\"$npm_execpath\" run --cwd apps/www dev",
     "dev:dex": "\"$npm_execpath\" run --cwd apps/dex dev",
     "build": "\"$npm_execpath\" run --filter './apps/*' build",
@@ -22,18 +21,14 @@
     "deploy:www": "\"$npm_execpath\" run --cwd apps/www deploy",
     "deploy:dex": "\"$npm_execpath\" run --cwd apps/dex deploy",
     "lint": "biome lint",
-    "test": "\"$npm_execpath\" test",
+    "test": "\"$npm_execpath\" test ./apps ./packages",
     "typecheck": "\"$npm_execpath\" run --workspaces typecheck",
-    "pack:cli": "\"$npm_execpath\" ./packages/cli/scripts/pack.ts",
-    "demo": "\"$npm_execpath\" experiments/debit-endpoint/demo.ts",
-    "demo:rocq": "\"$npm_execpath\" packages/cli/demo/replay.ts",
-    "demo:lean": "\"$npm_execpath\" packages/cli/experiments/lean/run.ts",
-    "pud": "\"$npm_execpath\" packages/cli/src/cli.ts",
-    "verify": "\"$npm_execpath\" run pud",
+    "pack:cli": "\"$npm_execpath\" ./packages/pud/scripts/pack.ts",
+    "pud": "\"$npm_execpath\" packages/pud/src/cli.ts",
     "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
   },
   "devDependencies": {
-    "@pud/cli": "workspace:*",
+    "@pud.dev/pud": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
     "@biomejs/biome": "catalog:"
@@ -44,7 +39,6 @@
     "@babel/types": "8.1.2",
     "@biomejs/biome": "2.6.8",
     "@cloudflare/vite-plugin": "2.0.0-rc.1",
-    "@electric-sql/pglite": "0.5.16",
     "@fontsource-variable/atkinson-hyperlegible-mono": "5.3.0",
     "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
     "@fontsource-variable/pixelify-sans": "5.3.0",

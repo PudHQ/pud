@@ -1,6 +1,8 @@
 # Pud · Product and engineering recommendation
 
-21 November 2026 · Decision proposed for the alpha
+21 November 2026 · Design study for the alpha
+
+For the current implementation, see the [adapter-based CLI and suite API](../../packages/pud/README.md).
 
 Read [What could Pud be?](tool-directions.md) for the broader product decision and [What would I actually write?](technical-setups.md) for the inline, sidecar, builder and prover-bridge comparison.
 

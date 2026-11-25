@@ -1,5 +1,7 @@
 # What would I actually write in Pud?
 
+This study records earlier prototypes. See the [current suite API](../../packages/pud/README.md) for the adapter-based workflow.
+
 Take one exported TypeScript function, `admit(used: bigint, batch: bigint): boolean`. A grandfathered account can export a positive batch exactly when its nonnegative usage plus the batch fits within 16 units. At 12 used, a batch of four succeeds. At 13 used, it fails. The implementation reads the quota from a module constant. The independently reviewable rule says **16**. Reusing the implementation's constant in the rule would let a mistaken edit to 15 change both at once.
 
 These setups address three choices that can be combined. **Where does the guarantee live? What language states it? How does the checker connect it to the code?** A sidecar could contain a Zod-like expression and use LemmaScript to generate a Dafny obligation. The location of the file commits us to neither the syntax nor the prover.
@@ -33,7 +35,7 @@ export default proof(admit, "admit exactly the batches that fit", (used, batch, 
 })
 ```
 
-This is the current Pud API. The real export supplies parameter types. The owner can review the policy file separately, and an array of named properties gives each rule its own verdict. The early return puts invalid usage and batch sizes outside this promise. It also illustrates the case for displaying preconditions explicitly in the reporter. Pud's checker must understand the callback and target. On the quota trial the existing frontend needed the source constant inlined. A separate file caused none of that limitation. [Working sidecars](../../packages/cli/demo/seats.proof.ts) · [Quota trial](../prover-comparison/quota.md)
+This was the sidecar API at the time of the study. The real export supplies parameter types. The owner can review the policy file separately, and an array of named properties gives each rule its own verdict. The early return puts invalid usage and batch sizes outside this promise. It also illustrates the case for displaying preconditions explicitly in the reporter. Pud's checker must understand the callback and target. On the quota trial the existing frontend needed the source constant inlined. A separate file caused none of that limitation. [Working sidecars](https://github.com/rorz/pud/blob/17d78bc5172b5c95fefec3b4d59e911fd103eb24/packages/cli/demo/seats.proof.ts) · [Quota trial](../prover-comparison/quota.md)
 
 ### 3. A Zod-style language for relations
 
@@ -62,7 +64,7 @@ export default [{
 }]
 ```
 
-The Rocq file proves `Theorem admit_correct : Subject.claim.` Pud generates the subject and expected claim from the linked export and predicate. An agent can write or repair the proof without changing the human's rule. A different bridge could put the specification itself in Rocq or Lean. Then the native proposition becomes the artifact the owner must approve. In both cases the build has to check the exact theorem type, assumptions and current source binding. A theorem about a hand-transcribed `admit` can remain true while the deployed function changes. The repo exercises this bridge on `max` and `min`; the quota binding above illustrates the design. [Existing bindings](../../packages/cli/demo/bounds.proof.ts)
+The Rocq file proves `Theorem admit_correct : Subject.claim.` Pud generates the subject and expected claim from the linked export and predicate. An agent can write or repair the proof without changing the human's rule. A different bridge could put the specification itself in Rocq or Lean. Then the native proposition becomes the artifact the owner must approve. In both cases the build has to check the exact theorem type, assumptions and current source binding. A theorem about a hand-transcribed `admit` can remain true while the deployed function changes. The prototype exercised this bridge on `max` and `min`; the quota binding above illustrates the design. [Existing bindings](https://github.com/rorz/pud/blob/17d78bc5172b5c95fefec3b4d59e911fd103eb24/packages/cli/demo/bounds.proof.ts)
 
 ## Other setups worth trying
 

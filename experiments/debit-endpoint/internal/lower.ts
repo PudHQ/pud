@@ -1,8 +1,7 @@
-import { parse } from "@babel/parser";
-import type { Node } from "@babel/types";
-import { binary, bool, choose, integer, ref, string, unary, type Expr, type Statement } from "@pud/model";
-import { selectSubject } from "@pud/model/module";
-import { readBlock, unsupported } from "@pud/model/typescript";
+import { binary, bool, choose, integer, ref, string, unary, type Expr } from "../../../packages/pud/src/expressions.ts";
+import { selectSubject } from "../../../packages/pud/src/module.ts";
+import { invalid, parseSourceModule, type Node } from "../../../packages/pud/src/source.ts";
+import { readBlock, type Statement } from "./blocks.ts";
 import { checkSchema, lowerSql, type SqlOperation, type SqlParameter } from "./sql.ts";
 
 type Value =
@@ -18,13 +17,13 @@ const amount = ref("integer", "q", "amount");
 const other = { status: string(""), isText: bool(false), threw: false };
 const typeNames = { text: "string", decimal: "string", bool: "boolean", null: "object", bigint: "bigint", number: "number", undefined: "undefined" } as const;
 
-/** This adapter binds the ledger request and the session. Pud owns branches, blocks and returns. */
+/** Bind the ledger request and session to a transaction model. */
 export function lower(source: string, schema: string, subject = "debit", file = "handler.ts"): Transaction {
   checkSchema(schema);
-  const program = parse(source, { sourceType: "module", plugins: ["typescript"] }).program;
+  const program = parseSourceModule(file, source);
   const entry = selectSubject(program, file, subject);
   function fail(node: Node, reason: string): never {
-    return unsupported(file, node, reason);
+    return invalid(file, node, reason);
   }
 
   function field(node: Node, object: Value, name: string): Value {

@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-24
+updated-at: 2026-11-25
 summary: Thirteen LemmaScript ports exercised union narrowing, loop control, and signed bigint operations in Pud’s Lean frontend.
 tags: [verification, typescript, lean, lemmascript, coverage]
 ---
@@ -26,7 +26,7 @@ The ports exposed three choices the model had to make. Parity needs the sign rul
 
 ## Ten follow-up ports
 
-The follow-up selected six array and loop examples and four scalar examples from the same revision. The loop properties cover exact sums, membership, sortedness, maxima, the number of ordered pairs, and the number of odd values. The scalar properties cover the greatest of three inputs, both directions of the ZigZag relation, two wide bit operations, and boolean and bigint conditions. [Runnable example index](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/README.md#run-the-examples)
+The follow-up selected six array and loop examples and four scalar examples from the same revision. The loop properties cover exact sums, membership, sortedness, maxima, the number of ordered pairs, and the number of odd values. The scalar properties cover the greatest of three inputs, both directions of the ZigZag relation, two wide bit operations, and boolean and bigint conditions. [Runnable example index](https://github.com/rorz/pud/blob/main/packages/pud/.examples/README.md#run-the-examples)
 
 The ports use exact bigint arithmetic and traverse dense read-only arrays with `for…of`. Sortedness accepts the empty array, maximum element returns zero for it, and the nested-loop port uses the array length as its iteration count.
 
@@ -34,4 +34,4 @@ The examples distinguish two kinds of remainder. Odd counting tests whether Java
 
 Lean 4.19.0 certified all 13 new properties. For each property, a behavioral change to a temporary copy of the TypeScript implementation caused a proof failure with the same sidecar and Lean lemmas. Separate Bun checks exercised the implementations with empty lists, duplicate values, negatives, and bigints wider than 64 bits.
 
-Run `bun run --silent demo:lean` from the repository root to recheck the ports. The Handbook walks through the search proof, and the coverage log records the scan of Pud’s code. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]] · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]
+Run `bun run --silent pud check packages/pud/.examples` from the repository root to recheck the ports. The directory also includes the indexed `sumPositive` example, which reports `UNSUPPORTED` and makes the run exit with status 2. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]] · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]

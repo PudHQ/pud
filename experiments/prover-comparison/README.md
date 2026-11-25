@@ -1,8 +1,10 @@
 # Replaying one TypeScript property in Rocq and Dafny
 
+This is a historical trial. Its replay script and proofs live at the [recorded revision](https://github.com/rorz/pud/tree/17d78bc5172b5c95fefec3b4d59e911fd103eb24/experiments/prover-comparison). The [current CLI and API](../../packages/pud/README.md) select their proof assistant through project config.
+
 For `bigint` arguments `a` and `b` and result `r`, the reviewed property is `r >= a && r >= b && (r === a || r === b)`.
 
-Install the repository's Bun dependencies and run the comparison from its root with Python 3, Rocq and Dafny on your path.
+At the recorded revision, install the Bun dependencies and run the comparison from the checkout root with Python 3, Rocq and Dafny on your path.
 
 ```sh
 python3 experiments/prover-comparison/run.py
@@ -20,7 +22,7 @@ You can also set `ROCQ` and `DAFNY` to absolute executable paths. Each trial use
 
 Two independent agents using the same model received one prover each. Each had up to two baseline candidates, one repair attempt, and a 30-second checker limit per invocation. Both solved the baseline on their first attempt. The equivalent implementation was withheld until the baseline was complete. Both original proofs were then replayed and the agents received no repair hints.
 
-The Rocq agent repaired the proof on its first try by changing the split from `Z.ltb x y` to `Z.ltb y x`. Dafny discharged both correct implementations from the postcondition alone. [Original Rocq proof](OriginalProof.v) · [Agent's repair](Proof.v)
+The Rocq agent repaired the proof on its first try by changing the split from `Z.ltb x y` to `Z.ltb y x`. Dafny discharged both correct implementations from the postcondition alone. [Original Rocq proof](https://github.com/rorz/pud/blob/17d78bc5172b5c95fefec3b4d59e911fd103eb24/experiments/prover-comparison/OriginalProof.v) · [Agent's repair](https://github.com/rorz/pud/blob/17d78bc5172b5c95fefec3b4d59e911fd103eb24/experiments/prover-comparison/Proof.v)
 
 We subsequently checked the broken case directly with both compilers, independently of the CLI's counterexample search. For `(1n, 2n)` the broken implementation returns `1n`, violating `r >= b`.
 

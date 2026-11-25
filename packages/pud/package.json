@@ -1,13 +1,23 @@
 {
-  "name": "pud",
-  "module": "index.ts",
+  "name": "@pud.dev/pud",
   "type": "module",
   "version": "0.0.1",
-  "private": false,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lean": "./src/lean/index.ts"
   },
-  "peerDependencies": {
-    "typescript": "^7"
+  "bin": {
+    "pud": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@babel/parser": "catalog:",
+    "@babel/types": "catalog:",
+    "chalk": "catalog:"
+  },
+  "scripts": {
+    "pack": "\"$npm_execpath\" ./scripts/pack.ts",
+    "test": "\"$npm_execpath\" test",
+    "typecheck": "tsc --noEmit"
   }
 }

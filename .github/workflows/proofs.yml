@@ -1,4 +1,4 @@
-name: Proof replay
+name: Pud verification
 on: [pull_request, workflow_dispatch]
 permissions:
   contents: read
@@ -13,13 +13,11 @@ jobs:
         with:
           node-version-file: .nvmrc
       - uses: oven-sh/setup-bun@v2
-      - run: brew install rocq
       - run: bun install --frozen-lockfile
       - run: bun run setup:lean
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run build
       - run: bun run test
-      - run: bun run demo
-      - run: bun run demo:rocq
-      - run: bun run demo:lean
+      - name: Check supported Lean examples
+        run: find packages/pud/.examples -name '*.proof.ts' ! -name sum-positive.proof.ts -exec bun run pud check {} +

@@ -15,9 +15,9 @@ LemmaScript 0.6.10 verified the original and its algebraic rewrite with Dafny 4.
 
 The 68 real calls cover usage 0–16 and batch size 1–4. At usage 12, both broken edits refuse a batch of four. Bun supplies that witness. The ordinary LemmaScript check reports a generated Dafny postcondition location. The nonvacuous rule asks about every nonnegative `bigint` usage and positive `bigint` batch. The contradictory control admits zero inputs, so its successful proof gives the product owner no assurance.
 
-## Reproduce
+## Historical reproduction
 
-Start at the Pud checkout with its Bun dependencies installed, Python 3, Node and Dafny 4.11.0. Set `DAFNY` to its absolute executable path if it is outside `PATH`. The trial used Node 22.21.1 and Bun 1.4.2. [Upstream guide at the published package revision](https://github.com/midspiral/LemmaScript/blob/93283ec6f8c7094f0281b7c5f144e619b1f85aea/GETTING_STARTED.md)
+Start from the earlier [Pud revision](https://github.com/rorz/pud/tree/bc1304b) with its Bun dependencies installed, Python 3, Node and Dafny 4.11.0. The recorded Pud run also included working-tree changes. Set `DAFNY` to its absolute executable path if it is outside `PATH`. The trial used Node 22.21.1 and Bun 1.4.2. [Upstream guide at the published package revision](https://github.com/midspiral/LemmaScript/blob/93283ec6f8c7094f0281b7c5f144e619b1f85aea/GETTING_STARTED.md)
 
 ```sh
 set -e

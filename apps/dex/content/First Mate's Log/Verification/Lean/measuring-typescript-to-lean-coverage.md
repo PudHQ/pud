@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-24
+updated-at: 2026-11-25
 summary: What the Lean adapter admits, where it stops, and how to measure coverage of runtime behavior.
 tags: [verification, typescript, lean, conformance-testing, coverage, effects]
 ---
@@ -25,7 +25,7 @@ A fresh scan used Bun 1.4.2 and the working tree based on `47a7255`. It selected
 | Unsupported parameter or return type | 24 |
 | Async, generator, or generic restriction | 3 |
 
-Small standalone probes reached the body checker. A local bigint assignment lowered. `console.log`, array indexing, `.reduce`, and `try/finally` were rejected. Separate signatures using `number`, an object argument, and an `async` return also failed. The curated demo's 32 active proofs show what works inside the supported fragment. [Program linker](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/program.ts) · [Subject lowering](https://github.com/rorz/pud/blob/main/packages/cli/src/lean/subject.ts)
+Small standalone probes reached the body checker. A local bigint assignment lowered. `console.log`, array indexing, `.reduce`, and `try/finally` were rejected. Separate signatures using `number`, an object argument, and an `async` return also failed. The curated demo's 32 active proofs show what works inside the supported fragment. [Program linker](https://github.com/rorz/pud/blob/main/packages/pud/src/lean/program.ts) · [Subject lowering](https://github.com/rorz/pud/blob/main/packages/pud/src/lean/subject.ts)
 
 ## Use logging to exercise external calls
 

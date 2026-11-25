@@ -2,22 +2,11 @@
   "name": "@pud/debit-example",
   "private": true,
   "type": "module",
-  "exports": "./lib.ts",
   "scripts": {
-    "demo": "\"$npm_execpath\" ./demo.ts",
     "typecheck": "tsc --noEmit",
-    "test": "\"$npm_execpath\" test"
+    "test": "\"$npm_execpath\" test ./.tests"
   },
   "dependencies": {
-    "@pud/model": "workspace:*",
-    "@babel/parser": "catalog:",
-    "@pud/postgres": "workspace:*",
-    "chalk": "catalog:"
-  },
-  "devDependencies": {
-    "@pud/cli": "workspace:*",
-    "@babel/types": "catalog:",
-    "@types/bun": "catalog:",
-    "typescript": "catalog:"
+    "@electric-sql/pglite": "0.5.16"
   }
 }

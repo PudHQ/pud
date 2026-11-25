@@ -1,4 +1,4 @@
-import { binary, ref, type Expr } from "@pud/model";
+import { binary, ref, type Expr } from "../../../packages/pud/src/expressions.ts";
 
 export type SqlParameter = { term: Expr; sort: "text" | "int" };
 

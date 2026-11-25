@@ -6,7 +6,7 @@
       "name": "pud",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
-        "@pud/cli": "workspace:*",
+        "@pud.dev/pud": "workspace:*",
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
@@ -65,21 +65,6 @@
         "vite": "catalog:",
       },
     },
-    "experiments/debit-endpoint": {
-      "name": "@pud/debit-example",
-      "dependencies": {
-        "@babel/parser": "catalog:",
-        "@pud/model": "workspace:*",
-        "@pud/postgres": "workspace:*",
-        "chalk": "catalog:",
-      },
-      "devDependencies": {
-        "@babel/types": "catalog:",
-        "@pud/cli": "workspace:*",
-        "@types/bun": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
     "packages/analytics": {
       "name": "@pud/analytics",
       "version": "0.0.1",
@@ -87,8 +72,12 @@
         "posthog-js": "catalog:",
       },
     },
-    "packages/cli": {
-      "name": "@pud/cli",
+    "packages/crt": {
+      "name": "@pud/crt",
+      "version": "0.0.1",
+    },
+    "packages/pud": {
+      "name": "@pud.dev/pud",
       "version": "0.0.1",
       "bin": {
         "pud": "./src/cli.ts",
@@ -96,36 +85,7 @@
       "dependencies": {
         "@babel/parser": "catalog:",
         "@babel/types": "catalog:",
-        "@pud/model": "workspace:*",
         "chalk": "catalog:",
-      },
-    },
-    "packages/crt": {
-      "name": "@pud/crt",
-      "version": "0.0.1",
-    },
-    "packages/model": {
-      "name": "@pud/model",
-      "version": "0.0.1",
-      "dependencies": {
-        "@babel/parser": "catalog:",
-        "@babel/types": "catalog:",
-      },
-    },
-    "packages/postgres": {
-      "name": "@pud/postgres",
-      "version": "0.0.1",
-      "dependencies": {
-        "@electric-sql/pglite": "catalog:",
-      },
-    },
-    "packages/pud": {
-      "name": "pud",
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
-      "peerDependencies": {
-        "typescript": "^7",
       },
     },
   },
@@ -135,7 +95,6 @@
     "@babel/types": "8.1.2",
     "@biomejs/biome": "2.6.8",
     "@cloudflare/vite-plugin": "2.0.0-rc.1",
-    "@electric-sql/pglite": "0.5.16",
     "@fontsource-variable/atkinson-hyperlegible-mono": "5.3.0",
     "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
     "@fontsource-variable/pixelify-sans": "5.3.0",
@@ -305,8 +264,6 @@
 
     "@dimforge/rapier3d-compat": ["@dimforge/rapier3d-compat@0.12.0", "", {}, "sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow=="],
 
-    "@electric-sql/pglite": ["@electric-sql/pglite@0.5.16", "", {}, "sha512-Nj8KcIsJL748W408U2N8q4+9IlONdpRIU8MJypIAAINMJ5nqKyqpX7Mgg/5XKkXiAib3AoZGR6hnJFlrlLBrcg=="],
-
     "@emmetio/abbreviation": ["@emmetio/abbreviation@2.3.3", "", { "dependencies": { "@emmetio/scanner": "^1.0.4" } }, "sha512-mgv58UrU3rh4YgbE/TzgLQwJ3pFsHHhCLqY20aJq+9comytTXUDNGG/SMtSeMJdkpxgXSXunBGLD8Boka3JyVA=="],
 
     "@emmetio/css-abbreviation": ["@emmetio/css-abbreviation@2.1.8", "", { "dependencies": { "@emmetio/scanner": "^1.0.4" } }, "sha512-s9yjhJ6saOO/uk1V74eifykk2CBYi01STTK3WlXWGOepyKa23ymJ053+DNQjpFcy1ingpaO7AxCcwLvHFY9tuw=="],
@@ -427,19 +384,13 @@
 
     "@posthog/types": ["@posthog/types@1.427.0", "", {}, "sha512-2RPVfuGIx0iys78mTOcfdzN7/w7AM1Ak3yu9++4/FonPf08mwGqDkJjThz2dA/34666ToNw5Q4fZoFdgvfNUHw=="],
 
-    "@pud/analytics": ["@pud/analytics@workspace:packages/analytics"],
+    "@pud.dev/pud": ["@pud.dev/pud@workspace:packages/pud"],
 
-    "@pud/cli": ["@pud/cli@workspace:packages/cli"],
+    "@pud/analytics": ["@pud/analytics@workspace:packages/analytics"],
 
     "@pud/crt": ["@pud/crt@workspace:packages/crt"],
 
-    "@pud/debit-example": ["@pud/debit-example@workspace:experiments/debit-endpoint"],
-
     "@pud/dex": ["@pud/dex@workspace:apps/dex"],
-
-    "@pud/model": ["@pud/model@workspace:packages/model"],
-
-    "@pud/postgres": ["@pud/postgres@workspace:packages/postgres"],
 
     "@pud/www": ["@pud/www@workspace:apps/www"],
 
@@ -1109,8 +1060,6 @@
 
     "property-information": ["property-information@7.2.0", "", {}, "sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg=="],
 
-    "pud": ["pud@workspace:packages/pud"],
-
     "punycode.js": ["punycode.js@2.3.1", "", {}, "sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA=="],
 
     "query-selector-shadow-dom": ["query-selector-shadow-dom@1.0.1", "", {}, "sha512-lT5yCqEBgfoMYpf3F2xQRK7zEr1rhIIZuceDK6+xRkJQ4NMbHTwXqk4NkwDwQMNqXgG9r9fyHnzwNVs6zV5KRw=="],
@@ -1453,8 +1402,6 @@
 
     "micromatch/picomatch": ["picomatch@2.3.2", "", {}, "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA=="],
 
-    "pud/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
-
     "satori/fflate": ["fflate@0.7.3", "", {}, "sha512-0Zz1jOzJWERhyhsimS54VTqOteCNwRtIlh8isdL0AXLo0g7xNTfTL7oWrkmCnPhZGocKIkWHBistBrrpoNH3aw=="],
 
     "stats-gl/three": ["three@0.170.0", "", {}, "sha512-FQK+LEpYc0fBD+J8g6oSEyyNzjp+Q7Ks1C568WWaoMRLW+TkNNWmenWeGgJjV105Gd+p/2ql1ZcjYvNiPZBhuQ=="],
@@ -1539,8 +1486,6 @@
 
     "magicast/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.29.7", "", {}, "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg=="],
 
-    "pud/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
-
     "vite/rolldown/@oxc-project/types": ["@oxc-project/types@0.156.0", "", {}, "sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw=="],
 
     "vite/rolldown/@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.19", "", { "os": "android", "cpu": "arm" }, "sha512-e+Ebe0WT+9tbXmNKPIiC8YrWAHYwug3m6i4p3rZGGulfZri1jtI4HslT+OZnFf/OIHowWF71DTlHwXBP2SiA7A=="],
@@ -1584,8 +1529,6 @@
     "@astrojs/vite-plugin-astro/rolldown/@rolldown/binding-wasm32-wasi/@emnapi/runtime": ["@emnapi/runtime@2.0.0-beta.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-JcrSPzPvZuNZvJqPTF9Fw25LbOJ8avzFVlaf2grmH4Cku0oGP47tRgqPZadcfj3YoZMHkFVnCYFbQM8I+i5QEw=="],
 
     "@astrojs/vite-plugin-astro/rolldown/@rolldown/binding-wasm32-wasi/@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || 2.0.0-beta.2", "@emnapi/runtime": "^1.7.1 || 2.0.0-beta.2" } }, "sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw=="],
-
-    "pud/@types/bun/bun-types/undici-types": ["undici-types@8.12.4", "", {}, "sha512-GNCQH3MbVGB8OAVAoTiLH8pu4wx5Ni3DWKpnBzGj3WDsi8EwmK0aOVBooNEt+g5YL1eHPxcS9XUTouwFU6j1kQ=="],
 
     "vite/rolldown/@rolldown/binding-wasm32-wasi/@emnapi/core": ["@emnapi/core@2.0.0-beta.2", "", { "dependencies": { "@emnapi/wasi-threads": "2.2.0", "tslib": "^2.4.0" } }, "sha512-MzCVoWtcg4Pm2B3je5mMvYMvj3MmBKw+fU7vbsJc9/iT8ip6/eYIHo/Dsm/mr+wsHB6SEyJDuxB09Yy6r/8+4A=="],
 

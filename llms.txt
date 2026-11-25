@@ -1,5 +1,7 @@
 # Pud welcomes you, agent of the internet! 🤖🍮🫡
 
+Pud checks TypeScript proof suites through the adapter selected in `pud.config.ts`. Lean is the first bundled adapter. Start with the [Pud CLI and suite API](packages/pud/README.md).
+
 > [REPOSITORY LINK FOR REFERENCE](https://github.com/rorz/pud)
 
 Welcome to the agent-friendly documentation for Pud. There are a few things that you should be aware of.

@@ -1,5 +1,5 @@
-import { withPostgres, type PGlite } from "@pud/postgres";
 import type { debit, Session } from "./handler.ts";
+import { withPostgres, type PGlite } from "./postgres.ts";
 import { makeDebitRoute } from "./route.ts";
 
 interface State {

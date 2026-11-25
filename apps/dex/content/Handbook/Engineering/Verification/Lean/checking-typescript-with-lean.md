@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-24
+updated-at: 2026-11-25
 summary: Run the Lean adapter, read a quantified claim, and follow it across TypeScript calls.
 tags: [verification, typescript, lean, quantifiers, call-graphs, exceptions]
 ---
@@ -14,29 +14,29 @@ Pud reads a TypeScript function and its `*.proof.ts` sidecar. Its Lean adapter g
 
 ## Select Lean for a project
 
-Put the following in `pud.config.ts`. Pud uses the closest config above each sidecar.
+Lean is Pud’s first bundled adapter. Select it in `pud.config.ts`. Pud uses the closest config above each sidecar, and the portable suite API stays the same when a project selects another adapter.
 
 ```ts
-import { defineConfig } from "@pud/cli";
-import { leanAdapter } from "@pud/cli/lean";
+import { defineConfig } from "@pud.dev/pud";
+import { leanAdapter } from "@pud.dev/pud/lean";
 
 const pud = defineConfig({ adapter: leanAdapter() });
 
 export default pud;
 ```
 
-Portable suites import `describe`, `it`, and `pud` from `@pud/cli`. A matcher such as `pud.bigint().gte(0n)` states the same property regardless of which assistant is selected. When a suite supplies a Lean predicate or proof, import `pud` from `pud.config.ts` and call `pud.describe()`. The same import provides the schema builders, and TypeScript checks that native terms belong to the chosen assistant. [Authoring examples](https://github.com/rorz/pud/blob/main/packages/cli/README.md#configure-a-proof-assistant)
+Portable suites import `describe`, `it`, and `pud` from `@pud.dev/pud`. A matcher such as `pud.bigint().gte(0n)` states the same property regardless of which assistant is selected. When a suite supplies a Lean predicate or proof, import `pud` from `pud.config.ts` and call `pud.describe()`. The same import provides the schema builders, and TypeScript checks that native terms belong to the chosen assistant. [Authoring examples](https://github.com/rorz/pud/blob/main/packages/pud/README.md#configure-a-proof-assistant)
 
 ## Run the search proof
 
 Run both commands from the repository root after `bun run setup`.
 
 ```sh
-bun run --silent pud check packages/cli/experiments/lean/.examples/linear-search.proof.ts
-bun run --silent pud --emit packages/cli/experiments/lean/.examples/linear-search.proof.ts
+bun run --silent pud check packages/pud/.examples/linear-search.proof.ts
+bun run --silent pud --emit packages/pud/.examples/linear-search.proof.ts
 ```
 
-The first command reports one `PASS`. The second prints the file that defines `impl` and `claim` and supplies the proof. The source, sidecar, and `linear-search-lemmas.lean` live together in `packages/cli/experiments/lean/.examples/`.
+The first command reports one `PASS`. The second prints the file that defines `impl` and `claim` and supplies the proof. The source, sidecar, and `linear-search-lemmas.lean` live together in `packages/pud/.examples/`.
 
 ## Read the three pieces
 
@@ -58,9 +58,9 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 ));
 ```
 
-Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/array-contains-lemmas.lean)
+Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/rorz/pud/blob/main/packages/pud/.examples/array-contains-lemmas.lean)
 
-Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/cli/experiments/lean/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/README.md#sidecar-syntax)
+Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/pud/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/rorz/pud/blob/main/packages/pud/.examples/README.md#sidecar-syntax)
 
 ## Follow a call chain
 
@@ -70,8 +70,8 @@ The ZigZag roundtrip sidecar uses `describe(encode, …)` for its input signatur
 expect(decode(encode(value))).to(pud.bigint().eq(value));
 ```
 
-Run `bun run --silent pud check packages/cli/experiments/lean/.examples/zigzag-roundtrip.proof.ts`. The generated theorem includes both function bodies and quantifies over every signed bigint. Pud snapshots reachable module sources and rechecks their import resolutions.
+Run `bun run --silent pud check packages/pud/.examples/zigzag-roundtrip.proof.ts`. The generated theorem includes both function bodies and quantifies over every signed bigint. Pud snapshots reachable module sources and rechecks their import resolutions.
 
-Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/rorz/pud/blob/main/packages/cli/experiments/lean/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
+Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
 
 For the supported scalar fragment, the generated unit also includes `loweringCertificate` and `sourceChecked`. The first equates the emitted observation to the modeled TypeScript source outcome. The second transfers the sidecar property to that source evaluation. [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Road to semantic preservation|Preservation proofs and the remaining trust boundary]]
