@@ -14,7 +14,7 @@ async function fixture() {
 }
 afterEach(async () => { for (const dir of dirs.splice(0)) await rm(dir, { recursive: true, force: true }); });
 
-const pending = `import { describe, it } from "@pud.dev/pud";
+const pending = `import { describe, it } from "@pud.dev/lib";
 import { f } from "./f";
 describe(f, () => { it.todo("Ready"); });`;
 
@@ -23,7 +23,7 @@ test("the library and CLI resolve Bun imports and emit the same property by titl
   await writeFile(join(dir, "pud.config.ts"), `import { leanAdapter } from ${JSON.stringify(lean)};
 export default { adapter: leanAdapter() };`);
   await writeFile(join(dir, "pricing.ts"), "export type Unused = boolean; export function net(n: bigint): bigint { return n; }");
-  await writeFile(file, `import { describe, expect, it, pud } from "@pud.dev/pud";
+  await writeFile(file, `import { describe, expect, it, pud } from "@pud.dev/lib";
 import { net, type Unused } from "./pricing.js";
 describe(net, () => {
   it("Identity", { n: pud.bigint() }, ({ n }) => { expect(net(n)).to(pud.bigint().eq(n)); });
@@ -45,7 +45,7 @@ describe(net, () => {
 test("the CLI asks for an adapter when a suite has active claims", async () => {
   const dir = await fixture();
   await writeFile(join(dir, "f.ts"), "export function f(): boolean { return true; }");
-  await writeFile(join(dir, "f.proof.ts"), `import { describe, expect, it, pud } from "@pud.dev/pud";
+  await writeFile(join(dir, "f.proof.ts"), `import { describe, expect, it, pud } from "@pud.dev/lib";
 import { f } from "./f";
 describe(f, () => {
   it("returns true", {}, ({}) => { expect(f()).to(pud.boolean().eq(true)); });

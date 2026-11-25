@@ -28,7 +28,7 @@
     "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
   },
   "devDependencies": {
-    "@pud.dev/pud": "workspace:*",
+    "@pud.dev/lib": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
     "@biomejs/biome": "catalog:"

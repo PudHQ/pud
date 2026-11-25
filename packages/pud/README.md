@@ -1,14 +1,14 @@
 # Pud
 
-The `@pud.dev/pud` package provides the command, the TypeScript suite API, and the proof-assistant adapter contract. A project selects its driver in `pud.config.ts`. Lean is the first bundled driver, available from `@pud.dev/pud/lean`. [Quick start](../../README.md#try-it-locally)
+The `@pud.dev/lib` package provides the command, the TypeScript suite API, and the proof-assistant adapter contract. A project selects its driver in `pud.config.ts`. Lean is the first bundled driver, available from `@pud.dev/lib/lean`. [Quick start](../../README.md#try-it-locally)
 
 ## Configure a proof assistant
 
 Create `pud.config.ts` beside your sidecars or in a parent directory. Pud uses the nearest config for each suite.
 
 ```ts
-import { defineConfig } from "@pud.dev/pud";
-import { leanAdapter } from "@pud.dev/pud/lean";
+import { defineConfig } from "@pud.dev/lib";
+import { leanAdapter } from "@pud.dev/lib/lean";
 
 const pud = defineConfig({ adapter: leanAdapter() });
 
@@ -19,10 +19,10 @@ The Lean adapter locates Lean on the path or through Elan and reads the nearest 
 
 ### Write a portable suite
 
-Import `pud` and the suite helpers from `@pud.dev/pud`. The schemas in `it` describe the inputs, and `expect().to()` states what the result must satisfy for every admitted input.
+Import `pud` and the suite helpers from `@pud.dev/lib`. The schemas in `it` describe the inputs, and `expect().to()` states what the result must satisfy for every admitted input.
 
 ```ts
-import { describe, expect, given, it, pud } from "@pud.dev/pud";
+import { describe, expect, given, it, pud } from "@pud.dev/lib";
 import { clamp } from "./clamp";
 
 describe(clamp, () => {
@@ -73,7 +73,7 @@ Import `pud` from your config when a property needs native code. Both `pud.descr
 
 ```ts
 import pud from "./pud.config";
-import { lean } from "@pud.dev/pud/lean";
+import { lean } from "@pud.dev/lib/lean";
 import { increment } from "./increment";
 
 pud.describe(increment, ({ it, expect }) => {
@@ -90,8 +90,8 @@ Use `.satisfies()` to add a native predicate to a schema and `.by()` to supply a
 ### Use the library
 
 ```ts
-import { check, emit } from "@pud.dev/pud";
-import { leanAdapter } from "@pud.dev/pud/lean";
+import { check, emit } from "@pud.dev/lib";
+import { leanAdapter } from "@pud.dev/lib/lean";
 
 const adapter = leanAdapter();
 const report = await check("clamp.proof.ts", { adapter });
@@ -100,7 +100,7 @@ const unit = await emit("clamp.proof.ts", { adapter, property: "keeps the result
 
 `checkFiles(files, { adapter })` applies the same override to a batch. The explicit option takes precedence over project config. Pud checks native term IDs against the selected adapter before handing it a claim.
 
-An adapter implements `ProofAssistant` from `@pud.dev/pud` and supplies a stable assistant ID. Its `prepare` method reads the named TypeScript export from the supplied snapshot and returns its signature, an emitter, and a verifier. Pud binds the sidecar's premises and assertions to that signature and supplies the verifier one claim per active property. For a custom native tag, import `native` from `@pud.dev/pud` and declare `const term = native("assistant-id")` at file scope before `pud.describe`. [Adapter contract](src/assistant.ts)
+An adapter implements `ProofAssistant` from `@pud.dev/lib` and supplies a stable assistant ID. Its `prepare` method reads the named TypeScript export from the supplied snapshot and returns its signature, an emitter, and a verifier. Pud binds the sidecar's premises and assertions to that signature and supplies the verifier one claim per active property. For a custom native tag, import `native` from `@pud.dev/lib` and declare `const term = native("assistant-id")` at file scope before `pud.describe`. [Adapter contract](src/assistant.ts)
 
 Use `checkFiles(files, { onProgress })` for a live view. Suite events declare the queue and total item count. Running and finished events identify items by index in the current suite. Finished events can include provisional statuses in the same order as those indices. The validating event marks the start of the input snapshot check. The returned reports carry the final verdicts.
 

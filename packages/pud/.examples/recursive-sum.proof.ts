@@ -1,4 +1,4 @@
-import { describe, expect, it, pud } from "@pud.dev/pud";
+import { describe, expect, it, pud } from "@pud.dev/lib";
 import { recursiveSum } from "./termination.ts";
 
 describe(recursiveSum, () => {

@@ -30,13 +30,13 @@ The search proof checks that the returned index is the first match, or `-1n` whe
 Build the self-contained package with `bun run pack:cli`. In your Bun project, install the archive and select a driver.
 
 ```sh
-bun add --dev /path/to/pud.dev-pud-0.0.1.tgz
+bun add --dev /path/to/pud.dev-lib-0.0.1.tgz
 ```
 
 ```ts
 // pud.config.ts
-import { defineConfig } from "@pud.dev/pud";
-import { leanAdapter } from "@pud.dev/pud/lean";
+import { defineConfig } from "@pud.dev/lib";
+import { leanAdapter } from "@pud.dev/lib/lean";
 
 export default defineConfig({ adapter: leanAdapter() });
 ```
@@ -45,7 +45,7 @@ Install Lean on your path or through Elan. The adapter reads the nearest `lean-t
 
 ```ts
 // clamp.proof.ts
-import { describe, expect, given, it, pud } from "@pud.dev/pud";
+import { describe, expect, given, it, pud } from "@pud.dev/lib";
 import { clamp } from "./clamp";
 
 describe(clamp, () => {
@@ -60,7 +60,7 @@ describe(clamp, () => {
 });
 ```
 
-Run `bunx --no-install pud check` to discover nearby `*.proof.ts` files. Pass paths to select suites. Use `--verbose` for full diagnostics or `--json` for CI. `@pud.dev/pud` also exports `check`, `checkFiles`, and `emit`. [CLI and authoring guide](packages/pud/README.md)
+Run `bunx --no-install pud check` to discover nearby `*.proof.ts` files. Pass paths to select suites. Use `--verbose` for full diagnostics or `--json` for CI. `@pud.dev/lib` also exports `check`, `checkFiles`, and `emit`. [CLI and authoring guide](packages/pud/README.md)
 
 ## How the proof pipeline works
 

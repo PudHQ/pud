@@ -17,13 +17,13 @@ test("a Bun project can install the archive offline and use the command, API, an
     return { stdout: child.stdout.toString(), stderr: child.stderr.toString() };
   }
   const config = (options = "") => [
-    'import { defineConfig } from "@pud.dev/pud";',
-    'import { leanAdapter } from "@pud.dev/pud/lean";',
+    'import { defineConfig } from "@pud.dev/lib";',
+    'import { leanAdapter } from "@pud.dev/lib/lean";',
     `export default defineConfig({ adapter: leanAdapter(${options}) });`,
   ].join("\n");
   try {
     const archive = await pack(dir);
-    expect(archive).toEndWith("pud.dev-pud-0.0.1.tgz");
+    expect(archive).toEndWith("pud.dev-lib-0.0.1.tgz");
     await mkdir(cwd);
     await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "consumer", private: true, type: "module" }));
     run(["add", "--dev", "--offline", archive]);
@@ -31,7 +31,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     const configFile = join(cwd, "pud.config.ts");
     await writeFile(configFile, config('{ executable: "./missing-lean" }'));
     await writeFile(join(cwd, "quote.proof.ts"), [
-      'import { describe, expect, it, pud } from "@pud.dev/pud";',
+      'import { describe, expect, it, pud } from "@pud.dev/lib";',
       'import { quote } from "./quote";',
       'describe(quote, () => {',
       '  it("subtracts one cent", { cents: pud.bigint() }, ({ cents }) => {',
@@ -41,7 +41,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     ].join("\n"));
     await writeFile(join(cwd, "native.proof.ts"), [
       'import pud from "./pud.config";',
-      'import { lean } from "@pud.dev/pud/lean";',
+      'import { lean } from "@pud.dev/lib/lean";',
       'import { quote } from "./quote";',
       'pud.describe(quote, ({ it, expect }) => {',
       '  it("subtracts one cent", { cents: pud.bigint() }, ({ cents }) => {',
@@ -50,8 +50,8 @@ test("a Bun project can install the archive offline and use the command, API, an
       '});',
     ].join("\n"));
     await writeFile(join(cwd, "types.ts"), [
-      'import { check, checkFiles, defineConfig, emit, native, pud, type CheckReport } from "@pud.dev/pud";',
-      'import { lean } from "@pud.dev/pud/lean";',
+      'import { check, checkFiles, defineConfig, emit, native, pud, type CheckReport } from "@pud.dev/lib";',
+      'import { lean } from "@pud.dev/lib/lean";',
       'import { quote } from "./quote";',
       'const report: CheckReport = await check("quote.proof.ts");',
       'const reports: CheckReport[] = await checkFiles(["quote.proof.ts"]);',
@@ -84,7 +84,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     expect(unit).toContain("def impl (p0 : Int) : Int");
     expect(unit).toContain("result = (p0) - 1");
     expect(unit).toContain("theorem checked : claim");
-    expect(run(["-e", 'import { emit } from "@pud.dev/pud"; process.stdout.write(await emit("native.proof.ts"))']).stdout).toBe(unit);
+    expect(run(["-e", 'import { emit } from "@pud.dev/lib"; process.stdout.write(await emit("native.proof.ts"))']).stdout).toBe(unit);
 
     const missing = run(["run", "pud", "check", "quote.proof.ts", "--json"], 2);
     expect(JSON.parse(missing.stdout).files[0].results[0]).toMatchObject({ status: "error", assistant: "lean" });
@@ -102,7 +102,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     const alternate = join(cwd, "alternate");
     await mkdir(alternate);
     await writeFile(join(alternate, "identity.proof.ts"), [
-      'import { describe, expect, it, pud } from "@pud.dev/pud";',
+      'import { describe, expect, it, pud } from "@pud.dev/lib";',
       'import { quote } from "../quote";',
       'describe(quote, () => {',
       '  it("preserves the amount", { cents: pud.bigint() }, ({ cents }) => {',
@@ -111,7 +111,7 @@ test("a Bun project can install the archive offline and use the command, API, an
       '});',
     ].join("\n"));
     await writeFile(join(alternate, "pud.config.ts"), [
-      'import { defineConfig, type ProofAssistant } from "@pud.dev/pud";',
+      'import { defineConfig, type ProofAssistant } from "@pud.dev/lib";',
       'import { quote } from "../quote";',
       'const adapter: ProofAssistant<"replay-test"> = {',
       '  id: "replay-test",',
@@ -138,7 +138,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     expect(replay.stderr).toContain("Expected  0n");
     expect(replay.stderr).toContain("Received  -1n");
 
-    const notices = await readFile(join(cwd, "node_modules/@pud.dev/pud/THIRD-PARTY-NOTICES"), "utf8");
+    const notices = await readFile(join(cwd, "node_modules/@pud.dev/lib/THIRD-PARTY-NOTICES"), "utf8");
     expect(notices).toContain("@babel/parser@");
     expect(notices).toContain("chalk@");
   } finally {

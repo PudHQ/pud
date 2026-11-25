@@ -1,4 +1,4 @@
-import { describe, expect, given, it, pud } from "@pud.dev/pud";
+import { describe, expect, given, it, pud } from "@pud.dev/lib";
 import { divideOrZero } from "./safe-quotient.ts";
 
 describe(divideOrZero, () => {

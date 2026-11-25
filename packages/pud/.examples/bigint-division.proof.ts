@@ -1,4 +1,4 @@
-import { describe, expect, given, it, pud } from "@pud.dev/pud";
+import { describe, expect, given, it, pud } from "@pud.dev/lib";
 import { divide } from "./bigint-division.ts";
 
 describe(divide, () => {

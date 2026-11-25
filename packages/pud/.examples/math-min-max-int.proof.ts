@@ -1,4 +1,4 @@
-import { describe, expect, it, pud } from "@pud.dev/pud";
+import { describe, expect, it, pud } from "@pud.dev/lib";
 import { highestInteger } from "./math-min-max-int.ts";
 
 describe(highestInteger, () => {

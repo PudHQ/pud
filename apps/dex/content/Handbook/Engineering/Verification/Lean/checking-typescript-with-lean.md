@@ -17,15 +17,15 @@ Pud reads a TypeScript function and its `*.proof.ts` sidecar. Its Lean adapter g
 Lean is Pud’s first bundled adapter. Select it in `pud.config.ts`. Pud uses the closest config above each sidecar, and the portable suite API stays the same when a project selects another adapter.
 
 ```ts
-import { defineConfig } from "@pud.dev/pud";
-import { leanAdapter } from "@pud.dev/pud/lean";
+import { defineConfig } from "@pud.dev/lib";
+import { leanAdapter } from "@pud.dev/lib/lean";
 
 const pud = defineConfig({ adapter: leanAdapter() });
 
 export default pud;
 ```
 
-Portable suites import `describe`, `it`, and `pud` from `@pud.dev/pud`. A matcher such as `pud.bigint().gte(0n)` states the same property regardless of which assistant is selected. When a suite supplies a Lean predicate or proof, import `pud` from `pud.config.ts` and call `pud.describe()`. The same import provides the schema builders, and TypeScript checks that native terms belong to the chosen assistant. [Authoring examples](https://github.com/rorz/pud/blob/main/packages/pud/README.md#configure-a-proof-assistant)
+Portable suites import `describe`, `it`, and `pud` from `@pud.dev/lib`. A matcher such as `pud.bigint().gte(0n)` states the same property regardless of which assistant is selected. When a suite supplies a Lean predicate or proof, import `pud` from `pud.config.ts` and call `pud.describe()`. The same import provides the schema builders, and TypeScript checks that native terms belong to the chosen assistant. [Authoring examples](https://github.com/rorz/pud/blob/main/packages/pud/README.md#configure-a-proof-assistant)
 
 ## Run the search proof
 

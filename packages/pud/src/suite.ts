@@ -1,9 +1,10 @@
 import type { CallExpression, Node, Program, StringLiteral } from "@babel/types";
+import manifest from "../package.json";
 import type { NativeProofTerm, PreparedProofAssistant, ProofCall, ProofClaim, ProofComparison, ProofConstraint, ProofErrorKind, ProofExpression, ProofPredicate, ProofTarget, ProofType } from "./assistant.ts";
 import { invalid, resolveTypeScriptImport } from "./source.ts";
 import { dirname, resolve } from "node:path";
 
-const authoringPackage = "@pud.dev/pud";
+const authoringPackage = manifest.name;
 const portableHelpers = new Set(["describe", "expect", "given", "it", "native", "pud"]);
 const configuredHelpers = new Set(["expect", "given", "it", "pud", "use"]);
 const comparisons = new Set<string>(["eq", "gt", "gte", "lt", "lte"] satisfies ProofComparison[]);

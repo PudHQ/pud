@@ -6,7 +6,7 @@
       "name": "pud",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
-        "@pud.dev/pud": "workspace:*",
+        "@pud.dev/lib": "workspace:*",
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
@@ -77,7 +77,7 @@
       "version": "0.0.1",
     },
     "packages/pud": {
-      "name": "@pud.dev/pud",
+      "name": "@pud.dev/lib",
       "version": "0.0.1",
       "bin": {
         "pud": "./src/cli.ts",
@@ -384,7 +384,7 @@
 
     "@posthog/types": ["@posthog/types@1.427.0", "", {}, "sha512-2RPVfuGIx0iys78mTOcfdzN7/w7AM1Ak3yu9++4/FonPf08mwGqDkJjThz2dA/34666ToNw5Q4fZoFdgvfNUHw=="],
 
-    "@pud.dev/pud": ["@pud.dev/pud@workspace:packages/pud"],
+    "@pud.dev/lib": ["@pud.dev/lib@workspace:packages/pud"],
 
     "@pud/analytics": ["@pud/analytics@workspace:packages/analytics"],
 

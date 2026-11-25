@@ -1,4 +1,4 @@
-import { lean } from "@pud.dev/pud/lean";
+import { lean } from "@pud.dev/lib/lean";
 import pud from "./pud.config.ts";
 import { arraySum } from "./array-sum.ts";
 

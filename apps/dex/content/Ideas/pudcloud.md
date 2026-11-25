@@ -24,7 +24,7 @@ PudCloud is Pud’s paid hosted offering. The first feature to try is the **Back
 Suppose a ticket says customers can use up to 16 units and `admit` rejects any batch that reaches 16 exactly. The Back-speccer shows the reviewer `admit(12n, 4n)` returning `false` and asks whether a batch should succeed when it fills the quota exactly. If the maintainer confirms it should, the spec records the full rule for nonnegative usage and positive batches. [Pud’s quota sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/admit.proof.ts)
 
 ```ts
-import { describe, expect, it, pud } from "@pud.dev/pud";
+import { describe, expect, it, pud } from "@pud.dev/lib";
 import { admit } from "./admit.ts";
 
 describe(admit, () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it, pud } from "@pud.dev/pud";
+import { describe, expect, it, pud } from "@pud.dev/lib";
 import { boolCond } from "./truthiness.ts";
 
 describe(boolCond, () => {

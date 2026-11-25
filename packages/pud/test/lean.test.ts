@@ -53,7 +53,7 @@ async function fixture(run: (directory: string) => Promise<void>) {
 }
 
 function sidecar(subject: string, functionImports: string, source: string, schemas: string, inputs: string, assertion: string) {
-  return `import { describe, expect, it, pud } from "@pud.dev/pud";
+  return `import { describe, expect, it, pud } from "@pud.dev/lib";
 import { ${functionImports} } from "${source}";
 describe(${subject}, () => {
   it("observes the linked implementation", { ${schemas} }, ({ ${inputs} }) => {
