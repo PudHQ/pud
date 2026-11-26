@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pack } from "../scripts/pack.ts";
@@ -27,6 +27,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     await mkdir(cwd);
     await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "consumer", private: true, type: "module" }));
     run(["add", "--dev", "--offline", archive]);
+    await cp(join(import.meta.dir, "../.examples/motion"), join(cwd, "motion"), { recursive: true });
     await writeFile(join(cwd, "quote.ts"), "export function quote(cents: bigint): bigint { return cents - 1n; }");
     const configFile = join(cwd, "pud.config.ts");
     await writeFile(configFile, config('{ executable: "./missing-lean" }'));
@@ -50,12 +51,22 @@ test("a Bun project can install the archive offline and use the command, API, an
       '});',
     ].join("\n"));
     await writeFile(join(cwd, "types.ts"), [
-      'import { check, checkFiles, defineConfig, emit, native, pud, type CheckReport } from "@pud.dev/lib";',
+      'import { check, checkFiles, defineConfig, emit, expect, native, pud, type CheckReport } from "@pud.dev/lib";',
       'import { lean } from "@pud.dev/lib/lean";',
       'import { quote } from "./quote";',
       'const report: CheckReport = await check("quote.proof.ts");',
       'const reports: CheckReport[] = await checkFiles(["quote.proof.ts"]);',
       'const unit: string = await emit("quote.proof.ts", "subtracts one cent");',
+      'pud.number().gte(0).eq(1.5);',
+      'declare const amount: number, values: readonly bigint[];',
+      'expect(amount).toExactly(pud.number().nearestIntegerTo(amount, { ties: "up" }));',
+      'expect(amount).toExactly(pud.number().sameValue(amount));',
+      '// @ts-expect-error select a supported tie policy',
+      'pud.number().nearestIntegerTo(amount, { ties: "away" });',
+      '// @ts-expect-error exact result schemas currently support scalar returns',
+      'expect(values).toExactly(pud.array(pud.bigint()));',
+      '// @ts-expect-error a number schema cannot compare against a bigint',
+      'pud.number().eq(1n);',
       '// @ts-expect-error portable helpers require a configured native scope',
       'pud.bigint().satisfies(lean`fun _ => True`);',
       'const other = defineConfig({ adapter: { id: "other", prepare() { throw new Error("type fixture"); } } });',
@@ -76,7 +87,7 @@ test("a Bun project can install the archive offline and use the command, API, an
       '});',
     ].join("\n"));
     await writeFile(join(cwd, "tsconfig.json"), JSON.stringify({
-      compilerOptions: { module: "preserve", target: "ESNext", strict: true, types: [], noEmit: true },
+      compilerOptions: { module: "preserve", target: "ESNext", strict: true, types: [], noEmit: true, allowImportingTsExtensions: true },
     }));
     const tsc = resolve(import.meta.dir, "../../../node_modules/typescript/bin/tsc");
     run([tsc, "-p", "."]);
@@ -92,6 +103,9 @@ test("a Bun project can install the archive offline and use the command, API, an
       await writeFile(configFile, config());
       const passed = run(["x", "--no-install", "pud", "check", "quote.proof.ts", "--json"]);
       expect(JSON.parse(passed.stdout).files[0].results[0]).toMatchObject({ status: "proved", assistant: "lean" });
+      const motion = run(["run", "pud", "check", "motion"]);
+      expect(motion.stdout).toContain("6 passed");
+      expect(motion.stdout.match(/\[exact result\]/g)).toHaveLength(2);
 
       await writeFile(join(cwd, "quote.ts"), "export function quote(cents: bigint): bigint { return cents - 2n; }");
       const rejected = run(["run", "pud", "check", "quote.proof.ts", "--json"], 1);

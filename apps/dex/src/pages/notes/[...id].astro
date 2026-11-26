@@ -2,6 +2,7 @@
 import Shell from "../../layouts/site-shell.astro";
 import Icon from "../../components/dex-icon.astro";
 import Breadcrumbs from "../../components/breadcrumb-nav.astro";
+import CompatibilityTree from "../../components/compatibility-tree.astro";
 import { vault } from "../../lib/content";
 import { authors } from "../../lib/authors";
 import { formatNoteDate } from "../../lib/note-date";
@@ -34,6 +35,7 @@ const author = note.author ? authors.get(note.author) : undefined;
       {note.url && <a class:list={[link, favicon, "inline-flex min-h-7 items-center gap-1.5 bg-slate-100 px-2 py-0.5 font-mono text-small/normal teletext:bg-blue-950"]}
         href={note.url} {...outboundAttributes(note.url)}>Visit {new URL(note.url).hostname} ↗</a>}
       <div class="prose text-note" set:html={note.html}></div>
+      {note.id === "handbook/engineering/verification/typescript-compatibility" && <CompatibilityTree />}
       {note.tags.length > 0 && <p class="my-3 flex flex-wrap gap-2 font-mono text-xs/normal font-label text-slate-600 teletext:text-green-300">{note.tags.map(tag => <span>#{tag}</span>)}</p>}
       <section class="mt-6 border-t border-line teletext:border-blue-800" aria-label="Backlinks">
         <h2 class="mt-4.5 mb-1.75 flex items-center gap-1.75 text-entry/tight font-panel text-navy teletext:font-pixel teletext:text-yellow-300"><Icon name="link" /> Linked from</h2>

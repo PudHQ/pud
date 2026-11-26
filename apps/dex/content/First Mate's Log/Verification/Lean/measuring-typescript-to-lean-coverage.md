@@ -12,6 +12,12 @@ tags: [verification, typescript, lean, conformance-testing, coverage, effects]
 
 ## What the current adapter admits
 
+### Unchanged projects and independent language tests
+
+The [[Handbook/Engineering/Verification/typescript-compatibility|compatibility tree]] reports two repeatable benchmarks. In `drop-in-v2` all 27 native controls passed across eight quantified laws on four pinned source trees. Pud admitted zero original exports and proved zero pilot laws. Five exports first hit module declaration restrictions, two hit union signatures, and Hono’s middleware composer hit the generic-function restriction. The earlier pilot mixed two quantified claims with six fixed scenarios. Changing those obligations required a new cohort version.
+
+At Test262 revision `4db99ac4`, the six bigint arithmetic files supplied 1,285 assertions. Pud’s emitted Lean matched 1,260. All 25 exponentiation expressions stopped during lowering. The scoped file score was 5/6, or 83.3%. Bun’s release reporting likewise gives a numerator and denominator for specific modules against a named Node test-suite revision. The Test262 inventory contains further language, built-in, internationalization, legacy, staging and harness files. [Bun 1.4 compatibility results](https://bun.com/blog/bun-v1.4#node-js-compatibility) · [Test262 scope](https://github.com/tc39/test262#goals--state-of-test262)
+
 ### Coverage on 26 November 2026
 
 At commit `36a351e`, the bundled Lean adapter translated **0 of 163 unchanged named exports** in Pud’s app and package source. The scan enumerated 103 tracked `.ts` and `.tsx` files under `apps/*/{app,src}/` and `packages/*/src/`. Of those files, 88 contained an exported function declaration with a body or an exported `const` arrow. Each candidate went through `lowerProgram` with its original module and resolved imports. Examples and experiments sit outside those directories. [Rerun the export scan](#rerun-the-export-scan)
@@ -25,7 +31,7 @@ At commit `36a351e`, the bundled Lean adapter translated **0 of 163 unchanged na
 
 The 107 module failures comprised 50 disallowed top-level declarations or initializers, 41 nonrelative imports, and 16 unsupported import forms. A package import can block a pure function in the same file before Pud reads its body. The counts describe the first failure for each export. [Module linker](https://github.com/rorz/pud/blob/main/packages/pud/src/lean/program.ts)
 
-With Bun 1.4.2 and Lean 4.19.0, the 27 bundled example sidecars yielded **32 proved properties, one unsupported property, and one TODO**. The unsupported property asks whether `sumPositive` always returns a nonnegative total. Its counted `for` loop stops translation. A regression test proves the same property with the same sidecar when the implementation uses `for…of` over a dense `readonly bigint[]`. Some array properties supply a handwritten Lean lemma. [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map#Indexed traversal is one coverage milestone|Indexed traversal]]
+At the same commit, Bun 1.4.2 and Lean 4.19.0 checked 27 bundled example sidecars and reported **32 proved properties, one unsupported property, and one TODO**. The unsupported property asks whether `sumPositive` always returns a nonnegative total. Its counted `for` loop stops translation. A regression test proves the same property with the same sidecar when the implementation uses `for…of` over a dense `readonly bigint[]`. Some array properties supply a handwritten Lean lemma. [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map#Indexed traversal is one coverage milestone|Indexed traversal]]
 
 The booking example gives a boundary inside one application. Lean proved all six properties about the three exports in `rules.ts` covering seat availability, member price, and cancellation credit. The database module's three exports all stopped at the PGlite package import. Separate integration tests exercise their transaction effects. [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Workshop booking comparison]]
 
@@ -79,6 +85,44 @@ Pud's `.to(...)` requires a successful return and a matching value. A contract t
 ## Check the edge cases before counting an operator
 
 The division probes used Bun 1.4.2 and Lean 4.19.0. Bun returned `-2n` for `-5n / 2n`. Lean’s `Int` division gave `-3` and `Int.tdiv (-5) 2` gave `-2`. Bun threw `RangeError` for `1n / 0n`, while Lean integer division gave `0`. Pud now lowers signed division to `Int.tdiv` and returns an explicit error outcome when the divisor is zero. The differential suite compares returns and throws as well as call and loop behavior on the same input in Bun and Lean. [ECMAScript BigInt division](https://tc39.es/ecma262/#sec-numeric-types-bigint-divide) · [Lean integers](https://lean-lang.org/doc/reference/latest/Basic-Types/Integers/) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Hardening results]]
+
+## Effort to support ordinary numbers
+
+The adoption target assumes existing TypeScript uses `number`, including fractional values. A team should be able to add a proof file while keeping its production types, imports and arithmetic. The proposed first profile covers synchronous calculations and decisions over numbers, booleans, plain records and dense arrays. Examples include prices, limits and eligibility rules.
+
+**One application rule to aim for.** Actual Budget represents both currency amounts and integer cents as `number`. Its `integerToAmount` divides by a power of ten. Its `amountToInteger` multiplies and calls `Math.round`. In Bun 1.4.2, every integer from −1,000,000 to +1,000,000 cents survived a round trip at the default two decimal places. Passing `1.005` currency units returned 100 cents, and `-0.001` returned negative zero. I ran the original `util.ts` and `currencies.ts` with Actual’s locked date-fns 4.4.0. Both proofs stopped at the module’s date-fns import. With `pud.number()` available, this module still needs package linking, numeric aliases, default arguments and `Math.pow`. [Original conversions](https://github.com/actualbudget/actual/blob/660d834bafc32a1a6a552044c263a93be7ab6389/packages/loot-core/src/shared/util.ts#L533-L547)
+
+**What sits behind the first error.** I repeated the 163-export scan at `36a351e`, feeding the adapter just the exported declaration or arrow binding with its original signature and body. Zero lowered. In 111 cases the first diagnostic concerned the supported types. Isolating a declaration also removes aliases and helpers, so these counts cannot predict how many exports a better linker would admit. The original external sources show concrete dependencies after the first error. Date-fns still needs Date behavior, TanStack’s update calls a callback, its hash uses JSON and object traversal, and Hono’s middleware awaits another function.
+
+### Checked number examples
+
+The 30 bundled sidecars now give 39 proved properties, one unsupported property and one TODO. Six further properties pass in the booking experiment.
+
+Motion’s two exported arrows keep their original source and inferred return types. Lean proves the millisecond scale and direction laws, including the direction of every negative duration that underflows during division. The six laws include an exact result schema for each unit conversion over every JavaScript number. Changing the milliseconds divisor to 100 preserves direction and reversal. The exact unit rule catches it. The source fixture checks the upstream SHA-256. [Motion source](https://github.com/motiondivision/motion/blob/1fa0e141f7b3f0a4eea258d5debc7dfbe5af6ffc/packages/motion-utils/src/time-conversion.ts) · [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean#Check ordinary numbers|Run the sidecars]]
+
+Whole-cent conservation and the interval that rounds to zero admitted a broken cents converter. It could return 28.9 for 0.29 dollars and still satisfy both rules. The current law selects the nearest whole cent to the binary64 product, with half ties toward positive infinity. Lean proves that the schema admits exactly the returned value for every input. In separate scratch implementations, changing only `0.29 → 28.9`, `0.125 → 12`, or `-0.125 → -13` gave a native counterexample each time. Adding zero to the correct result also failed at negative zero. The production implementation stayed the same. [Cents sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/cents.proof.ts) · [Mutation and regression tests](https://github.com/rorz/pud/blob/main/packages/pud/test/number.test.ts)
+
+An exact result can be an arbitrary scalar predicate. For a bigint identity function, a lower bound passes as an invariant. Requesting an exact result from that bound gives an input of `0n` and two permitted results, `0n` and `1n`. Adding the matching upper bound proves uniqueness. These examples are outside the pinned drop-in cohort. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean#Specify a single result|Writing an exact result rule]]
+
+The model rounds arithmetic to binary64, including subnormals, signed zero, overflow and NaN. Arithmetic rounds half ties to even. `Math.round` resolves half ties toward positive infinity. Lean 4.19 checks the properties in its kernel. A differential test checks 19 emitted operations and both nearest-integer tie policies against Bun over 3,657 pairs, including 2,048 seeded pairs of raw bit patterns and both neighbors of rounding boundaries. The separate countdown and recursive sum examples now prove the triangular-number formula for every nonnegative bigint. [Number model](https://github.com/rorz/pud/blob/main/packages/pud/src/lean/number.lean) · [Countdown sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/countdown-sum.proof.ts) · [ECMAScript Math.round](https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-math.round)
+
+### Planning range
+
+These are planning estimates for one full-time engineer familiar with TypeScript tooling and Lean. The pilot identified blockers across four libraries. Implementation times still need calibration.
+
+| Original estimate | Work and acceptance check |
+| --- | --- |
+| 1–2 engineer-weeks | Six quantified laws pass on two unchanged Motion exports. The currency and time-conversion mutations produce native witnesses. Broader collection of independent application rules is still open. |
+| 4–8 engineer-weeks | Bring the needed number operations through parsing, proof and replay. Cover literals, comparisons, arithmetic and the rounding helpers used by the first rules. Resolve the original imports, aliases and default arguments, including initialization that could affect the result. Aim to prove Actual’s bounded round trip and reject a floor-for-round mutation. |
+| 3–6 engineer-weeks | Extend the same workflow to the records, optional fields, guards, dense-array indexing and counted loops that recur across projects. Exercise setup, an equivalent refactor and a deliberately broken implementation on fresh projects. |
+
+The initial allowance was **8–16 engineer-weeks** for a usable pilot. The work still to estimate from an original application is resolving its module graph and proving a whole interval survives several roundings. A bounded round trip on Actual would measure both. One library’s time conversion gives too little evidence to revise the full pilot estimate.
+
+### How to tell whether it reaches 80%
+
+Use a discovery set to choose the next features. Reserve 20 separate applications across the intended customer segments for evaluation. For each, freeze two useful rules from a maintainer or an existing regression before looking at Pud’s verdicts. Count every project that attempts setup. Report both projects reaching a first proof out of 20 and individual rules proved out of 40. Sixteen projects reaching a proof would be 80% of that panel. Rank the next pieces of work by how many complete rules they would unblock per engineer-week. Rerun the original laws to confirm.
+
+Keep rules that need external state in the results. For example, Cal.com merges ranges through a date library, a mutating sort and an indexed loop. Outline’s permission check reads memberships from its database. Their full behavior needs additional models or contracts. [Cal.com interval merge](https://github.com/calcom/cal.com/blob/ae027bb70e694e2d2c44569f398d6cbcee0389b1/packages/features/availability/lib/getAggregatedAvailability/date-range-utils/mergeOverlappingDateRanges.ts) · [Outline permission checks](https://github.com/outline/outline/blob/e5cdb22cc9a65ee2387a431bedc009ad5ff4afd5/server/utils/permissions.ts#L57-L105)
 
 ## What to measure next
 

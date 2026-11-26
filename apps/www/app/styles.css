@@ -35,6 +35,8 @@
   --text-headline: min(12.1cqi, 8.25rem);
   --text-headline--line-height: 0.98;
   --text-intro: clamp(1.3rem, 1.48vw, 1.48rem);
+  --text-newsprint-masthead: 13.75cqi;
+  --text-newsprint-headline: 4.5cqi;
   --text-signup-help: 0.98rem;
   --text-signup-help--line-height: 1.45;
   --text-signup-label: 0.84rem;
@@ -64,7 +66,6 @@
   --spacing-band-padding-bottom: 0.11em;
   --spacing-band-left: 0.22em;
   --spacing-band-right: 0.23em;
-  --spacing-signup-panel: clamp(1.75rem, 3.2vw, 3.5rem);
   --spacing-signup-link-start: clamp(1.35rem, 2.5vw, 3rem);
   --container-intro: 43ch;
 
@@ -116,6 +117,10 @@
 
   --shadow-registration: var(--spacing-registration) var(--spacing-registration) var(--color-cyan);
   --drop-shadow-registration: var(--spacing-registration) var(--spacing-registration) 0 var(--color-cyan);
+  --background-image-newsstand-back: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px),
+    var(--color-teal-950) calc(10% - 2px) calc(10% - 1px), color-mix(in srgb, var(--color-paper) 9%, transparent) calc(10% - 1px) 10%),
+    radial-gradient(ellipse at 42% 6%, var(--color-teal-800), var(--color-teal-950) 90%);
+  --background-image-newsprint-lines: repeating-linear-gradient(to bottom, transparent 0 9%, var(--color-stone-500) 9% 11%);
   --background-image-crt-scanlines: repeating-linear-gradient(transparent 0 2px, color-mix(in oklab, var(--color-black) 23%, transparent) 2px 3px);
   --background-image-crt-phosphor: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-red-500) 5%, transparent) 0 1px, color-mix(in srgb, var(--color-green-500) 5%, transparent) 1px 2px, color-mix(in srgb, var(--color-blue-500) 5%, transparent) 2px 3px);
   --background-image-crt-glare: radial-gradient(ellipse at 24% -9%, color-mix(in srgb, var(--color-white) 13%, transparent), transparent 58%), linear-gradient(108deg, transparent 13%, color-mix(in srgb, var(--color-white) 3%, transparent) 27%, transparent 42%);

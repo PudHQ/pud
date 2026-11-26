@@ -5,7 +5,8 @@ export function initAnalytics(hostname: string, ...productionHosts: string[]) {
   if (!productionHosts.includes(hostname)) return;
 
   return posthog.init("phc_wvLapEmc5yQortS66ksjT879GGvQpYv3hiZjwAtfMehm", {
-    api_host: "https://us.i.posthog.com",
+    api_host: "https://et.pud.dev",
+    ui_host: "https://us.posthog.com",
     defaults: "2026-08-30",
     autocapture: false,
     capture_pageview: false,

@@ -15,11 +15,13 @@ export interface Counterexample {
   summary: string;
   input: Record<string, string>;
   result: string;
+  /** A distinct value accepted by an exact result rule for the same input. */
+  alternative?: string;
   difference?: { subject: string; expected: string; received: string };
 }
 
 export type ProofType =
-  | { kind: "integer" | "boolean" }
+  | { kind: "integer" | "number" | "boolean" }
   | { kind: "opaque"; name: string }
   | { kind: "array" | "textOrArray"; item: ProofType };
 
@@ -33,6 +35,8 @@ export interface ProofExpression {
   bindings: ReadonlyMap<string, string>;
   /** In-scope references to Pud's specification helpers. */
   schemaBindings?: ReadonlySet<string>;
+  /** The JavaScript Number constructor is in scope in this expression. */
+  numberGlobal?: boolean;
 }
 
 export type NativeProofTerm = { assistant: string; args: readonly ProofExpression[] } & (
@@ -52,7 +56,7 @@ export type ProofPredicate =
     quantifier: "forall" | "exists";
     variable: string;
     domain: { kind: "array"; expression: ProofExpression }
-      | { kind: "schema"; type: "integer" | "boolean"; constraints: readonly ProofConstraint[] };
+      | { kind: "schema"; type: "integer" | "number" | "boolean"; constraints: readonly ProofConstraint[] };
     predicate: ProofPredicate;
   };
 
@@ -60,12 +64,16 @@ export type ProofConstraint =
   | { kind: "condition"; expression: ProofExpression }
   | { kind: "proposition"; predicate: ProofPredicate }
   | { kind: "comparison"; target: ProofTarget; operator: ProofComparison; value: ProofExpression }
+  | { kind: "nearestInteger"; target: ProofTarget; value: ProofExpression; ties: "up" | "down" }
+  | { kind: "sameValue"; target: ProofTarget; value: ProofExpression }
   | { kind: "refinement"; target: ProofTarget; variable: string; predicate: ProofPredicate }
   | { kind: "native"; target: ProofTarget; term: NativeProofTerm };
 
 export interface ProofClaim {
   premises: readonly ProofConstraint[];
   assertions: readonly ProofConstraint[];
+  /** The conjunction of assertions must characterize the observed result uniquely. */
+  exactResult?: true;
   proof?: NativeProofTerm;
   observation?: ProofCall;
   /** For an equality claim, the call whose result must equal the observation. */
@@ -88,7 +96,7 @@ export interface ProofModule {
 
 export type ProofOutcome =
   | { status: "proved" }
-  /** A concrete execution of the implementation violated the property. */
+  /** A concrete input witnesses a violated assertion or an ambiguous exact result. */
   | { status: "disproved"; counterexample: Counterexample }
   | { status: "unproved" | "unsupported" | "error"; detail: string; diagnostic?: string };
 
@@ -101,6 +109,8 @@ export interface PreparedProofAssistant {
   inspectCall?(call: ProofCall): ProofType;
   /** The assistant can compare the observation with a reference call. */
   callEquality?: true;
+  /** The assistant proves both satisfaction and uniqueness for scalar return schemas. */
+  exactResults?: true;
   errors?: readonly ProofErrorKind[];
   emit(claim: ProofClaim, modules: readonly ProofModule[]): string | Promise<string>;
   verify(claims: readonly ProofClaim[], modules: readonly ProofModule[], onClaim?: ClaimProgress): Promise<readonly ProofOutcome[]>;

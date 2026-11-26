@@ -1,10 +1,11 @@
 import { getOuterBindingIdentifiers, traverseFast, type ArrowFunctionExpression, type AssignmentExpression, type FunctionDeclaration, type Node, type Program, type Statement } from "@babel/types";
 import { invalid } from "../source.ts";
 import { scalarSource } from "./scalar.ts";
-import { asOutcome, bigintLiteral, errorKinds, invoke, isScalar, leanTypes, nameOf, ofSort, readValue, sequence, tsSort, type ExecutableExpressions, type Sort, type Value } from "./syntax.ts";
+import { asOutcome, bigintLiteral, errorKinds, invoke, isScalar, leanTypes, nameOf, ofSort, readValue, sequence, truthy, tsSort, type ExecutableExpressions, type Sort, type Value } from "./syntax.ts";
 
 type Binding = Value & { mutable?: boolean };
 export type Parameter = Value & { name: string };
+const roundingMethods = new Set(["round", "floor", "ceil", "trunc"]);
 
 export interface Subject {
   file: string;
@@ -48,10 +49,6 @@ function localUpdate(node: Statement): AssignmentExpression | undefined {
       statement.expression.left.type === "Identifier") return statement.expression;
 }
 
-function truthy(value: Value, code: string) {
-  return value.sort === "integer" ? `(decide (${code} ≠ (0 : Int)))` : code;
-}
-
 export function lowerFunction(
   file: string, program: Program, fn: FunctionDeclaration | ArrowFunctionExpression, symbol: string, code: string,
   resolveCall: (name: string, at: Node) => Subject,
@@ -70,8 +67,8 @@ export function lowerFunction(
       itemType = name;
     });
   }
-  const result = sort(fn.returnType, fn);
-  if (result === "textOrItems") invalid(file, fn, "Return a scalar or a supported readonly array.");
+  const inferBody = !fn.returnType && fn.type === "ArrowFunctionExpression" && fn.body.type !== "BlockStatement" ? fn.body : undefined;
+  const annotatedResult = inferBody ? undefined : sort(fn.returnType, fn);
   const params = fn.params.map((node, i) => ({
     name: nameOf(file, node),
     sort: sort(node.type === "Identifier" ? node.typeAnnotation : undefined, node),
@@ -97,13 +94,24 @@ export function lowerFunction(
   const loopConformance: Subject["loopConformance"][number][] = [];
   const callTargets = new Map<string, Subject>();
   const executable: ExecutableExpressions = {
-    fresh, recursive,
+    fresh, recursive, numberGlobal: !localNames.has("Number") && !moduleNames.has("Number"),
     call(node, read) {
+      const member = node.callee;
+      if (member.type === "MemberExpression" && !member.computed && member.object.type === "Identifier" &&
+          member.object.name === "Math" && member.property.type === "Identifier" && roundingMethods.has(member.property.name)) {
+        const method = member.property.name;
+        if (localNames.has("Math") || moduleNames.has("Math")) invalid(file, member, `Math.${method} requires the unshadowed Math built-in.`);
+        const [arg] = node.arguments;
+        if (node.typeArguments || node.arguments.length !== 1 || !arg) invalid(file, node, `Pass one number to Math.${method}.`);
+        const value = read(arg);
+        ofSort(file, arg, value, "number");
+        return sequence([value], fresh, ([x]) => ({ sort: "number", code: `(JSNumber.${method} ${x})` }));
+      }
       if (node.typeArguments || node.callee.type !== "Identifier" || localNames.has(node.callee.name)) {
         invalid(file, node, "Call a directly declared function without shadowing its name.");
       }
       const linked = node.callee.name === symbol ? undefined : resolveCall(node.callee.name, node);
-      const callee = linked ?? { params, result, itemType, code, fallible: false };
+      const callee = linked ?? { params, result: annotatedResult ?? invalid(file, node, "Annotate a recursive function's return type."), itemType, code, fallible: false };
       if (callee.itemType || node.arguments.length !== callee.params.length) {
         invalid(file, node, "Call a supported function with its exact argument count and types.");
       }
@@ -117,6 +125,9 @@ export function lowerFunction(
     },
   };
   const read = (node: Node, bindings: ReadonlyMap<string, Binding>) => readValue(file, node, bindings, undefined, executable);
+  const inferred = inferBody && read(inferBody, scope);
+  const result = annotatedResult ?? inferred!.sort;
+  if (result === "textOrItems") invalid(file, fn, "Return a scalar or a supported readonly array.");
 
   function returned(node: Node, bindings: ReadonlyMap<string, Binding>): Value {
     if (node.type === "ArrayExpression" && !node.elements.length && !isScalar(result)) return { sort: result, code: "[]" };
@@ -172,6 +183,7 @@ export function lowerFunction(
     const guard = truthy(test, test.code);
 
     function delta(update: AssignmentExpression) {
+      if (accumulator?.sort !== "integer") return;
       const { operator, right } = update;
       if (operator === "+=" || operator === "-=") return { operator: operator[0], code: read(right, scope).code };
       if (operator === "=" && right.type === "BinaryExpression" && (right.operator === "+" || right.operator === "-") &&
@@ -337,7 +349,7 @@ export function lowerFunction(
       case "IfStatement": {
         if (emitArrayGuard(node, bindings, indent, inLoop)) return;
         const value = read(node.test, bindings);
-        if (value.sort !== "integer") ofSort(file, node.test, value, "boolean");
+        if (value.sort !== "integer" && value.sort !== "number") ofSort(file, node.test, value, "boolean");
         const test = truthy(value, force(value, indent));
         line(indent, `if ${recursive ? `_${fresh()} : ` : ""}${test} then`);
         branch(node.consequent, bindings, indent + 2, inLoop);
@@ -409,7 +421,7 @@ export function lowerFunction(
     emitStatements(fn.body.body, scope, 2, false);
     body = `${fallible ? " do" : " Id.run do"}\n${lines.join("\n")}`;
   } else {
-    const value = returned(fn.body, scope);
+    const value = inferred ?? returned(fn.body, scope);
     fallible = !!value.fallible;
     body = `\n  ${value.code}`;
   }

@@ -1,0 +1,3 @@
+# Preserve the upstream blobs checked by the runner on every platform.
+*.js -text
+LICENSE -text -whitespace

@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { Unsupported, type Counterexample, type ProofAssistant, type ProofOutcome } from "./assistant.ts";
+import type { ConcreteScope } from "./input-scope.ts";
 import { parseSourceModule } from "./source.ts";
 import { checkSuite, emitSuite, findConfig } from "./suite-check.ts";
 import { readSuite, type Suite } from "./suite.ts";
@@ -13,6 +14,8 @@ export interface CheckResult {
   detail?: string;
   diagnostic?: string;
   counterexample?: Counterexample;
+  concreteScope?: ConcreteScope;
+  exactResult?: true;
   assistant?: string;
 }
 

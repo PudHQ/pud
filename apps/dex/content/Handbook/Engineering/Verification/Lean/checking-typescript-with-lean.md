@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-25
+updated-at: 2026-11-26
 summary: Run the Lean adapter, read a quantified claim, and follow it across TypeScript calls.
 tags: [verification, typescript, lean, quantifiers, call-graphs, exceptions]
 ---
@@ -62,6 +62,42 @@ Pud emits a Lean `∃` over elements equal to the target and restricts its witne
 
 Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/pud/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/rorz/pud/blob/main/packages/pud/.examples/README.md#sidecar-syntax)
 
+## Check ordinary numbers
+
+Use `pud.number()` for an existing TypeScript `number` parameter. Motion’s original time conversion is an expression-bodied arrow, `(seconds: number) => seconds * 1000`. This sidecar proves the result is nonnegative for every nonnegative input, including negative zero and positive infinity. [Pinned Motion source](https://github.com/motiondivision/motion/blob/1fa0e141f7b3f0a4eea258d5debc7dfbe5af6ffc/packages/motion-utils/src/time-conversion.ts)
+
+```ts
+it("keeps every nonnegative duration nonnegative", { seconds: pud.number().gte(0) }, ({ seconds }) => {
+  expect(secondsToMilliseconds(seconds)).to(pud.number().gte(0));
+});
+```
+
+Run the two Motion sidecars and the currency example from the repository root.
+
+```sh
+bun run pud check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts
+```
+
+The six Motion laws cover unit scale, sign and reversal. Each conversion has one exact result rule that also accounts for NaN and signed zero. The currency sidecar specifies how to select a whole cent when a scaled amount falls between integers. [Time conversions](https://github.com/rorz/pud/tree/main/packages/pud/.examples/motion) · [Currency sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/cents.proof.ts)
+
+## Specify a single result
+
+Ask whether two different answers could both satisfy the rule for the same input. Use `.to()` for a guarantee such as “the price is nonnegative.” Use `.toExactly()` when a caller relies on a particular price. It accepts a schema for a number, bigint or boolean. Lean proves both that the implementation returns a permitted value and that this is the only permitted value.
+
+```ts
+it("returns the nearest whole cent, with half cents rounded toward positive infinity", {
+  amount: pud.number(),
+}, ({ amount }) => {
+  expect(toCents(amount)).toExactly(pud.number().nearestIntegerTo(amount * 100, { ties: "up" }));
+});
+```
+
+The input schema admits every JavaScript number. The result rule selects between the two neighboring integers around the binary64 product `amount * 100`. It chooses 13 for 12.5 cents and −12 for −12.5 cents. It preserves NaN, infinities and the sign of a zero result. A guard such as `given(Number.isInteger(amount * 100))` would remove all fractional-cent decisions from the claim. Numeric `.eq()` uses JavaScript strict equality. Use `.sameValue()` when the sign of zero or NaN is part of the required result. [Cents sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/cents.proof.ts) · [ECMAScript Number](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-ecmascript-language-types-number-type)
+
+With replay enabled, a failed exact rule can report two answers it permits for one input. A lower bound of `result >= x` for a bigint identity function permits both `0n` and `1n` at `x = 0n`. The same bound is a valid invariant. A result rule can also uniquely describe the wrong business policy. Pick a plausible mistake, such as reversing the tie direction, and check that the law rejects it. [Executable checks](https://github.com/rorz/pud/blob/main/packages/pud/test/number.test.ts)
+
+Lean checks the claim against Pud’s binary64 model. Agreement with Bun is measured separately on boundary and seeded inputs. The model assumes primitive numbers and unmodified built-ins. Number arrays, coercion, exponentiation and remainder are outside this numeric fragment. [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Checked number examples|Proofs, runtime comparisons and mutations]]
+
 ## Follow a call chain
 
 The ZigZag roundtrip sidecar uses `describe(encode, …)` for its input signature and calls both TypeScript exports in its observation.
@@ -74,11 +110,11 @@ Run `bun run --silent pud check packages/pud/.examples/zigzag-roundtrip.proof.ts
 
 Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
 
-For the supported scalar fragment, the generated unit also includes `loweringCertificate` and `sourceChecked`. The first equates the emitted observation to the modeled TypeScript source outcome. The second transfers the sidecar property to that source evaluation. [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Road to semantic preservation|Preservation proofs and the remaining trust boundary]]
+For the supported bigint and boolean fragment, the generated unit also includes `loweringCertificate` and `sourceChecked`. The first equates the emitted observation to the modeled TypeScript source outcome. The second transfers the sidecar property to that source evaluation. [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Road to semantic preservation|Preservation proofs and the remaining trust boundary]]
 
 ## Compare a refactor with a reference
 
-Use `toEqual()` when a nonthrowing bigint or boolean computation should agree with a simpler linked TypeScript call. The availability example compares the tally for a single scheduling slot against a reference that adds independent batch counts.
+Use `toEqual()` when a nonthrowing number, bigint or boolean computation should agree with a simpler linked TypeScript call. The availability example compares the tally for a single scheduling slot against a reference that adds independent batch counts.
 
 ```ts
 expect(countFree(left, right)).toEqual(countFreeReference(left, right));
@@ -86,7 +122,7 @@ expect(countFree(left, right)).toEqual(countFreeReference(left, right));
 
 Run `bun run --silent pud check packages/pud/.examples/availability/count-free.proof.ts`. Lean proves equality for the modeled dense bigint arrays. The same sidecar and lemmas also prove the split-and-merge implementation. [Availability example](https://github.com/rorz/pud/tree/main/packages/pud/.examples/availability)
 
-With `leanAdapter({ replay: true })`, Pud samples unconditional call equalities over supported inputs when Lean leaves a claim open. It runs both calls against frozen TypeScript sources with the resolved imports in Bun. Dropping the right batch yields `FAIL` for `left = []` and `right = [1n]`, with expected `1n` and received `0n`. A search with no witness leaves `UNPROVED`. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Availability tally refactor|How the example was checked]]
+With `leanAdapter({ replay: true })`, Pud can replay an open call equality or scalar result assertion in Bun. It checks the supported preconditions before calling the frozen implementation. Dropping the right batch yields `FAIL` for `left = []` and `right = [1n]`, with expected `1n` and received `0n`. A search with no witness leaves `UNPROVED`. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Availability tally refactor|How the example was checked]]
 
 ## Prove a rule used in a transaction
 

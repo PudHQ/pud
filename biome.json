@@ -3,6 +3,7 @@
     "includes": [
       "apps/**",
       "packages/**",
+      "experiments/compatibility/*.ts",
       "package.json",
       "tsconfig*.json",
       "!!**/node_modules",

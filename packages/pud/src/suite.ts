@@ -29,6 +29,7 @@ export interface Suite {
   schemaBindings: ReadonlySet<string>;
   native: ReadonlyMap<string, string>;
   configured: boolean;
+  numberGlobal: boolean;
   imports: { path: string; resolveAgain: () => string }[];
 }
 
@@ -171,6 +172,7 @@ export function readSuite(file: string, origin: string, source: string, program:
   const binding = identifier(file, target);
   const subject = subjects.get(binding) ?? invalid(file, target, "The subject must be a named TypeScript import.");
   const { params, statements } = blockArrow(file, callback, configured ? 1 : 0);
+  const numberImported = configBinding === "Number" || subjects.has("Number") || native.has("Number") || [...helpers.values()].includes("Number");
   if (configured) {
     helpers.clear();
     for (const { key, value } of fields(file, params[0], "ObjectPattern")) {
@@ -221,7 +223,8 @@ export function readSuite(file: string, origin: string, source: string, program:
     }
   }
   if (!properties.length) invalid(file, describe, "Add at least one property or an it.todo().");
-  return { file, source, subject, subjects, binding, properties, modules, helpers, schemaBindings, native, configured, imports };
+  const numberGlobal = !numberImported && ![...helpers.values()].includes("Number");
+  return { file, source, subject, subjects, binding, properties, modules, helpers, schemaBindings, native, configured, imports, numberGlobal };
 }
 
 function expression(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<string, string>): ProofExpression {
@@ -230,7 +233,7 @@ function expression(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<
   }
   const at = node.loc!.start;
   return { file: suite.file, source: suite.source.slice(node.start!, node.end!), line: at.line,
-    column: at.column, offset: node.start!, bindings, schemaBindings: suite.schemaBindings };
+    column: at.column, offset: node.start!, bindings, schemaBindings: suite.schemaBindings, numberGlobal: suite.numberGlobal };
 }
 
 function nativeTerm(suite: Suite, node: Node | undefined, bindings: ReadonlyMap<string, string>): NativeProofTerm {
@@ -269,6 +272,7 @@ function isSchema(suite: Suite, node: Node | undefined, type: ProofType): boolea
   if (call.typeArguments) return false;
   switch (type.kind) {
     case "integer": return (name === "bigint" || name === "int") && !call.arguments.length;
+    case "number": return name === "number" && !call.arguments.length;
     case "boolean": return (name === "boolean" || name === "bool") && !call.arguments.length;
     case "array":
     case "textOrArray": return name === type.kind && call.arguments.length === 1 && isSchema(suite, call.arguments[0], type.item);
@@ -278,6 +282,7 @@ function isSchema(suite: Suite, node: Node | undefined, type: ProofType): boolea
 function schemaHint(type: ProofType): string {
   switch (type.kind) {
     case "integer": return "pud.bigint()";
+    case "number": return "pud.number()";
     case "boolean": return "pud.boolean()";
     case "opaque": return `pud.opaque<${type.name}>()`;
     case "array":
@@ -302,11 +307,12 @@ function predicateCallback(suite: Suite, node: Node | undefined, bindings: Reado
   return { variable, predicate: proofPredicate(suite, statement.argument, bindings) };
 }
 
-function quantifiedType(suite: Suite, node: Node | undefined): "integer" | "boolean" | undefined {
+function quantifiedType(suite: Suite, node: Node | undefined): "integer" | "number" | "boolean" | undefined {
   const chain = memberCall(node, true);
   if (!chain) return;
   if (!isSchemaBuilder(suite, chain.receiver)) return quantifiedType(suite, chain.receiver);
   if (chain.name === "bigint" || chain.name === "int") return "integer";
+  if (chain.name === "number") return "number";
   if (chain.name === "boolean" || chain.name === "bool") return "boolean";
 }
 
@@ -348,12 +354,22 @@ function schemaConstraints(suite: Suite, node: Node | undefined, type: ProofType
     return invalid(suite.file, node, `Use ${schemaHint(type)} for ${value}.`);
   }
   const constraints = schemaConstraints(suite, chain.receiver, type, target, bindings);
+  if (type.kind === "number" && chain.name === "nearestIntegerTo") {
+    const [value, options] = arity(suite.file, chain.call, 2);
+    const policy = fields(suite.file, options, "ObjectExpression");
+    if (policy.length !== 1 || policy[0]!.key !== "ties") invalid(suite.file, options, 'Specify { ties: "up" } or { ties: "down" }.');
+    const ties = staticString(suite.file, policy[0]!.value);
+    if (ties !== "up" && ties !== "down") invalid(suite.file, options, 'Choose "up" or "down" for half-integer ties.');
+    return [...constraints, { kind: "nearestInteger", target, value: expression(suite, value, bindings), ties }];
+  }
   const [value] = arity(suite.file, chain.call, 1);
   if (chain.name === "refine") {
     constraints.push({ kind: "refinement", target, ...predicateCallback(suite, value, bindings) });
+  } else if (type.kind === "number" && chain.name === "sameValue") {
+    constraints.push({ kind: "sameValue", target, value: expression(suite, value, bindings) });
   } else if (chain.name === "satisfies" && type.kind !== "textOrArray" && type.kind !== "opaque") {
     constraints.push({ kind: "native", target, term: nativeTerm(suite, value, bindings) });
-  } else if ((type.kind === "integer" && comparisons.has(chain.name)) || (type.kind === "boolean" && chain.name === "eq")) {
+  } else if (((type.kind === "integer" || type.kind === "number") && comparisons.has(chain.name)) || (type.kind === "boolean" && chain.name === "eq")) {
     constraints.push({ kind: "comparison", target, operator: chain.name as ProofComparison, value: expression(suite, value, bindings) });
   } else invalid(suite.file, node, `Unknown ${type.kind} matcher '${chain.name}'.`);
   return constraints;
@@ -366,10 +382,14 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
   const parameters = new Map(subject.parameters.map(p => [p.name, p.type]));
   const domain = fields(file, schemas, "ObjectExpression");
   if (domain.length !== parameters.size) invalid(file, schemas, "Declare one input schema per subject parameter.");
+  // A result binding shadows the global throughout its callback, including before initialization.
+  const callbackSuite = statements.some(step => step.type === "VariableDeclaration" &&
+    step.declarations.some(declaration => named(declaration.id, "Number"))) ? { ...suite, numberGlobal: false } : suite;
   const premises = domain.flatMap(({ key, value }) => {
     const type = parameters.get(key) ?? invalid(file, value, `No subject parameter named '${key}'.`);
     return schemaConstraints(suite, value, type, { kind: "parameter", name: key }, emptyBindings);
   });
+  suite = callbackSuite;
   const bindings = new Map<string, string>();
   const reserved = new Set([...helpers.values(), ...suite.schemaBindings, ...suite.native.keys(), ...suite.subjects.keys()]);
   const inputs = fields(file, params[0], "ObjectPattern");
@@ -385,6 +405,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
   let observation: ProofCall | undefined;
   let observationKey: string | undefined;
   let resultType = subject.result;
+  let exactResult = false;
   let reference: ProofCall | undefined;
   let expectedError: ProofErrorKind | undefined;
 
@@ -441,7 +462,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
     if (step.type !== "ExpressionStatement") invalid(file, step, "Use given(), a subject call, or an expect() assertion.");
     const given = directCall(step.expression, helpers.get("given"));
     if (given) {
-      if (assertions.length || reference || expectedError) invalid(file, step, "Put given() before the assertions.");
+      if (assertions.length || exactResult || reference || expectedError) invalid(file, step, "Put given() before the assertions.");
       const [condition] = arity(file, given, 1);
       const predicate = proofPredicate(suite, condition, bindings);
       premises.push(predicate.kind === "boolean"
@@ -450,12 +471,12 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       continue;
     }
     const to = memberCall(step.expression);
-    const expect = to && (to.name === "to" || to.name === "toEqual" || to.name === "toThrow") && directCall(to.receiver, helpers.get("expect"));
-    if (!to || !expect) invalid(file, step, "Use expect() with to(), toEqual(), or toThrow().");
+    const expect = to && ["to", "toExactly", "toEqual", "toThrow"].includes(to.name) && directCall(to.receiver, helpers.get("expect"));
+    if (!to || !expect) invalid(file, step, "Use expect() with to(), toExactly(), toEqual(), or toThrow().");
     const [result] = arity(file, expect, 1);
     const [matcher] = arity(file, to.call, 1);
     if (to.name === "toThrow") {
-      if (assertions.length || reference || expectedError || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
+      if (assertions.length || exactResult || reference || expectedError || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
       if (result?.type !== "ArrowFunctionExpression" || result.async || result.typeParameters || result.params.length || result.body.type === "BlockStatement") {
         invalid(file, result, "Use a parameterless arrow expression for a throwing call.");
       }
@@ -465,7 +486,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       expectedError = error as ProofErrorKind;
       continue;
     }
-    if (expectedError || reference) invalid(file, step, "Use one outcome per property.");
+    if (expectedError || reference || exactResult) invalid(file, step, "Use one outcome per property.");
     const local = result?.type === "Identifier" && results.get(result.name);
     observe(local || readCall(result), result!);
     if (to.name === "toEqual") {
@@ -473,16 +494,22 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       if (!subject.callEquality || !subject.inspectCall) invalid(file, step, "The selected assistant does not support equality between calls.");
       reference = readCall(matcher);
       const expected = subject.inspectCall(reference);
-      if ((resultType.kind !== "integer" && resultType.kind !== "boolean") || resultType.kind !== expected.kind) {
+      if ((resultType.kind !== "integer" && resultType.kind !== "number" && resultType.kind !== "boolean") || resultType.kind !== expected.kind) {
         invalid(file, matcher, "Use toEqual() with calls returning the same scalar type.");
       }
       continue;
     }
+    if (to.name === "toExactly") {
+      if (assertions.length) invalid(file, step, "Combine the result conditions in one toExactly() schema.");
+      if (!subject.exactResults) invalid(file, step, "The selected assistant does not support exact result schemas.");
+      if (!["integer", "number", "boolean"].includes(resultType.kind)) invalid(file, matcher, "Use toExactly() with a scalar result.");
+      exactResult = true;
+    }
     const clauses = schemaConstraints(suite, matcher, resultType, { kind: "result" }, bindings);
-    if (!clauses.length) invalid(file, matcher, "Add a constraint to the result schema.");
+    if (!clauses.length && !exactResult) invalid(file, matcher, "Add a constraint to the result schema.");
     assertions.push(...clauses);
   }
-  if (!assertions.length && !reference && !expectedError) invalid(file, property.call, "Add an assertion or use it.todo().");
+  if (!assertions.length && !exactResult && !reference && !expectedError) invalid(file, property.call, "Add an assertion or use it.todo().");
   const proof = property.proof && nativeTerm(suite, property.proof, emptyBindings);
-  return { premises, assertions, proof, ...(observation && { observation }), ...(reference && { reference }), ...(expectedError && { expectedError }) };
+  return { premises, assertions, proof, ...(exactResult && { exactResult: true }), ...(observation && { observation }), ...(reference && { reference }), ...(expectedError && { expectedError }) };
 }

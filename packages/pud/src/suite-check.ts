@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Unsupported, type NativeProofTerm, type ProofAssistant, type ProofClaim, type ProofConstraint, type ProofModule, type ProofPredicate } from "./assistant.ts";
 import type { CheckOptions, CheckResult, EmitOptions, ItemProgress } from "./check.ts";
+import { concreteScope } from "./input-scope.ts";
 import { bindClaim, type Suite } from "./suite.ts";
 
 type Read = (file: string) => { canonical: string; source: string };
@@ -130,9 +131,12 @@ export async function checkSuite(suite: Suite, config: string | undefined, optio
           !["proved", "disproved", "unproved", "unsupported", "error"].includes(outcomes[index]?.status ?? ""))) {
           throw new Error("The proof assistant must return one verdict per submitted claim.");
         }
-        for (const [index, { property }] of accepted.entries()) {
+        for (const [index, { property, claim }] of accepted.entries()) {
           const outcome = outcomes[index]!;
-          results.set(property, outcome.status === "disproved" ? { ...outcome, detail: outcome.counterexample.summary } : outcome);
+          const scope = concreteScope(subject.parameters, claim);
+          results.set(property, { ...outcome, ...(scope && { concreteScope: scope }),
+            ...(claim.exactResult && { exactResult: true }),
+            ...(outcome.status === "disproved" && { detail: outcome.counterexample.summary }) });
         }
       }
     } catch (error) {

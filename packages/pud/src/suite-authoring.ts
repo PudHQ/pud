@@ -1,6 +1,6 @@
 import type { ProofAssistant, ProofErrorKind } from "./assistant.ts";
 
-type Value = bigint | boolean | string | readonly unknown[];
+type Value = bigint | number | boolean | string | readonly unknown[];
 type Subject = (...args: never[]) => Value;
 declare const valueType: unique symbol;
 declare const assistantType: unique symbol;
@@ -34,13 +34,20 @@ export interface NativeSyntax<Id extends string> {
   module(path: string): NativeModule<Id>;
 }
 
-interface BigIntSchema<Id extends string> extends Schema<bigint, Id> {
-  eq(value: bigint): BigIntSchema<Id>;
-  gt(value: bigint): BigIntSchema<Id>;
-  gte(value: bigint): BigIntSchema<Id>;
-  lt(value: bigint): BigIntSchema<Id>;
-  lte(value: bigint): BigIntSchema<Id>;
-  satisfies(term: NativeTerm<Id>): BigIntSchema<Id>;
+interface NumericSchema<T extends bigint | number, Id extends string> extends Schema<T, Id> {
+  eq(value: T): this;
+  gt(value: T): this;
+  gte(value: T): this;
+  lt(value: T): this;
+  lte(value: T): this;
+  satisfies(term: NativeTerm<Id>): this;
+}
+
+interface NumberSchema<Id extends string> extends NumericSchema<number, Id> {
+  /** ECMAScript SameValue, including NaN and the sign of zero. */
+  sameValue(value: number): this;
+  /** Nearest whole number, with explicit half ties. Preserve NaN, infinities and the sign of a zero result. */
+  nearestIntegerTo(value: number, options: { ties: "up" | "down" }): this;
 }
 
 interface BooleanSchema<Id extends string> extends Schema<boolean, Id> {
@@ -53,15 +60,16 @@ interface ArraySchema<T, Id extends string> extends Schema<readonly T[], Id> {
 }
 
 interface SchemaBuilders<Id extends string> {
-  bigint(): BigIntSchema<Id>;
+  bigint(): NumericSchema<bigint, Id>;
+  number(): NumberSchema<Id>;
   boolean(): BooleanSchema<Id>;
-  int(): BigIntSchema<Id>;
+  int(): NumericSchema<bigint, Id>;
   bool(): BooleanSchema<Id>;
   opaque<T>(): Schema<T, Id>;
   array<T>(items: Schema<T, Id>): ArraySchema<T, Id>;
   textOrArray<T>(items: Schema<T, Id>): Schema<string | readonly T[], Id>;
-  forall<T extends bigint | boolean>(domain: Schema<T, Id> | readonly T[], predicate: (value: T) => Predicate): Proposition;
-  exists<T extends bigint | boolean>(domain: Schema<T, Id> | readonly T[], predicate: (value: T) => Predicate): Proposition;
+  forall<T extends bigint | number | boolean>(domain: Schema<T, Id> | readonly T[], predicate: (value: T) => Predicate): Proposition;
+  exists<T extends bigint | number | boolean>(domain: Schema<T, Id> | readonly T[], predicate: (value: T) => Predicate): Proposition;
   and(left: Predicate, right: Predicate): Proposition;
   or(left: Predicate, right: Predicate): Proposition;
   not(operand: Predicate): Proposition;
@@ -87,7 +95,9 @@ interface SuiteAuthoring<Id extends string> {
   expect: {
     <T extends Value>(value: T): {
       to(schema: Schema<NoInfer<T>, Id>): void;
-      toEqual(reference: NoInfer<T> & (bigint | boolean)): void;
+      /** Prove that the schema accepts precisely the observed scalar result for each admitted input. */
+      toExactly(schema: [T] extends [number | bigint | boolean] ? Schema<NoInfer<T>, Id> : never): void;
+      toEqual(reference: NoInfer<T> & (bigint | number | boolean)): void;
     };
     (call: () => Value): { toThrow(error: ProofErrorKind): void };
   };
@@ -104,7 +114,7 @@ function sourceOnly(): never {
 }
 
 const schemaBuilders = {
-  bigint: sourceOnly, boolean: sourceOnly, int: sourceOnly, bool: sourceOnly,
+  bigint: sourceOnly, number: sourceOnly, boolean: sourceOnly, int: sourceOnly, bool: sourceOnly,
   opaque: sourceOnly, array: sourceOnly, textOrArray: sourceOnly,
   forall: sourceOnly, exists: sourceOnly, and: sourceOnly, or: sourceOnly, not: sourceOnly, implies: sourceOnly, iff: sourceOnly,
   length: sourceOnly, sum: sourceOnly, modulo: sourceOnly, quotient: sourceOnly,

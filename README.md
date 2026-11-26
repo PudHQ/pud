@@ -27,6 +27,10 @@ The search proof checks that the returned index is the first match, or `-1n` whe
 
 The availability tally shows a second workflow. Pud proves the same law after a split-and-merge refactor, then replays a version that drops one batch to show a concrete failing input. [Availability walkthrough](packages/pud/.examples/availability/README.md)
 
+Run `bun run pud check --deny-cases packages/pud/.examples/motion` to prove six laws about Motion’s unchanged TypeScript `number` conversions. Each conversion has an exact unit rule across all JavaScript numbers and separate laws for sign and reversal. [Number sidecars](packages/pud/.examples/motion)
+
+Run `bun run compat:check` to measure the bundled adapter on unchanged open-source projects and pinned Test262 arithmetic assertions. [Compatibility benchmark](experiments/compatibility/README.md) · [PudDex compatibility tree](https://dex.pud.dev/notes/handbook/engineering/verification/typescript-compatibility/)
+
 ## Run your own checks
 
 Build the self-contained package with `bun run pack:cli`. In your Bun project, install the archive and select a driver.
@@ -43,24 +47,23 @@ import { leanAdapter } from "@pud.dev/lib/lean";
 export default defineConfig({ adapter: leanAdapter() });
 ```
 
-Install Lean on your path or through Elan. The adapter reads the nearest `lean-toolchain` pin. Copy the [clamp implementation](packages/pud/.examples/clamp.ts) beside this sidecar.
+Install Lean on your path or through Elan. The adapter reads the nearest `lean-toolchain` pin. Copy the [cents implementation](packages/pud/.examples/cents.ts) beside this sidecar.
 
 ```ts
-// clamp.proof.ts
-import { describe, expect, given, it, pud } from "@pud.dev/lib";
-import { clamp } from "./clamp";
+// cents.proof.ts
+import { describe, expect, it, pud } from "@pud.dev/lib";
+import { toCents } from "./cents.ts";
 
-describe(clamp, () => {
-  it("keeps the result between ordered bounds", {
-    value: pud.bigint(),
-    lower: pud.bigint(),
-    upper: pud.bigint(),
-  }, ({ value, lower, upper }) => {
-    given(lower <= upper);
-    expect(clamp(value, lower, upper)).to(pud.bigint().gte(lower).lte(upper));
+describe(toCents, () => {
+  it("returns the nearest whole cent, with half cents rounded toward positive infinity", {
+    amount: pud.number(),
+  }, ({ amount }) => {
+    expect(toCents(amount)).toExactly(pud.number().nearestIntegerTo(amount * 100, { ties: "up" }));
   });
 });
 ```
+
+For each possible input, `.toExactly()` checks that the function returns the only answer its rule allows. Here the input is an ordinary TypeScript `number`, and half-cent ties go to the higher integer. Use `.to()` for an invariant such as a lower bound.
 
 Run `bunx --no-install pud check` to discover nearby `*.proof.ts` files. Pass paths to select suites. Use `--verbose` for full diagnostics or `--json` for CI. `@pud.dev/lib` also exports `check`, `checkFiles`, and `emit`. [CLI and authoring guide](packages/pud/README.md)
 

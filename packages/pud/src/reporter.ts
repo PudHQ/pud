@@ -8,7 +8,10 @@ const summaryLabels = { proved: "passed", disproved: "failed", unproved: "unprov
 type Counts = Record<CheckResult["status"], number>;
 
 function target(result: CheckResult) {
-  return result.name ?? result.subject;
+  const title = result.name ?? result.subject;
+  if (!title) return;
+  const scope = result.concreteScope === "no-inputs" ? " [no inputs]" : result.concreteScope ? " [literal inputs]" : "";
+  return title + (result.exactResult ? " [exact result]" : "") + scope;
 }
 
 function detail(result: CheckResult, verbose: boolean, ink: ReturnType<typeof terminalInk>) {
@@ -21,6 +24,10 @@ function detail(result: CheckResult, verbose: boolean, ink: ReturnType<typeof te
       `  ${ink.green("Expected")}  ${difference.expected}`,
       `  ${ink.red("Received")}  ${difference.received}`,
     ].join("\n");
+  }
+  if (result.counterexample) {
+    const { summary, input } = result.counterexample;
+    return [summary, Object.entries(input).map(([key, value]) => `${key}=${value}`).join("  ")].filter(Boolean).join("\n");
   }
   return verbose ? result.diagnostic ?? result.detail : result.detail;
 }

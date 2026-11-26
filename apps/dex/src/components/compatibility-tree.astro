@@ -1,0 +1,154 @@
+---
+import baseline from "../../../../experiments/compatibility/baseline.json";
+import inventory from "../../../../experiments/compatibility/test262/inventory.json";
+import typescript from "../../../../experiments/compatibility/typescript-inventory.json";
+import { domains, projects, schemaFor } from "../../../../experiments/compatibility/projects";
+import { roadmap } from "../../../../experiments/compatibility/roadmap";
+import { link } from "../lib/styles";
+
+const number = (n: number) => n.toLocaleString("en-US");
+const rate = (n: number, d: number) => (n / d).toLocaleString("en-US", { style: "percent", maximumFractionDigits: 1 });
+const proved = baseline.dropIn.filter(r => r.verdict === "proved").length;
+const firstProof = new Set(baseline.dropIn.filter(r => r.verdict === "proved").map(r => r.project)).size;
+const translated = baseline.dropIn.filter(r => r.admission === null).length;
+const passed = baseline.arithmetic.filter(r => !r.unsupported.length).length;
+const assertions = baseline.arithmetic.reduce((n, r) => n + r.assertions, 0);
+const matched = assertions - baseline.arithmetic.reduce((n, r) => n + r.unsupported.length, 0);
+const entries = Object.entries(inventory.groups);
+const families = [...new Set(entries.map(([path]) => path.split("/")[0]!))];
+const total = entries.reduce((n, [, count]) => n + count, 0);
+const compilerCases = Object.entries(typescript.groups);
+const compilerRoot = "https://github.com/microsoft/TypeScript/tree/" + typescript.revision + "/" + typescript.folder;
+const upstream = "https://github.com/tc39/test262";
+const selectedIn = (branch: string) => inventory.files.filter(f => f.path.startsWith("test/" + branch + "/")).length;
+const title = "mb-2 text-xl/tight font-panel text-navy teletext:font-pixel teletext:text-yellow-300";
+const disclosure = "cursor-pointer py-2.5 pr-1 font-semibold text-navy hover:underline focus-visible:outline-offset-1 teletext:text-cyan-300";
+const twig = "ml-2 border-l border-dotted border-slate-400 pl-4 teletext:border-blue-500";
+const tally = "font-mono text-small tabular-nums text-slate-600 teletext:text-zinc-300";
+const rule = "border-b border-line teletext:border-blue-800";
+const cards = [
+  { label: "Unchanged project tasks", count: proved, total: baseline.dropIn.length, unit: "laws proved", href: "#unchanged-projects" },
+  { label: "Test262 bigint arithmetic", count: passed, total: baseline.arithmetic.length, unit: "whole files matched", href: "#arithmetic-profile" },
+];
+---
+<section class="mt-3 space-y-6 text-ui/relaxed" aria-label="Compatibility results">
+  <div class="grid gap-2 sm:grid-cols-2">
+    {cards.map(card => <a href={card.href} class="block border border-line bg-slate-50 p-3 hover:border-navy teletext:border-blue-700 teletext:bg-blue-950">
+      <span class="block font-panel text-navy teletext:text-cyan-300">{card.label}</span>
+      <strong class="block font-mono text-3xl/tight tabular-nums">{rate(card.count, card.total)}</strong>
+      <span class={tally}>{card.count} / {card.total} {card.unit}</span>
+    </a>)}
+  </div>
+  <p class={tally}>{baseline.profile} · Bun {baseline.bun} · Lean {baseline.lean} ·
+    {" "}<a class={link} href="https://github.com/rorz/pud/commits/main/experiments/compatibility/baseline.json">Score history</a></p>
+  <nav aria-label="Coverage sections" class="flex flex-wrap gap-x-4 gap-y-1">
+    <a class:list={[link, "font-semibold"]} href="/compatibility/tree/" data-astro-reload>Open full-screen technology tree ↗</a><a class={link} href="#capability-tree">Text tree</a><a class={link} href="#upstream-inventory">Upstream inventory</a>
+    <a class={link} href="#coverage-target">Path to full coverage</a>
+  </nav>
+
+  <section aria-labelledby="unchanged-projects">
+    <h2 id="unchanged-projects" class={title}>Unchanged projects</h2>
+    <p>{baseline.dropIn.filter(r => r.native).length} law fixtures pass their native controls in Bun. Pud translates {translated} original exports. {firstProof} of {projects.length} projects reach a first proof. Each project is a pinned source checkout. Only verification files are added.</p>
+    {projects.map(project => {
+      const rows = baseline.dropIn.filter(r => r.project === project.repo);
+      return <details class={rule}>
+        <summary class={disclosure}>{project.repo} <span class={tally}>· {rows.filter(r => r.verdict === "proved").length}/{rows.length} proved</span></summary>
+        <ul class:list={[twig, "mb-3 space-y-3"]}>{project.targets.map(target => {
+          const row = rows.find(r => r.name === target.name)!;
+          return <li id={"case-" + project.repo.replaceAll("/", "-").toLowerCase() + "-" + target.name.toLowerCase()}>
+            <a class={link} href={"https://github.com/" + project.repo + "/blob/" + project.revision + "/" + target.file} target="_blank" rel="noreferrer">{target.name}</a>
+            <span class={tally}> · quantified law · {row.verdict}</span>
+            <p>{target.law}</p>
+            <p class="text-small">{target.inputs.map(([name, domain]) =>
+              <code class="mr-2 [overflow-wrap:anywhere]">{name}: {schemaFor(domains[domain])}</code>)}
+              <span class={tally}>· {target.controls.length} native controls</span></p>
+            {row.admission && <p class="text-small">First source blocker · <code>{row.admission}</code></p>}
+            {"detail" in row && row.detail !== row.admission && <p class="text-small">Proof blocker · <code>{row.detail}</code></p>}
+          </li>;
+        })}</ul>
+      </details>;
+    })}
+  </section>
+
+  <section aria-labelledby="capability-tree">
+    <h2 id="capability-tree" class={title}>Capability tree</h2>
+    <p>Open a branch for its prerequisites, current evidence, and the check that would move it forward. These engineering judgments are tracked separately from the measured scores.</p>
+    {roadmap.map(group => <details id={"branch-" + group.id} class={rule}>
+      <summary class={disclosure}>{group.title}</summary>
+      <div class:list={[twig, "mb-3 space-y-2"]}>
+        {group.depends.length > 0 && <p class={tally}>Builds on {group.depends.map((id, i) => <>{i > 0 && " · "}<a class={link} href={"#branch-" + id}>{roadmap.find(g => g.id === id)!.title}</a></>)}</p>}
+        <dl class="space-y-2">{group.leaves.map(([topic, status, scope]) => <div>
+          <dt class="font-semibold">{topic} <span class={tally}>· {status}</span></dt><dd>{scope}</dd>
+        </div>)}</dl>
+        <p><strong>Acceptance check.</strong> {group.gate}</p>
+        <p><a class={link} href={group.evidence[1]}>{group.evidence[0]}</a> · <a class={link} href={"/compatibility/tree/#" + group.id} data-astro-reload>View on the map</a></p>
+      </div>
+    </details>)}
+  </section>
+
+  <section aria-labelledby="arithmetic-profile">
+    <h2 id="arithmetic-profile" class={title}>Bigint arithmetic conformance</h2>
+    <p>The selection includes every <code>test/language/expressions/*/bigint-arithmetic.js</code> at Test262 revision
+      {" "}<a class={link} href={upstream + "/tree/" + inventory.revision} target="_blank" rel="noreferrer">{inventory.revision.slice(0, 8)}</a>.
+      A file earns one pass when every assertion agrees with its upstream expected value in Bun and in Pud’s generated Lean.</p>
+    <ul class="mt-2">{baseline.arithmetic.map(row => {
+      const file = inventory.files.find(f => f.path.split("/").at(-2) === row.operator)!;
+      return <li class:list={[rule, "flex flex-wrap items-baseline justify-between gap-x-2 py-1.5"]}>
+        <a class={link} href={upstream + "/blob/" + inventory.revision + "/" + file.path} target="_blank" rel="noreferrer">{row.operator}</a>
+        <span class={tally}>{row.assertions - row.unsupported.length}/{row.assertions} assertions · {row.unsupported.length ? "incomplete" : "matched"}</span>
+        {"reason" in row && <span class="w-full text-small">{row.reason}</span>}
+      </li>;
+    })}</ul>
+    <p class="mt-2">{number(matched)} of {number(assertions)} individual assertions matched. Repeated vectors retain their upstream identity. The headline gives each file one vote.</p>
+  </section>
+
+  <section aria-labelledby="upstream-inventory">
+    <h2 id="upstream-inventory" class={title}>Upstream inventory</h2>
+    <p>{inventory.files.length} of {number(total)} Test262 files have been assessed here. Each count below shows assessed files over inventoried files. The other files await a harness mapping.</p>
+    {families.map(family => {
+      const children = entries.filter(([path]) => path.split("/")[0] === family);
+      return <details class={rule} id={"suite-" + family}>
+        <summary class={disclosure}>{family} <span class={tally}>· {selectedIn(family)}/{number(children.reduce((n, [, count]) => n + count, 0))} assessed</span></summary>
+        <ul class:list={[twig, "mb-2"]}>{children.map(([path, count]) => <li class="flex justify-between gap-2 py-0.5">
+          <a class={link} href={upstream + "/tree/" + inventory.revision + "/test/" + path} target="_blank" rel="noreferrer">{path.split("/").slice(1).join("/") || family}</a>
+          <span class={tally}>{selectedIn(path)}/{number(count)}</span>
+        </li>)}</ul>
+      </details>;
+    })}
+    <details class={rule} id="compiler-corpus">
+      <summary class={disclosure}>TypeScript compiler conformance <span class={tally}>· {number(compilerCases.reduce((n, [, count]) => n + count, 0))} files inventoried</span></summary>
+      <div class:list={[twig, "mb-2"]}>
+        <p>Microsoft’s v7.0.2 source and emit corpus is indexed by directory. Pud has yet to assess these compiler baselines. A file can describe multiple compiler configurations or virtual source files.</p>
+        <ul>{compilerCases.map(([family, count]) => <li class="flex justify-between gap-2 py-0.5">
+          <a class={link} href={family === "." ? compilerRoot : compilerRoot + "/" + family} target="_blank" rel="noreferrer">{family === "." ? "Directory root" : family}</a>
+          <span class={tally}>{number(count)} files</span></li>)}</ul>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="coverage-target">
+    <h2 id="coverage-target" class={title}>Path to full coverage</h2>
+    <ol class="list-decimal space-y-2 pl-5">
+      <li><strong>Prove an application’s currency rule.</strong> Motion’s two unchanged time conversions have six laws, including an exact result rule for each export. Actual Budget’s cents round trip still needs its original imports, default precision and power of ten. <a class={link} href={roadmap.find(group => group.id === "values")!.evidence[1]}>Proofs and rounding regressions</a></li>
+      <li><strong>Support the code around that rule.</strong> Resolve imported helpers and type aliases and account for module initialization. Add the records, optional fields and indexed loops that block the next real rules.</li>
+      <li><strong>Connect the rule to its host.</strong> Introduce explicit contracts for I/O, time, database state, and scheduling. Show which assumptions a pass uses and test those assumptions against the actual dependency.</li>
+      <li><strong>Expand the corpus.</strong> Freeze tasks from independent applications, including failed onboarding attempts. Publish results per project, framework and runtime, along with the share of projects that can prove their first useful rule.</li>
+    </ol>
+    <p class="mt-3">100% on a fixed profile means every registered obligation passed. Every finite conformance suite leaves programs outside its cases. For arbitrary programs, an always-correct terminating checker for every claim would also decide whether any program halts. Particular claims can still have machine-checked proofs.</p>
+    <p class="mt-2"><a class={link} href="https://github.com/tc39/test262#goals--state-of-test262" target="_blank" rel="noreferrer">Test262 scope</a> · <a class={link} href="https://www.cs.cornell.edu/courses/cs4820/2019fa/lectures/4820_computability.pdf" target="_blank" rel="noreferrer">Computability limits</a></p>
+    <p class="mt-3">Run <code>bun run compat:check</code> after <code>bun run setup</code>. Use <code>bun run compat:update</code> to record an improvement. CI checks individual results. Changing the set of tasks or upstream files starts a new version of the score.</p>
+  </section>
+</section>
+<script>
+  function revealEvidence() {
+    const target = document.getElementById(location.hash.slice(1));
+    const details = target?.closest("details");
+    if (details && !details.open && details.closest("[aria-label='Compatibility results']")) {
+      details.open = true;
+      target?.scrollIntoView({ block: "start" });
+    }
+  }
+  revealEvidence();
+  window.addEventListener("hashchange", revealEvidence);
+  document.addEventListener("astro:page-load", revealEvidence);
+</script>

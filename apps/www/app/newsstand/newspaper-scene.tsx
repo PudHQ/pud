@@ -10,7 +10,44 @@ const photoSize = [112, 77] as const;
 const inkShades = [32, 67, 103, 146, 190, 224, 241];
 const halfTone = [-10, 6, -1, 13];
 
-function drawCover(ink: CanvasRenderingContext2D, engraving: HTMLImageElement) {
+function drawStoryColumn(ink: CanvasRenderingContext2D, headline: string) {
+  const left = 134;
+  const width = 56;
+  ink.textAlign = "left";
+  ink.font = "bold 9px Georgia, serif";
+
+  let line = "";
+  let baseline = 55;
+  for (const word of headline.split(/\s+/u)) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ink.measureText(next).width > width) {
+      if (baseline === 85) {
+        line += "…";
+        break;
+      }
+      ink.fillText(line, left, baseline, width);
+      baseline += 10;
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  ink.fillText(line, left, baseline, width);
+
+  ink.strokeStyle = "#766b5c";
+  ink.lineWidth = 0.7;
+  ink.setLineDash([4, 0.7, 7, 0.8, 3, 0.7]);
+  for (let y = baseline + 6, row = 0; y < 125; y += 3, row++) {
+    ink.lineDashOffset = row * 3;
+    ink.beginPath();
+    ink.moveTo(left, y);
+    ink.lineTo(left + (row % 6 === 5 ? 38 : width), y);
+    ink.stroke();
+  }
+}
+
+function drawCover(ink: CanvasRenderingContext2D, engraving: HTMLImageElement, headline: string) {
+  ink.scale(ink.canvas.width / 200, ink.canvas.height / 142);
   ink.fillStyle = "#f2e8d5";
   ink.fillRect(0, 0, 200, 142);
   ink.fillStyle = "#282421";
@@ -21,8 +58,8 @@ function drawCover(ink: CanvasRenderingContext2D, engraving: HTMLImageElement) {
   ink.fillText("The Pud Log", 100, 33, 178);
 
   const pixelArt = document.createElement("canvas");
-  pixelArt.width = 76;
-  pixelArt.height = 52;
+  pixelArt.width = photoSize[0] * 2;
+  pixelArt.height = photoSize[1] * 2;
   const plate = pixelArt.getContext("2d")!;
   plate.imageSmoothingQuality = "high";
   plate.drawImage(engraving, 0, 0, pixelArt.width, pixelArt.height);
@@ -44,12 +81,7 @@ function drawCover(ink: CanvasRenderingContext2D, engraving: HTMLImageElement) {
   ink.drawImage(pixelArt, 9, 48, ...photoSize);
   ink.fillStyle = "#3c342c";
   ink.fillRect(128, 48, 1, 77);
-  ink.fillRect(134, 49, 56, 4);
-  ink.fillRect(134, 56, 47, 3);
-  ink.fillStyle = "#85786a";
-  for (let row = 0; row < 10; row++) {
-    ink.fillRect(134, 65 + row * 6, row % 3 === 2 ? 44 : 56, 2);
-  }
+  drawStoryColumn(ink, headline);
   ink.fillStyle = "#282421";
   ink.fillRect(9, 131, 182, 2);
 }
@@ -73,10 +105,10 @@ function useFoldedSheet() {
   return sheet;
 }
 
-function FoldedPaper() {
+function FoldedPaper({ headline }: { headline: string }) {
   const engraving = useLoader(ImageLoader, "/pud-log-engraving.webp");
-  const paint = useCallback((ink: CanvasRenderingContext2D) => drawCover(ink, engraving), [engraving]);
-  const cover = usePrint(200, 142, paint, true);
+  const paint = useCallback((ink: CanvasRenderingContext2D) => drawCover(ink, engraving, headline), [engraving, headline]);
+  const cover = usePrint(800, 568, paint);
   const sheet = useFoldedSheet();
   return (
     <group rotation={[-0.65, -0.135, 0.11]}>
@@ -90,13 +122,13 @@ function FoldedPaper() {
   );
 }
 
-export default function NewspaperScene({ fallback }: { fallback: ReactNode }) {
+export default function NewspaperScene({ headline, fallback }: { headline: string; fallback: ReactNode }) {
   return (
     <Canvas frameloop="demand" dpr={[1, 1.7]} fallback={fallback}>
       <FittedCamera width={4.15} height={2.95} position={[1.52, 2.25, 8.7]} target={[0, 0, 0]} />
       <hemisphereLight args={["#fff6e8", "#988570", 1.35]} />
       <directionalLight position={[-4, 6, 4]} intensity={2.1} color="#fff1dc" />
-      <FoldedPaper />
+      <FoldedPaper headline={headline} />
     </Canvas>
   );
 }

@@ -137,7 +137,7 @@ async function evaluate(directory: string, file: string, inputs: readonly Input[
 #eval String.intercalate "," ([${applications("Pud.impl")}].map (${observe}))
 ${source}`);
   const run = Bun.spawnSync([command.binary, modelFile], {
-    cwd: directory, env: command.env, stdout: "pipe", stderr: "pipe", timeout: 20_000,
+    cwd: directory, env: { ...command.env, LEAN_PATH: directory }, stdout: "pipe", stderr: "pipe", timeout: 20_000,
   });
   if (!run.success) throw new Error(run.stdout.toString() + run.stderr.toString());
   const [implementation, reference] = run.stdout.toString().split("\n").filter(line => line.startsWith('"'))
@@ -333,6 +333,11 @@ leanTest("the lowering certificate catches a mistranslation outside the user pro
 
 leanTest("the checked loop and recursion agree with Bun and reject missing decreases", async () => {
   await fixture(async directory => {
+    await cp(join(examples, "pud.config.ts"), join(directory, "pud.config.ts"));
+    await cp(join(examples, "triangular-sum.lean"), join(directory, "triangular-sum.lean"));
+    await cp(join(examples, "triangular-sum.lean"), join(directory, "PudSupport0.lean"));
+    const support = Bun.spawnSync([command.binary, "-o", "PudSupport0.olean", "PudSupport0.lean"], { cwd: directory, env: command.env });
+    expect(support.exitCode).toBe(0);
     const source = join(directory, "termination.ts");
     const original = await readFile(join(examples, "termination.ts"), "utf8");
     await writeFile(source, original);
@@ -347,7 +352,7 @@ leanTest("the checked loop and recursion agree with Bun and reject missing decre
       const file = join(directory, name + ".proof.ts");
       const proof = await readFile(join(examples, name + ".proof.ts"), "utf8");
       await writeFile(file, proof);
-      const positive = "sums the five positive values from five down to one";
+      const positive = "sums every integer from one through the input";
       expect((await check(file, { adapter })).results.map(result => result.status)).toEqual(["proved", "proved"]);
       expect(await evaluate(directory, file, inputs, false, positive)).toEqual(inputs.map(args => runtimeOutcome(() => mod[subject](...args))));
       await writeFile(source, original.replace(before, after));

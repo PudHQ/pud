@@ -2,40 +2,53 @@ import { Suspense } from "react";
 import { Newspaper } from "./newspaper";
 import { firstIssue, getIssues, type Issue } from "./pud-log";
 
-function LogCard({ displayClass, issue }: { displayClass: string; issue: Issue }) {
+const issueDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const awningStripes = Array.from({ length: 15 }, (_, stripe) => stripe);
+
+function Newsstand({ issue }: { issue: Issue }) {
   return (
-    <a id="news" href={issue.url} target="_blank" rel="noopener noreferrer" title={issue.title}
-      aria-labelledby="pud-log-title pud-log-action"
-      className="group relative isolate grid min-h-44 grid-cols-2 items-center overflow-hidden bg-paper text-ink
-        focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan sm:min-h-56">
-      <div className="pointer-events-none absolute inset-y-0 -right-10 -z-10 w-7/12 origin-bottom-right -skew-x-9 bg-vermilion" aria-hidden="true" />
-      <div className="min-w-0 py-5 ps-4 sm:ps-7 xl:ps-9">
-        <p className="mb-3 flex items-center gap-2 font-mono text-xs font-interface tracking-widest uppercase sm:mb-5">
-          <span className="h-px w-4 bg-ink" aria-hidden="true" />
-          For now
-        </p>
-        <h3 id="pud-log-title" className={`${displayClass} text-3xl leading-none lg:text-4xl xl:text-5xl`}>The Pud Log</h3>
-        <span id="pud-log-action" className="mt-3 inline-flex items-center gap-1.5 text-xs font-interface underline decoration-ink/40 underline-offset-4
-          group-hover:decoration-ink sm:mt-4 sm:text-sm">
-          Read on Substack <span aria-hidden="true" className="motion-safe:transition-transform motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:translate-x-0.5">↗</span>
-        </span>
+    <a id="news" href={issue.url} target="_blank" rel="noopener noreferrer" aria-labelledby="pud-log-title pud-log-action"
+      className="group/news @container isolate block text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan">
+      <div aria-hidden="true" className="relative z-10 flex h-8 drop-shadow-md after:absolute after:inset-x-0 after:bottom-2.5 after:border-t after:border-ink/20 @md:h-11">
+        {awningStripes.map(stripe => (
+          <span key={stripe} className="flex-1 rounded-b-xl border-b border-ink/30 bg-linear-to-b from-white/20 via-transparent to-ink/20 odd:bg-vermilion even:bg-paper" />
+        ))}
       </div>
-      <div className="grid min-w-0 justify-items-center pe-2 sm:pe-4">
-        <Newspaper />
+      <div className="mx-1.5 -mt-2 border-x-4 border-teal-900 bg-teal-950 shadow-xl @md:mx-2 @md:border-x-6">
+        <div className="relative isolate overflow-hidden bg-newsstand-back">
+          <Newspaper headline={issue.title} />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-1/12 h-1.5 rounded-full border-y border-ink/65
+            bg-linear-to-b from-amber-100 via-stone-300 to-stone-500 shadow-md @md:h-2" />
+        </div>
+        <div aria-hidden="true" className="relative -mx-1.5 h-3 border-y border-ink/75 bg-linear-to-b from-teal-700 via-teal-900 to-teal-950 shadow-md" />
+        <div className="flex flex-col items-start gap-3 border-b-4 border-teal-900 bg-paper px-4 py-4 @md:px-6 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-5">
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-x-2 font-mono text-xs font-semibold tracking-wide uppercase">
+              Latest issue <span aria-hidden="true">·</span> <time dateTime={issue.published}>{issueDate.format(new Date(issue.published))}</time>
+            </p>
+            <h3 id="pud-log-title" className="mt-1 font-serif text-2xl leading-tight font-bold text-pretty wrap-anywhere @md:text-3xl">
+              <span className="sr-only">The Pud Log — </span>{issue.title}
+            </h3>
+          </div>
+          <span id="pud-log-action" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-interface underline decoration-ink/40 underline-offset-4
+            group-hover/news:decoration-ink group-focus-visible/news:decoration-ink">
+            Read on Substack <span aria-hidden="true">↗</span>
+          </span>
+        </div>
       </div>
     </a>
   );
 }
 
-async function LatestPudLog({ displayClass }: { displayClass: string }) {
+async function LatestPudLog() {
   const [issue = firstIssue] = await getIssues();
-  return <LogCard displayClass={displayClass} issue={issue} />;
+  return <Newsstand issue={issue} />;
 }
 
-export function PudLogLink({ displayClass }: { displayClass: string }) {
+export function PudLogLink() {
   return (
-    <Suspense fallback={<LogCard displayClass={displayClass} issue={firstIssue} />}>
-      <LatestPudLog displayClass={displayClass} />
+    <Suspense fallback={<Newsstand issue={firstIssue} />}>
+      <LatestPudLog />
     </Suspense>
   );
 }

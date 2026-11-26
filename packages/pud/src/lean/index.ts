@@ -7,8 +7,9 @@ import { join } from "node:path";
 import { native } from "../suite-authoring.ts";
 import { runProver } from "../prover-process.ts";
 import { leanCommand, type LeanOptions } from "./command.ts";
+import { numberBinary, numberSemantics } from "./number.ts";
 import { definitions, lowerProgram } from "./program.ts";
-import { replayEquality } from "./replay.ts";
+import { replayClaim } from "./replay.ts";
 import { iterationSemantics, scalarCall, scalarSemantics, scalarValue } from "./scalar.ts";
 import { asOutcome, errorKinds, invoke, isScalar, leanTypes, ofSort, readProposition, readValue, type Sort, type Value } from "./syntax.ts";
 
@@ -17,15 +18,32 @@ export const lean = native("lean");
 
 const trustedAxioms = new Set(["propext", "Quot.sound", "Classical.choice"]);
 const operators: Record<ProofComparison, string> = { eq: "=", gt: ">", gte: "≥", lt: "<", lte: "≤" };
+const jsOperators: Record<ProofComparison, string> = { eq: "===", gt: ">", gte: ">=", lt: "<", lte: "<=" };
 const modeledErrors = Object.keys(errorKinds) as ProofErrorKind[];
 const errors = `inductive ErrorKind where
 ${Object.values(errorKinds).map(kind => `  | ${kind}`).join("\n")}
   deriving DecidableEq, Repr`;
-const autoProof = (unfold: string, recursive: readonly string[]) => `by
+const autoProof = (unfold: string, recursive: readonly string[], numbers: boolean, fallible: boolean) => `by
   simp only [claim]
   intros
   first
-  | rfl
+  | rfl${fallible ? `
+  | solve | simp (disch := omega) [${unfold}, pure, Except.pure, bind, Except.bind, if_neg, if_pos]` : ""}${numbers ? `
+  | solve | simp (disch := assumption) only [${unfold}, pure, JSNumber.round_integer, JSNumber.floor_integer,
+        JSNumber.ceil_integer, JSNumber.trunc_integer, JSNumber.round_eq_zero, JSNumber.mul_comm,
+        JSNumber.nearestInteger_round, JSNumber.nearestInteger_round_down]
+  | solve
+    | simp (disch := decide) only [${unfold}, JSNumber.mul_neg, JSNumber.div_neg, JSNumber.mul_comm,
+        JSNumber.round_eq_zero, JSNumber.eq_self, JSNumber.isNaN_neg, JSNumber.isNaN_mul_right,
+        JSNumber.isNaN_mul_left, JSNumber.isNaN_div_right, Bool.not_eq_true'] at * <;> assumption
+  | simp only [${unfold}] at *
+    try apply JSNumber.nonnegative_round
+    first | apply JSNumber.nonnegative_mul <;> first | assumption | decide
+          | apply JSNumber.negative_div <;> first | assumption | decide
+  | simp only [${unfold}] at *
+    try simp (disch := decide) only [JSNumber.eq_regular] at *
+    subst_vars
+    decide +kernel` : ""}
   | try simp_all [${unfold}, Int.add_nonneg, Int.tmod_eq_emod_of_nonneg, Int.tdiv_eq_ediv_of_nonneg]
     all_goals (repeat' (split <;> try simp_all))
     all_goals ((try simp (disch := omega) [Int.tmod_eq_emod_of_nonneg, Int.tdiv_eq_ediv_of_nonneg] at *) <;> (first | rfl | omega))${recursive.length ? `
@@ -37,6 +55,7 @@ const autoProof = (unfold: string, recursive: readonly string[]) => `by
 function proofType(sort: Sort, itemType: string | undefined): ProofType {
   switch (sort) {
     case "integer":
+    case "number":
     case "boolean": return { kind: sort };
     case "integers": return { kind: "array", item: { kind: "integer" } };
     case "items": return { kind: "array", item: { kind: "opaque", name: itemType! } };
@@ -50,14 +69,14 @@ const logicalOperators = { and: "∧", or: "∨", implies: "→", iff: "↔" } a
 
 function readOperand<T>(
   expression: ProofExpression, parameters: Scope, locals: Scope,
-  read: (file: string, node: Node, scope: Scope, helpers?: ReadonlySet<string>) => T,
+  read: (file: string, node: Node, scope: Scope, helpers?: ReadonlySet<string>, numberGlobal?: boolean) => T,
 ): T {
   const { file, source, line, column, offset, bindings, schemaBindings } = expression;
   const scope = new Map([...bindings].map(([name, parameter]) => [name, parameters.get(parameter)!]));
   for (const [name, value] of locals) scope.set(name, value);
   try {
     const node = parseExpression(source, { plugins: ["typescript"], startLine: line, startColumn: column, startIndex: offset });
-    return read(file, node, scope, schemaBindings);
+    return read(file, node, scope, schemaBindings, expression.numberGlobal);
   } catch (error) {
     if (error instanceof Unsupported) throw error;
     throw new Unsupported(`${file}:${line}:${column + 1}: ${(error as Error).message}`);
@@ -134,13 +153,16 @@ ${indent(normalize(proved.map(subject => subject.code + "Lowering")))}`].join("\
 }
 
 function generate(program: Program, claim: ProofClaim, imports: readonly string[]) {
-  const modes = [claim.expectedError, claim.reference, claim.assertions.length].filter(Boolean);
+  const modes = [claim.expectedError, claim.reference, claim.assertions.length || claim.exactResult].filter(Boolean);
   if (modes.length !== 1 || (claim.expectedError && !Object.hasOwn(errorKinds, claim.expectedError))) {
     throw new Unsupported("State a return predicate, equality between calls, or one modeled exception.");
   }
   const { params, itemType } = program.root;
   const observed = observe(program, claim.observation);
   const execution = observed.value;
+  if (claim.exactResult && (!isScalar(execution.sort) || claim.reference || claim.expectedError)) {
+    throw new Unsupported("Use an exact result schema for a scalar return value.");
+  }
   const reference = claim.reference && observe(program, claim.reference);
   if (reference && (!isScalar(execution.sort) || reference.value.sort !== execution.sort || reference.value.fallible || execution.fallible)) {
     throw new Unsupported("Use toEqual() with two nonthrowing calls returning the same scalar type.");
@@ -151,8 +173,8 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   let nextBinder = 0;
 
   function operand(expression: ProofExpression, locals: Scope, expected?: Sort) {
-    return readOperand(expression, parameters, locals, (file, node, scope, helpers) => {
-      const value = readValue(file, node, scope, helpers);
+    return readOperand(expression, parameters, locals, (file, node, scope, helpers, numberGlobal) => {
+      const value = readValue(file, node, scope, helpers, undefined, numberGlobal);
       return expected ? ofSort(file, node, value, expected) : value.code;
     });
   }
@@ -194,20 +216,34 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
     if (!value) throw new Unsupported("The property constraint has no corresponding value.");
     if (constraint.kind === "refinement") return predicate(constraint.predicate, new Map([...locals, [constraint.variable, value]]));
     if (constraint.kind === "native") return `((${term(constraint.term, locals)} ${value.code}) : Prop)`;
-    return `(${value.code} ${operators[constraint.operator]} ${operand(constraint.value, locals, value.sort)})`;
+    const rhs = operand(constraint.value, locals, value.sort);
+    if (constraint.kind === "sameValue") {
+      if (value.sort !== "number") throw new Unsupported("Use sameValue() with a JavaScript number.");
+      return `(${value.code} = ${rhs})`;
+    }
+    if (constraint.kind === "nearestInteger") {
+      if (value.sort !== "number") throw new Unsupported("Use nearestIntegerTo() with a JavaScript number.");
+      return `(${value.code} = JSNumber.nearestInteger (${rhs}) ${constraint.ties === "up"})`;
+    }
+    if (value.sort === "number") return `(${numberBinary(jsOperators[constraint.operator], value.code, rhs)!.code} = true)`;
+    return `(${value.code} ${operators[constraint.operator]} ${rhs})`;
   }
 
   const render = (constraint: ProofConstraint) => renderConstraint(constraint, emptyScope);
   const binders = [itemType && "(Item : Type)", ...params.map(param => `(${param.code} : ${leanTypes[param.sort]})`)].filter(Boolean).join(" ");
   const premises = claim.premises.map(p => `${render(p)} →`);
-  const assertions = claim.assertions.map(render).join(" ∧\n");
+  const assertions = claim.assertions.map(render).join(" ∧\n") || "True";
+  const binding = claim.exactResult ? "actual" : "result";
+  const postcondition = claim.exactResult
+    ? `∀ (result : ${leanTypes[execution.sort]}), (${assertions}) ↔ result = actual` : assertions;
   function proposition(outcome: Value) {
     const goal = claim.expectedError
       ? outcome.fallible ? `(${outcome.code}) = .error ErrorKind.${errorKinds[claim.expectedError]}` : "False"
-      : reference ? `(${outcome.code}) = (${reference.value.code})`
+      : reference ? outcome.sort === "number"
+        ? `JSNumber.eq (${outcome.code}) (${reference.value.code}) = true` : `(${outcome.code}) = (${reference.value.code})`
         : outcome.fallible
-        ? `match (${outcome.code}) with\n| .ok result =>\n${indent(assertions)}\n| .error _ => False`
-        : `let result := ${outcome.code}\n${assertions}`;
+        ? `match (${outcome.code}) with\n| .ok ${binding} =>\n${indent(postcondition)}\n| .error _ => False`
+        : `let ${binding} := ${outcome.code}\n${postcondition}`;
     return [binders && `∀ ${binders},`, ...premises, goal].filter(Boolean).join("\n");
   }
   const simplify = [...linked.filter(subject => !subject.recursive).map(subject => subject.code), "Id.run"].join(", ");
@@ -220,7 +256,9 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   const sourceClaim = certificate && observed.source && proposition({
     sort: observed.source.sort, code: `Scalar.evaluate ${observed.source.code}`, fallible: true,
   });
-  let proof = claim.proof ? term(claim.proof, emptyScope) : autoProof(simplify, recursive);
+  const claimText = proposition(execution);
+  const usesNumbers = linked.some(subject => subject.definition.includes("JSNumber")) || claimText.includes("JSNumber");
+  let proof = claim.proof ? term(claim.proof, emptyScope) : autoProof(simplify, recursive, usesNumbers, !!execution.fallible);
   if (claim.proof?.kind === "reference" && loopConformance.length) {
     const rewrites = loopConformance.map(({ name }) => name).join(", ");
     proof = `by
@@ -229,14 +267,14 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   | simpa only [claim, ${simplify}, bind, pure, ${rewrites}] using (${proof})`;
   }
   const unit = [
-    "import Std", ...imports.map(module => `import ${module}`), "", ...(certificate ? [scalarSemantics, ""] : []),
+    "import Std", ...imports.map(module => `import ${module}`), "", ...(usesNumbers ? [numberSemantics, ""] : []), ...(certificate ? [scalarSemantics, ""] : []),
     ...(countdown || fold || loopConformance.length ? [iterationSemantics, ""] : []),
     "namespace Pud", "", "set_option autoImplicit false", "",
     errors, "",
     linked.map(subject => subject.definition).join("\n\n"), "",
     ...loopConformance.flatMap(({ definition }) => [definition, ""]),
     ...(certificate ? [certificate, ""] : []),
-    "def claim : Prop :=", indent(proposition(execution)), "",
+    "def claim : Prop :=", indent(claimText), "",
     ...(sourceClaim ? ["def sourceClaim : Prop :=", indent(sourceClaim), ""] : []),
     "theorem checked : claim :=", indent(proof), "",
     ...(sourceClaim ? [`theorem sourceChecked : sourceClaim := by
@@ -342,10 +380,12 @@ async function verify(
         outcome = { status: "proved" };
       } catch (error) {
         const detail = (error as Error).message;
-        outcome = { status: error instanceof RejectedProof ? "unproved" : "error", detail };
+        outcome = error instanceof RejectedProof && claims[i]!.exactResult
+          ? { status: "unproved", detail: "Lean could not prove that the rule accepts exactly the returned value for each admitted input.", diagnostic: detail }
+          : { status: error instanceof RejectedProof ? "unproved" : "error", detail };
         if (error instanceof RejectedProof && options.replay) {
           try {
-            const counterexample = await replayEquality(program, claims[i]!, join(dir, `replay-${i}`));
+            const counterexample = await replayClaim(program, claims[i]!, join(dir, `replay-${i}`));
             if (counterexample) outcome = { status: "disproved", counterexample };
           } catch (replayError) {
             outcome = { status: "error", detail: `Bun replay failed. ${(replayError as Error).message}`, diagnostic: detail };
@@ -372,6 +412,7 @@ export function leanAdapter(options: LeanOptions = {}): ProofAssistant<"lean"> {
         result: proofType(subject.result, subject.itemType),
         inspectCall(call) { return proofType(observe(program, call).value.sort, undefined); },
         callEquality: true,
+        exactResults: true,
         errors: modeledErrors,
         emit(claim, modules) { return generate(program, claim, moduleNames(modules)).unit; },
         verify(claims, modules, onClaim) { return verify(program, source, options, claims, modules, onClaim); },

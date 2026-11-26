@@ -1,0 +1,135 @@
+---
+import "@fontsource-variable/atkinson-hyperlegible-next";
+import "../../styles/styles.css";
+import Emblem from "../../components/technology-emblem.astro";
+import { areaStatus, roadmap } from "../../../../../experiments/compatibility/roadmap";
+import baseline from "../../../../../experiments/compatibility/baseline.json";
+
+const guide = "/notes/handbook/engineering/verification/typescript-compatibility/";
+const positions: Record<string, [column: number, y: number, name: string]> = {
+  setup: [0, 195, "Project setup"], projects: [1, 108, "Module linking"], typescript: [1, 294, "TypeScript emit"],
+  values: [2, 294, "Value semantics"], collections: [3, 86, "Array traversal"], control: [3, 188, "Control flow"],
+  objects: [3, 290, "Object identity"], assurance: [3, 392, "Proof certificates"], calls: [4, 188, "Function calls"],
+  libraries: [5, 94, "Standard libraries"], effects: [5, 286, "Host effects"], async: [6, 286, "Concurrency"],
+};
+const eras = [{ title: "Foundations", from: 0, span: 2 }, { title: "Language", from: 2, span: 2 },
+  { title: "Composition", from: 4, span: 1 }, { title: "Runtime", from: 5, span: 2 }];
+const cardWidth = 167, cardHeight = 66, step = 208, pad = 24;
+const width = pad * 2 + step * 6 + cardWidth, height = 500;
+const nodes = roadmap.map(area => {
+  const position = positions[area.id];
+  if (!position) throw new Error("Missing technology tree position for " + area.id);
+  const [column, y, name] = position;
+  return { ...area, x: pad + column * step, y, name, status: areaStatus(area.leaves) };
+});
+const byId = new Map(nodes.map(node => [node.id, node]));
+const corridors: Record<string, number> = { "projects-calls": 66, "projects-effects": 52, "typescript-assurance": 472,
+  "collections-libraries": 82, "objects-libraries": 378, "control-async": 463 };
+const edges = nodes.flatMap(node => node.depends.map((id, index) => {
+  const parent = byId.get(id)!;
+  const sx = parent.x + cardWidth, sy = parent.y + cardHeight / 2, ex = node.x, ey = node.y + cardHeight / 2;
+  const corridor = corridors[id + "-" + node.id];
+  const d = corridor === undefined ? "M " + sx + " " + sy + " H " + (ex - 16 - 4 * index) + " V " + ey + " H " + ex
+    : "M " + sx + " " + sy + " H " + (sx + 10 + index * 4) + " V " + corridor + " H " + (ex - 11 - index * 5) + " V " + ey + " H " + ex;
+  return { parent: id, child: node.id, d, ex, ey };
+}));
+const count = baseline.dropIn.filter(r => r.verdict === "proved").length;
+const matched = baseline.arithmetic.filter(r => !r.unsupported.length).length;
+const control = "inline-flex min-h-9 min-w-9 cursor-pointer items-center justify-center gap-1 rounded-sm border border-amber-200/35 bg-teal-950 px-2 text-sm text-amber-100 hover:border-amber-200 hover:bg-teal-900 disabled:opacity-40";
+const textLink = "cursor-pointer text-amber-200 underline decoration-amber-300/50 underline-offset-3 hover:text-white";
+const initial = "projects";
+const datum = { width, height, nodes: nodes.map(n => ({ id: n.id, x: n.x, y: n.y })) };
+---
+<!doctype html>
+<html lang="en" class="bg-teal-950">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TypeScript technology tree · PudDex</title>
+  <meta name="description" content="Explore the prerequisites, evidence and open work for Pud’s TypeScript compatibility." />
+  <link rel="icon" href="/pud-chrome.png" />
+</head>
+<body class="m-0 overflow-hidden text-amber-50 antialiased">
+<main data-tech-atlas data-layout={JSON.stringify(datum)} class="flex h-dvh min-h-0 flex-col bg-teal-950 font-sans scheme-dark [&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-amber-300">
+  <header class="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b-2 border-double border-amber-300/60 bg-linear-to-b from-slate-950 to-teal-950 px-3 py-2 sm:px-5 sm:py-3">
+    <div class="flex items-center gap-3">
+      <span class="hidden text-amber-300 sm:block"><Emblem kind="compass" size={42} /></span>
+      <div><a class="text-xs font-bold tracking-widest text-amber-300 uppercase hover:underline" href={guide}>‹ PudDex / Compatibility</a>
+        <h1 class="font-serif text-2xl/none tracking-wide text-amber-50 sm:text-3xl/none">Technology tree</h1></div>
+    </div>
+    <div class="flex items-center gap-2">
+      <label for="atlas-area" class="sr-only">Select an area</label>
+      <select id="atlas-area" class:list={[control, "max-w-40 sm:max-w-52"]}>{nodes.map(n => <option value={n.id} selected={n.id === initial}>{n.name}</option>)}</select>
+      <button type="button" data-fullscreen class={control} title="Expand map" aria-label="Expand map" aria-pressed="false">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6"/></svg>
+      </button>
+    </div>
+  </header>
+  <div class="relative min-h-32 flex-1 overflow-hidden bg-linear-to-br from-stone-900 via-teal-950 to-slate-950">
+    <section data-viewport aria-label="Technology map. Select an area to read its details." class="absolute inset-0 overflow-auto overscroll-contain scheme-dark">
+      <div data-spacer class="relative mx-auto" style={"width:" + width + "px;height:" + height + "px"}>
+        <div data-world class="absolute top-0 left-0 origin-top-left select-none" style={"width:" + width + "px;height:" + height + "px"}>
+          <svg aria-hidden="true" class="pointer-events-none absolute inset-0 size-full" viewBox={"0 0 " + width + " " + height}>
+            <defs>
+              <pattern id="atlas-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" class="stroke-amber-200/10"/><path d="M14 16h4m-2-2v4" fill="none" class="stroke-amber-200/10"/></pattern>
+              <pattern id="atlas-hills" width="310" height="220" patternUnits="userSpaceOnUse" patternTransform="rotate(-13)">
+                {[0, 8, 17, 28, 43, 61].map(v => <path d={"M-30 " + (20+v) + " Q36 " + (76+v) + " 99 " + (42+v) + " T205 " + (66+v) + " T340 " + (28+v)} fill="none" class="stroke-teal-300/10" />)}
+              </pattern>
+            </defs>
+            <rect width={width} height={height} fill="url(#atlas-grid)"/><rect width={width} height={height} fill="url(#atlas-hills)"/>
+            {eras.slice(1).map(e => <path d={"M" + (pad+e.from*step-21) + " 8v474"} stroke-dasharray="2 6" class="stroke-amber-200/25" />)}
+            <g transform="translate(120 390)" class="fill-none stroke-amber-200/20">
+              <circle r="48"/><circle r="43"/>{[0,45,90,135].map(a => <path transform={"rotate("+a+")"} d="M0-53l4 40L0 0l-4-13z M0 53l4-40L0 0l-4 13z"/>)}
+              <circle r="5" class="fill-amber-200/25"/>
+            </g>
+            {edges.map(edge => <g data-parent={edge.parent} data-child={edge.child} class="fill-none stroke-amber-100/35 data-[relation=after]:stroke-teal-300 data-[relation=before]:stroke-amber-300" stroke-width="2">
+              <path d={edge.d}/><path d={"M"+(edge.ex-7)+" "+(edge.ey-4)+"l6 4-6 4"} />
+            </g>)}
+          </svg>
+          {eras.map(e => <div class="absolute top-3 border-y border-amber-300/50 py-1 text-center font-serif text-base tracking-widest text-amber-100 uppercase" style={"left:"+(pad+e.from*step)+"px;width:"+(e.span*step-(step-cardWidth))+"px"}>
+            {e.title}</div>)}
+          {nodes.map(n => <button type="button" id={"tech-"+n.id} data-tech={n.id} aria-pressed={n.id === initial} aria-controls="atlas-details"
+            style={"left:"+n.x+"px;top:"+n.y+"px;width:"+cardWidth+"px;height:"+cardHeight+"px"}
+            class="absolute flex cursor-pointer items-center gap-1.5 rounded-sm border border-amber-200/50 bg-linear-to-b from-teal-800 via-teal-950 to-slate-950 px-2 text-left shadow-lg shadow-black/60 hover:border-amber-100 focus-visible:z-10 aria-pressed:z-5 aria-pressed:border-amber-200 aria-pressed:ring-2 aria-pressed:ring-amber-400 aria-pressed:ring-offset-2 aria-pressed:ring-offset-stone-950">
+            <span class="grid size-10 shrink-0 place-items-center rounded-full border-2 border-amber-300/70 bg-radial from-teal-700 via-teal-950 to-stone-950 text-amber-100 shadow-inner ring-1 ring-stone-950"><Emblem kind={n.id} size={27}/></span>
+            <span class="min-w-0"><span class="block font-serif text-base/tight text-amber-50">{n.name}</span>
+              <span class="block text-xs/snug text-teal-100">{n.status}</span></span>
+          </button>)}
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="flex shrink-0 items-center justify-between gap-2 border-y border-amber-200/40 bg-slate-950 px-3 py-1.5 text-xs sm:px-5">
+    <span class="truncate text-amber-100/90"><span class="text-amber-300">◆</span> Prerequisite <span class="ml-3 text-teal-300">◆</span> Unlocks</span>
+    <div class="flex shrink-0 items-center gap-1">
+      <button type="button" data-zoom-out class={control} aria-label="Zoom out">−</button><output data-zoom class="min-w-10 text-center tabular-nums">100%</output>
+      <button type="button" data-zoom-in class={control} aria-label="Zoom in">+</button><button type="button" data-fit class={control}>Fit map</button>
+      <button type="button" data-details-toggle hidden aria-controls="atlas-details" aria-expanded="true" class={control}>Details</button>
+    </div>
+  </div>
+  <aside id="atlas-details" aria-label="Selected technology" class="h-2/5 min-h-32 max-h-80 shrink-0 overflow-y-auto border-b border-amber-300/30 bg-linear-to-br from-stone-900 via-slate-950 to-teal-950 px-4 py-3 sm:px-6">
+    {nodes.map(n => <section data-description={n.id} hidden={n.id !== initial} aria-labelledby={"desc-"+n.id}>
+      <div class="grid gap-4 lg:grid-cols-9">
+        <div class="lg:col-span-2">
+          <p class="text-xs font-semibold tracking-widest text-amber-300 uppercase">{n.status}</p>
+          <h2 id={"desc-"+n.id} class="mt-1 font-serif text-2xl/tight text-amber-50">{n.title}</h2>
+          <div class="mt-2 flex flex-wrap gap-x-2 text-sm">
+            {n.depends.length ? <><span class="text-stone-300">Requires</span>{n.depends.map(id => <a href={"#"+id} data-jump={id} class={textLink}>{byId.get(id)!.name}</a>)}</> : <span class="text-stone-300">Starting technology</span>}
+          </div>
+          {nodes.some(next => next.depends.includes(n.id)) && <div class="mt-1 flex flex-wrap gap-x-2 text-sm"><span class="text-stone-300">Unlocks</span>
+            {nodes.filter(next => next.depends.includes(n.id)).map(next => <a href={"#"+next.id} data-jump={next.id} class={textLink}>{next.name}</a>)}</div>}
+        </div>
+        <dl class="space-y-2 lg:col-span-4">{n.leaves.map(([topic,status,scope]) => <div><dt class="font-semibold text-amber-100">{topic} <span class="text-xs font-normal text-teal-200">· {status}</span></dt><dd class="text-sm/relaxed text-stone-200">{scope}</dd></div>)}</dl>
+        <div class="border-l-2 border-amber-300/55 pl-3 lg:col-span-3">
+          <h3 class="font-serif text-lg text-amber-100">Acceptance check</h3><p class="mt-1 text-sm/relaxed text-stone-200">{n.gate}</p>
+          <a class:list={[textLink, "mt-3 inline-block text-sm"]} href={n.evidence[1]}>{n.evidence[0]} ↗</a>
+        </div>
+      </div>
+    </section>)}
+  </aside>
+  <footer class="flex shrink-0 flex-wrap justify-between gap-x-2 bg-slate-950 px-4 py-1 text-xs text-stone-300">
+    <a href={guide+"#unchanged-projects"} class="hover:underline">{count}/{baseline.dropIn.length} unchanged project tasks proved</a>
+    <a href={guide+"#arithmetic-profile"} class="hover:underline">{matched}/{baseline.arithmetic.length} Test262 bigint files matched</a>
+  </footer>
+</main>
+<script>import "../../lib/technology-tree";</script>
+</body></html>

@@ -108,3 +108,44 @@ test.skipIf(process.platform === "win32")("discovery includes symlinked sidecars
   expect(report.files.map((f: { file: string }) => f.file)).toEqual(["linked.proof.ts"]);
   expect(report.files[0].results[0]).toMatchObject({ status: "todo", name: "Ready" });
 });
+
+test("the CI guard distinguishes literal inputs from variable arguments and quantified postconditions", async () => {
+  const dir = await fixture(), file = join(dir, "identity.proof.ts");
+  await writeFile(join(dir, "pud.config.ts"), `export default { adapter: {
+    id: "scope", prepare() { return { parameters: [{ name: "x", type: { kind: "integer" } }, { name: "y", type: { kind: "integer" } }],
+      result: { kind: "integer" }, emit() { return ""; }, async verify(claims) { return claims.map(() => ({ status: "proved" })); } }; }
+  } };`);
+  await writeFile(join(dir, "identity.ts"), "export const identity = (x: bigint, y: bigint) => x;");
+  const head = `import { describe, it, expect, given, pud } from "@pud.dev/lib";
+import { identity } from "./identity.ts";
+describe(identity, () => {`;
+  const rule = `it("allows a fixed argument in a law", { x: pud.bigint(), y: pud.bigint().eq(2n) }, ({ x, y }) => {
+    expect(identity(x, y)).to(pud.bigint().eq(x));
+  });`;
+  const forall = `it("allows a quantified postcondition", { x: pud.bigint().eq(1n), y: pud.bigint().eq(2n) }, ({ x, y }) => {
+    expect(identity(x, y)).to(pud.bigint().refine(z => pud.forall(pud.bigint().gte(z), n => n >= z)));
+  });`;
+  const checkScope = () => Bun.spawnSync([process.execPath, cli, "check", file, "--json", "--deny-cases"]);
+  await writeFile(file, [head, rule, forall, "});"].join("\n"));
+  expect(checkScope().exitCode).toBe(0);
+  const fixed = `it("pins both inputs", { x: pud.bigint().refine(n => n === -1n), y: pud.bigint() }, ({ x, y: other }) => {
+    given(2n === other);
+    expect(identity(x, other)).to(pud.bigint().eq(x));
+  });`;
+  const bounded = `it("closes both bounds", { x: pud.bigint().gte(-1n), y: pud.bigint().eq(2n) }, ({ x, y }) => {
+    given(-1n >= x);
+    expect(identity(x, y)).to(pud.bigint().eq(x));
+  });`;
+  await writeFile(file, [head, rule, fixed, bounded, "});"].join("\n"));
+  const run = checkScope();
+  expect(run.exitCode).toBe(2);
+  const { files, errors } = JSON.parse(run.stdout.toString());
+  expect(files[0].results[0].concreteScope).toBeUndefined();
+  expect(files[0].results[1]).toMatchObject({ status: "proved", concreteScope: "literal-inputs" });
+  expect(errors[0]).toContain("pins both inputs");
+  expect(files[0].results[2].concreteScope).toBe("literal-inputs");
+  await writeFile(file, [head, rule.replace(".to(", ".toExactly("), "});"].join("\n"));
+  expect((await check(file)).results[0]).toMatchObject({
+    status: "unsupported", detail: expect.stringContaining("does not support exact result schemas"),
+  });
+});

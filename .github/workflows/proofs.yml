@@ -1,5 +1,9 @@
 name: Pud verification
-on: [pull_request, workflow_dispatch]
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -9,15 +13,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun run setup:lean
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run build
       - run: bun run test
+      - name: Check the published compatibility baseline
+        env:
+          PUD_COMPAT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          bun x --no-install tsc -p experiments/compatibility/tsconfig.json
+          bun test experiments/compatibility/measure.test.ts
+          bun run compat:check
       - name: Check supported Lean examples
-        run: find packages/pud/.examples -name '*.proof.ts' ! -name sum-positive.proof.ts -exec bun run pud check {} +
+        run: find packages/pud/.examples experiments/booking-verification/.proofs -name '*.proof.ts' ! -name sum-positive.proof.ts -exec bun run pud check --deny-cases {} +

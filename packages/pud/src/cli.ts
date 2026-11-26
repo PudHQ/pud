@@ -5,7 +5,7 @@ import { Unsupported } from "./assistant.ts";
 import { checkFiles, emit } from "./check.ts";
 import { display, proofReporter } from "./reporter.ts";
 
-const synopsis = `Usage: pud [check] [DIR | FILE.proof.ts ...] [--verbose | --json]
+const synopsis = `Usage: pud [check] [DIR | FILE.proof.ts ...] [--verbose | --json] [--deny-cases]
        pud --emit FILE.proof.ts [PROPERTY | SUBJECT[.PROPERTY]]`;
 const usage = `${synopsis}
 
@@ -14,6 +14,7 @@ The nearest pud.config.ts selects the proof assistant.
 --emit     Print the verification unit for one property without running the prover or replay.
 --verbose  Show full diagnostics and affected properties.
 --json     Print machine-readable results.
+--deny-cases  Fail on zero-input claims or explicit literal constraints on every input. Quantified postconditions are allowed.
 Exit: 0 all active properties proved, 1 unproved or disproved, 2 unsupported, invalid input or tool error.`;
 
 const skipped = new Set(["node_modules", "dist", "out", "build", "coverage"]);
@@ -39,7 +40,8 @@ async function main(args: string[]): Promise<number> {
   }
   const started = performance.now();
   const verbose = args.includes("--verbose"), json = args.includes("--json");
-  const paths = args.filter(a => a !== "--verbose" && a !== "--json");
+  const denyCases = args.includes("--deny-cases");
+  const paths = args.filter(a => a !== "--verbose" && a !== "--json" && a !== "--deny-cases");
   const files = new Map<string, string>(), errors: string[] = [];
   if (paths.some(path => path.startsWith("-")) || (json && verbose)) errors.push(synopsis);
   else for (const path of paths.length ? paths : ["."]) {
@@ -55,6 +57,9 @@ async function main(args: string[]): Promise<number> {
   const selected = [...files.values()];
   const reporter = json ? undefined : proofReporter(selected, started, verbose);
   const reports = await checkFiles(selected, { onProgress: reporter?.update }).finally(reporter?.close);
+  if (denyCases) for (const report of reports) for (const result of report.results) {
+    if (result.concreteScope) errors.push(`${report.file}:${result.line}: "${result.name}" has ${result.concreteScope === "no-inputs" ? "no inputs" : "a literal constraint on every input"}. State a law over a domain or move the case to a runtime test.`);
+  }
   const counts = { proved: 0, disproved: 0, unproved: 0, unsupported: 0, error: errors.length, todo: 0 };
   for (const report of reports) for (const r of report.results) counts[r.status]++;
   const code = counts.error || counts.unsupported ? 2 : counts.disproved || counts.unproved ? 1 : 0;

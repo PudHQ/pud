@@ -12,6 +12,8 @@ tags: [verification, typescript, javascript, lean, coverage, effects, translatio
 
 What has to be covered for a proof about a TypeScript export to mean the same thing when Bun runs it? The map follows the implementation and its sidecar into Lean. The dashed connection records runtime comparison tests. The preservation step is a proof obligation on the translation.
 
+Explore the [full-screen technology tree](/compatibility/tree/) for each area’s current support and next proof. The [[Handbook/Engineering/Verification/typescript-compatibility|compatibility scorecard]] tracks eight quantified project laws. It reports the pinned Test262 arithmetic vectors separately. CI checks the baseline for both measures.
+
 [![TypeScript source and external contracts determine the modeled JavaScript behavior. A preservation proof connects it to Lean. The sidecar supplies the law that Lean checks before Pud validates the snapshots.](../../../../img/verification/lean/typescript-to-lean-coverage-map.png)](../../../../img/verification/lean/typescript-to-lean-coverage-map.png)
 
 ## Define the scope of a claim
@@ -24,7 +26,7 @@ The table inventories semantic families. Each row still needs cases for its comb
 | --- | --- | --- |
 | TypeScript source and emit | Syntax, binding and scope, erased types, JSX and runtime-emitting features such as enums and decorators. Match the actual transpiler and settings. | Parses a restricted TypeScript shape and uses explicit types for admitted values. Full emit correspondence is open. |
 | Modules and dependencies | Import resolution and aliases, initialization order, live bindings, cycles, package exports, ESM/CJS interop, and the exact resolved source graph. | Follows selected named relative imports with inert initialization and rechecks snapshots. Package and dynamic linking are outside that path. |
-| Values and operators | `undefined`, `null`, booleans, strings, symbols, BigInt, IEEE-754 Number, coercion, comparisons, bit operations, and exceptional cases. | BigInt and boolean expressions, including signed division, remainder, and their modeled throws. General Number and string operations are gaps. |
+| Values and operators | `undefined`, `null`, booleans, strings, symbols, BigInt, IEEE-754 Number, coercion, comparisons, bit operations, and exceptional cases. | Bigint and boolean expressions include signed division and remainder. Ordinary numbers support binary64 arithmetic, comparisons, four rounding methods, and integer and NaN checks. Number exponentiation, remainder, coercion and general string operations are open. |
 | References and evaluation order | Local and captured state, evaluation order, short-circuiting, binding identity, assignment targets, updates, destructuring, and abrupt operands. | Scalar locals, assignment, and selected expressions. Some rules have an independent scalar preservation certificate. |
 | Arrays, objects, and heap | Length and indexed reads, bounds, holes, iterators, records, reference identity, aliases, mutation, properties, getters, prototypes, classes, and proxies. | Dense lists for a subset of readonly arrays and a narrow opaque-record case. Indexed reads and general heap behavior are gaps. |
 | Control flow and completion | Branches, switches, counted loops, iteration, early exits, returns, throws, catch bindings, and the ordering of `finally`. Termination evidence where promised. | Branches, `for…of`, restricted countdown loops and recursion, and a narrow unbound catch. The indexed `for` is rejected. |
@@ -59,7 +61,7 @@ return total;
 | `value && value > 0n` | Truthiness and short-circuiting. The guard skips `undefined` and zero and tests the sign of the remaining values. |
 | `total += value` and `return total` | A proof that the initial zero and each executed step preserve `total >= 0n`, and that the final return reads that total. |
 
-Pud currently stops at the `ForStatement`. Isolated probes reject the Number literal, `.length`, and index access as well. With plain dense arrays, standard prototypes, and stable length, the extra read yields `undefined` and the guard skips the addition. The invariant above can establish the property for either traversal spelling. An equality to a reference sum is a stronger law. [Sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/sum-positive.proof.ts) · [Indexed access typing](https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess)
+Pud stops at the counted `for` loop. The numeric initializer now translates. The loop still needs JavaScript array-length and indexed-read semantics, including the read beyond the final element. With plain dense arrays, standard prototypes, and stable length, the extra read yields `undefined` and the guard skips the addition. The invariant above can establish the property for either traversal spelling. An equality to a reference sum is a stronger law. [Sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/sum-positive.proof.ts) · [Indexed access typing](https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess)
 
 ## Logging exercises the same call boundary as other effects
 

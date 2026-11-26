@@ -25,6 +25,8 @@ lean --version
 
 | Style | Implementation | Sidecar |
 | --- | --- | --- |
+| Functional | [Motion time conversions](motion/time-conversion.ts) | [Seconds](motion/seconds.proof.ts) · [Milliseconds](motion/milliseconds.proof.ts) |
+| Functional | [Currency rounding](cents.ts) | [Binary64 cents and half-cent ties](cents.proof.ts) |
 | Functional | [Clamp](clamp.ts) | [Ordered bounds and chained assertions](clamp.proof.ts) |
 | Functional | [Export quota](admit.ts) | [Batch bounds and boolean equality](admit.proof.ts) |
 | Imperative | [Balance debit](debit.ts) | [Local mutation, a branch, and an exact debit](debit.proof.ts) |
@@ -57,12 +59,17 @@ Pass a sidecar path to check it individually. Use `--emit` to inspect the genera
 bun run pud --emit packages/pud/.examples/clamp.proof.ts
 ```
 
+Motion’s production file is byte-for-byte identical to upstream revision `1fa0e141`. Run `bun run pud check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts` for six time-conversion laws and one exact currency rule. The cents sidecar requires the nearest integer to the binary64 product `amount * 100`, with half ties toward positive infinity. It accepts ordinary numbers, including signed zeros, infinities and NaN. [Original source](https://github.com/motiondivision/motion/blob/1fa0e141f7b3f0a4eea258d5debc7dfbe5af6ffc/packages/motion-utils/src/time-conversion.ts) · [Motion license](motion/LICENSE.md)
+
 ## Sidecar syntax
 
 `describe(exportedFunction, callback)` binds the suite's input signature to the named TS import. Each `it` declares one schema per parameter. A direct observation calls the export with those inputs in parameter order. A composed observation can nest named imported calls, using the declared inputs as leaves and calling the suite's export somewhere in the expression. `expect(result).to(pud.bigint().gte(lower).lte(upper))` requires a successful return satisfying the conjunction `lower ≤ result ∧ result ≤ upper`. Calls to `given` add cross-input constraints before the assertions. [Composed observation](zigzag-roundtrip.proof.ts)
 
 | Sidecar | Lean |
 | --- | --- |
+| `pud.number()` | `JSNumber`, covering finite binary64 values, both zeros, infinities and NaN |
+| Number `.eq`, `.gt`, `.gte`, `.lt`, `.lte` | JavaScript strict equality and ordered comparisons |
+| `Number.isInteger(x)`, `Number.isNaN(x)` | Predicates on the represented binary64 value, available in subjects and sidecars |
 | `pud.bigint()`, `pud.boolean()`, `pud.array(pud.bigint())` | `Int`, `Bool`, `List Int` |
 | `pud.array(pud.opaque<T>())`, `pud.textOrArray(pud.opaque<T>())` | `List Item`, `Option (List Item)` for an opaque element type |
 | Integer `.eq`, `.gt`, `.gte`, `.lt`, `.lte` | `=`, `>`, `≥`, `<`, `≤` |
@@ -78,7 +85,7 @@ bun run pud --emit packages/pud/.examples/clamp.proof.ts
 
 `pud.int()` and `pud.bool()` are aliases for `pud.bigint()` and `pud.boolean()`.
 
-Quantifier domains can be bound `readonly bigint[]` values or `pud.bigint()` and `pud.boolean()` schemas with optional constraints. Each callback is a unary arrow with an expression or a single return. Write ordinary scalar comparisons inside it and use the Pud connectives to combine symbolic predicates. Both refinements and `given()` accept symbolic predicates. [Membership example](array-contains.proof.ts) · [Maximum example](max-element.proof.ts)
+Quantifier domains can be bound `readonly bigint[]` values or `pud.number()`, `pud.bigint()` and `pud.boolean()` schemas with optional constraints. Each callback is a unary arrow with an expression or a single return. Write ordinary scalar comparisons inside it and use the Pud connectives to combine symbolic predicates. Both refinements and `given()` accept symbolic predicates. [Membership example](array-contains.proof.ts) · [Maximum example](max-element.proof.ts)
 
 Specifications can use `pud.length(values)` for a bigint count of elements or `pud.sum(values)` for the sum of a bigint array. `pud.modulo(value, divisor)` expresses the nonnegative residue for a positive bigint literal divisor. `pud.quotient(n, d)` is a mathematical truncating quotient with value zero at `d = 0`. Use it under a nonzero precondition when specifying JavaScript division, and use `.toThrow()` for the zero case. [Array sum](array-sum.proof.ts) · [Parity](is-even.proof.ts) · [Division](bigint-division.proof.ts)
 
@@ -92,9 +99,9 @@ The generated claim quantifies over the declared inputs and applies the matcher 
 
 Lean `Id.run do` represents pure local assignment, branching, and early returns. A `for…of` loop with a single pure bigint accumulator assignment lowers to `List.foldl`. Other supported `for…of` loops use Lean’s `for` over a list, including unlabelled `break` and `continue`. A `while` loop may use `counter > literal` or `counter >= literal` and end each iteration with `counter -= positiveLiteral`. Lean proves that its distance to the bound decreases. Direct pure self-recursion uses the first bigint parameter's `.toNat` as its measure, and Lean checks each recursive call. [Countdown and recursion](termination.ts) · [Lean recursion](https://lean-lang.org/doc/reference/latest/Definitions/Recursive-Definitions/)
 
-The runner applies Lean simplification, case splits, and integer arithmetic to active properties unless they provide a proof term. A fresh Lean module checks the resulting certificate against the generated claim and audits its axiom dependencies. An open goal, a mismatched theorem, or a dependency on `sorryAx` fails the command. The runner checks that the sidecar, implementation, and local Lean modules still match the files it read before reporting a pass. [Lean proof validation](https://lean-lang.org/doc/reference/latest/ValidatingProofs/)
+The runner applies Lean simplification, case splits, integer arithmetic and kernel evaluation of concrete binary64 operations to active properties unless they provide a proof term. A fresh Lean module checks the resulting certificate against the generated claim and audits its axiom dependencies. An open goal, a mismatched theorem, or a dependency on `sorryAx` fails the command. The runner checks that the sidecar, implementation, and local Lean modules still match the files it read before reporting a pass. [Lean proof validation](https://lean-lang.org/doc/reference/latest/ValidatingProofs/)
 
-The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. An `if` condition can be a boolean or a bigint, with zero treated as false. The final statement of a block-bodied subject must return or throw on every path. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
+The subject fragment includes synchronous scalar arithmetic and booleans, initialized locals, `if`, and `for…of` over ordinary dense `readonly bigint[]`. An `if` condition accepts booleans, bigints and numbers. A zero of either sign and NaN are falsy. The final statement of a block-bodied subject must return or throw on every path. For `string | readonly T[]`, one locally declared interface supplies the opaque element type. The unshadowed `Array.isArray` built-in narrows the array branch, and the model represents the text branch as `none`. The guarantee relies on the TS-to-Lean lowering and the displayed input domain. Lean escape hatches run as trusted local Lean code.
 
 Bigint division and remainder use `Int.tdiv` and `Int.tmod` for nonzero divisors. A zero divisor produces `Except.error .rangeError`. The adapter also models explicit throws of unshadowed `Error`, `RangeError`, and `TypeError`, with the class as the observed payload. It sequences fallible expressions left to right, evaluates short-circuit branches lazily, and supports `try { return expression } catch { … }` with an unbound catch and no `finally`. [ECMAScript bigint operations](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-bigint-type) · [Catch example](safe-quotient.ts)
 

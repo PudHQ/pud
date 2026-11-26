@@ -77,7 +77,7 @@ export function WaitlistSignup() {
           <input
             className="min-h-13 w-full min-w-0 scroll-my-16 border-2 border-transparent bg-paper px-3 py-2.25 text-ink
               placeholder:text-ink/60 aria-invalid:border-error-border focus-visible:z-10 focus-visible:outline-2
-              focus-visible:-outline-offset-4 focus-visible:outline-ink"
+              focus-visible:-outline-offset-4 focus-visible:outline-ink small-phone:px-2"
             ref={email}
             id="alpha-entry"
             name="email"
@@ -92,7 +92,8 @@ export function WaitlistSignup() {
           />
           <button
             className="inline-flex min-h-13 cursor-pointer items-center justify-between gap-3 bg-cyan px-4 text-sm font-bold whitespace-nowrap text-ink
-              enabled:hover:bg-cyan/85 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink disabled:cursor-progress disabled:opacity-75"
+              enabled:hover:bg-cyan/85 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink disabled:cursor-progress disabled:opacity-75
+              small-phone:gap-1 small-phone:px-2.5"
             type="submit"
             disabled={pending}
           >

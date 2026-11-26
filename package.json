@@ -25,6 +25,8 @@
     "typecheck": "\"$npm_execpath\" run --workspaces typecheck",
     "pack:cli": "\"$npm_execpath\" ./packages/pud/scripts/pack.ts",
     "pud": "\"$npm_execpath\" packages/pud/src/cli.ts",
+    "compat:check": "\"$npm_execpath\" experiments/compatibility/measure.ts",
+    "compat:update": "\"$npm_execpath\" experiments/compatibility/measure.ts --update",
     "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
   },
   "devDependencies": {

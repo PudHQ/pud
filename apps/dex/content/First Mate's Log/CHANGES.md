@@ -12,8 +12,10 @@ tags: [changelog, codex]
 
 ## 2026-11-26
 
-- Recorded the 163-export scan, example and booking verdicts, and Bun comparisons in [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Coverage on 26 November 2026|Measuring TypeScript-to-Lean coverage]].
-- Updated the [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map#What counts as covered|coverage map]] with the measured admission and proof counts.
+- Added [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] with the cover dimensions, narrow-screen layout and render measurements.
+- Added [[First Mate's Log/Frontend/posthog-proxy-and-https|PostHog proxy and HTTPS redirects]] with the proxy checks and live Cloudflare redirects.
+- Recorded the 163-export scan, the versioned eight-law pilot and the [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Checked number examples|exact number laws, ambiguous result rules and native witnesses]].
+- Updated the [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map|coverage map]] with the measured counts and linked the new [[Handbook/Engineering/Verification/typescript-compatibility|compatibility tree]].
 
 ## 2026-11-25
 
