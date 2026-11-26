@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-25
-updated-at: 2026-11-25
+updated-at: 2026-11-26
 summary: Additions, edits, moves, and removals in the First Mate’s Log, grouped by date.
 tags: [changelog, codex]
 ---
@@ -9,6 +9,11 @@ tags: [changelog, codex]
 
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+
+## 2026-11-26
+
+- Recorded the 163-export scan, example and booking verdicts, and Bun comparisons in [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Coverage on 26 November 2026|Measuring TypeScript-to-Lean coverage]].
+- Updated the [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map#What counts as covered|coverage map]] with the measured admission and proof counts.
 
 ## 2026-11-25
 

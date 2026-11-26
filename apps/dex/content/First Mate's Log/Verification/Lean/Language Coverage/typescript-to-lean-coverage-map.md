@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-25
+updated-at: 2026-11-26
 summary: A map of the language rules, runtime contracts, and proof obligations that connect a TypeScript export to a Lean verdict.
 tags: [verification, typescript, javascript, lean, coverage, effects, translation-validation, codex]
 ---
@@ -74,7 +74,9 @@ A model of `console.log(total)` has to identify the logger binding and account f
 | Preservation | Rules and combinations with checked evidence that modeled source execution and the generated Lean program agree on the declared observations. With several possible outcomes, the model must include every runtime outcome allowed by the assumptions. |
 | Property proof | Sidecar laws accepted by the kernel and axiom audit for the exact source and dependency snapshots. Include equivalent implementations using the same sidecar and a mutation that violates the law. |
 
-Use Test262 cases for ECMAScript behavior, TypeScript compiler cases for source and emit, and project fixtures for host contracts and end-to-end laws. The post-consolidation repo scan admitted **0 of 162 named exports**. Imports or module setup accounted for **106 first rejections**. The earlier curated demo certified 32 active laws with the supported `for…of` version of `sumPositive`. Keep the corpus and its denominator with the result. [Test262](https://github.com/tc39/test262) · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Scan after CLI consolidation|Repo coverage scan]]
+At `36a351e`, the adapter admitted **0 of 163 named exports** in Pud’s app and package source. Imports or module setup accounted for **107 first rejections**. In the separate example suite Lean proved 32 properties, Pud rejected the counted loop in `sumPositive`, and one property was marked TODO. The booking experiment proved six properties about its three business rules. [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Coverage on 26 November 2026|Corpus definitions, counts, and commands]]
+
+Use Test262 cases for ECMAScript behavior, TypeScript compiler cases for source and emit, and project fixtures for host contracts and end-to-end laws. Keep the corpus and its denominator with each result. [Test262](https://github.com/tc39/test262)
 
 ## Proposed build order
 
