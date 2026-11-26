@@ -8,6 +8,6 @@ Search the local vault at `apps/dex/content` whenever existing project context c
 
 Start in the Handbook for how Pud works and how to use it. Follow links into the First Mate’s Log for the experiments, measurements, and design decisions behind a guide. Read log entries as snapshots and check the implementation, a current run, or the cited primary source before relying on a claim about current behavior.
 
-Link the notes that support a finding or decision. Prefer a Handbook explanation for current behavior and the original log entry for a specific experiment. Use vault wikilinks inside PudDex and workspace file links in repo conversations.
+Link the notes that support a finding or decision. Prefer a Handbook explanation for current behavior and the original log entry for a specific experiment. Use vault wikilinks inside PudDex. Follow [PudDex links](../puddex-links/SKILL.md) when sharing a page in chat.
 
 When new evidence or references warrant an update, revise the existing note using the [PudDex notes skill](../puddex-notes/SKILL.md).

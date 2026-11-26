@@ -385,6 +385,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
   let observation: ProofCall | undefined;
   let observationKey: string | undefined;
   let resultType = subject.result;
+  let reference: ProofCall | undefined;
   let expectedError: ProofErrorKind | undefined;
 
   function readCall(node: Node | null | undefined): ProofCall {
@@ -437,10 +438,10 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       results.set(name, call);
       continue;
     }
-    if (step.type !== "ExpressionStatement") invalid(file, step, "Use given(), a subject call, or expect().to().");
+    if (step.type !== "ExpressionStatement") invalid(file, step, "Use given(), a subject call, or an expect() assertion.");
     const given = directCall(step.expression, helpers.get("given"));
     if (given) {
-      if (assertions.length || expectedError) invalid(file, step, "Put given() before the assertions.");
+      if (assertions.length || reference || expectedError) invalid(file, step, "Put given() before the assertions.");
       const [condition] = arity(file, given, 1);
       const predicate = proofPredicate(suite, condition, bindings);
       premises.push(predicate.kind === "boolean"
@@ -449,12 +450,12 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       continue;
     }
     const to = memberCall(step.expression);
-    const expect = to && (to.name === "to" || to.name === "toThrow") && directCall(to.receiver, helpers.get("expect"));
-    if (!to || !expect) invalid(file, step, "Use expect(result).to(pud.…) or expect(() => call()).toThrow(error).");
+    const expect = to && (to.name === "to" || to.name === "toEqual" || to.name === "toThrow") && directCall(to.receiver, helpers.get("expect"));
+    if (!to || !expect) invalid(file, step, "Use expect() with to(), toEqual(), or toThrow().");
     const [result] = arity(file, expect, 1);
     const [matcher] = arity(file, to.call, 1);
     if (to.name === "toThrow") {
-      if (assertions.length || expectedError || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
+      if (assertions.length || reference || expectedError || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
       if (result?.type !== "ArrowFunctionExpression" || result.async || result.typeParameters || result.params.length || result.body.type === "BlockStatement") {
         invalid(file, result, "Use a parameterless arrow expression for a throwing call.");
       }
@@ -464,14 +465,24 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       expectedError = error as ProofErrorKind;
       continue;
     }
-    if (expectedError) invalid(file, step, "Use one outcome per property.");
+    if (expectedError || reference) invalid(file, step, "Use one outcome per property.");
     const local = result?.type === "Identifier" && results.get(result.name);
     observe(local || readCall(result), result!);
+    if (to.name === "toEqual") {
+      if (assertions.length) invalid(file, step, "Use toEqual() as the only assertion in its property.");
+      if (!subject.callEquality || !subject.inspectCall) invalid(file, step, "The selected assistant does not support equality between calls.");
+      reference = readCall(matcher);
+      const expected = subject.inspectCall(reference);
+      if ((resultType.kind !== "integer" && resultType.kind !== "boolean") || resultType.kind !== expected.kind) {
+        invalid(file, matcher, "Use toEqual() with calls returning the same scalar type.");
+      }
+      continue;
+    }
     const clauses = schemaConstraints(suite, matcher, resultType, { kind: "result" }, bindings);
     if (!clauses.length) invalid(file, matcher, "Add a constraint to the result schema.");
     assertions.push(...clauses);
   }
-  if (!assertions.length && !expectedError) invalid(file, property.call, "Add an assertion or use it.todo().");
+  if (!assertions.length && !reference && !expectedError) invalid(file, property.call, "Add an assertion or use it.todo().");
   const proof = property.proof && nativeTerm(suite, property.proof, emptyBindings);
-  return { premises, assertions, proof, ...(observation && { observation }), ...(expectedError && { expectedError }) };
+  return { premises, assertions, proof, ...(observation && { observation }), ...(reference && { reference }), ...(expectedError && { expectedError }) };
 }

@@ -85,7 +85,10 @@ interface SuiteAuthoring<Id extends string> {
   };
   given(condition: Predicate): void;
   expect: {
-    <T extends Value>(value: T): { to(schema: Schema<NoInfer<T>, Id>): void };
+    <T extends Value>(value: T): {
+      to(schema: Schema<NoInfer<T>, Id>): void;
+      toEqual(reference: NoInfer<T> & (bigint | boolean)): void;
+    };
     (call: () => Value): { toThrow(error: ProofErrorKind): void };
   };
   use(module: NativeModule<Id>): void;

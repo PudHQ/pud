@@ -68,6 +68,8 @@ export interface ProofClaim {
   assertions: readonly ProofConstraint[];
   proof?: NativeProofTerm;
   observation?: ProofCall;
+  /** For an equality claim, the call whose result must equal the observation. */
+  reference?: ProofCall;
   expectedError?: ProofErrorKind;
 }
 
@@ -97,6 +99,8 @@ export interface PreparedProofAssistant {
   parameters: readonly { name: string; type: ProofType }[];
   result: ProofType;
   inspectCall?(call: ProofCall): ProofType;
+  /** The assistant can compare the observation with a reference call. */
+  callEquality?: true;
   errors?: readonly ProofErrorKind[];
   emit(claim: ProofClaim, modules: readonly ProofModule[]): string | Promise<string>;
   verify(claims: readonly ProofClaim[], modules: readonly ProofModule[], onClaim?: ClaimProgress): Promise<readonly ProofOutcome[]>;

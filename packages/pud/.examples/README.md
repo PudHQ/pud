@@ -33,6 +33,7 @@ lean --version
 | Imperative | [Linear search](linear-search.ts) | [First match with an early return](linear-search.proof.ts) |
 | Functional | [Content dispatch](content-dispatch.ts) | [Narrowing text or parts with `Array.isArray`](content-dispatch.proof.ts) |
 | Imperative | [Array sum](array-sum.ts) | [Exact sum](array-sum.proof.ts) |
+| Imperative | [Availability tally](availability/README.md) | [Equality to a reference tally across batches](availability/count-free.proof.ts) |
 | Imperative | [Array membership](array-contains.ts) | [Membership with `break`](array-contains.proof.ts) |
 | Imperative | [Sortedness](is-sorted.ts) | [Nondecreasing adjacent pairs](is-sorted.proof.ts) |
 | Imperative | [Maximum element](max-element.ts) | [List maximum with an empty-list default](max-element.proof.ts) |
@@ -71,6 +72,7 @@ bun run pud --emit packages/pud/.examples/clamp.proof.ts
 | `pud.forall(domain, value => predicate)` | Universal quantification with the domain as a premise |
 | `pud.exists(domain, value => predicate)` | Existential quantification with the domain as a conjunct |
 | `pud.and`, `pud.or`, `pud.not`, `pud.implies`, `pud.iff` | `∧`, `∨`, `¬`, `→`, `↔` |
+| `expect(call()).toEqual(reference())` | Equality of two successful scalar results |
 | `expect(() => call()).toThrow("RangeError")` | Equality to the modeled `Except.error` outcome |
 | `it.todo(title)` | A reported TODO with zero proof obligations |
 

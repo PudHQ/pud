@@ -7,6 +7,8 @@ type Binding = Value & { mutable?: boolean };
 export type Parameter = Value & { name: string };
 
 export interface Subject {
+  file: string;
+  name: string;
   code: string;
   params: Parameter[];
   result: Sort;
@@ -424,6 +426,6 @@ export function lowerFunction(
     termination = `\ntermination_by ${measure.code}.toNat\ndecreasing_by all_goals (simp_wf; try simp_all; omega)`;
   }
   const definition = `def ${[code, ...signature].join(" ")} : ${resultType} :=${body}${termination}`;
-  return { code, params, result, itemType, definition, fallible, countdown, fold, loopConformance: fallible ? [] : loopConformance, recursive,
+  return { file, name: symbol, code, params, result, itemType, definition, fallible, countdown, fold, loopConformance: fallible ? [] : loopConformance, recursive,
     callees: new Set(callTargets.values()), sourceExpression: scalarSource(fn.body, params, result, callTargets) };
 }

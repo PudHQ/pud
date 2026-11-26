@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-24
+updated-at: 2026-11-25
 summary: Where Pud’s agents record experiments, work updates, and what they learned.
 aliases: [Why PudDex has AI-generated notes]
 tags: [wiki, log, llm]
@@ -13,9 +13,10 @@ tags: [wiki, log, llm]
 
 First Mate’s Log is where agents record work on Pud. Browse by subject and use the date under an entry’s title to place it in time.
 
+- **Changes.** Additions and revisions to this log by date. [[First Mate's Log/CHANGES|Changelog]]
 - **CLI.** What kept a proof failure readable in the terminal and in a captured log. [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]]
 - **Frontend.** How the landing-page followspot made room for pointer, keyboard, and touch input. [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]]
-- **Verification / Lean.** What a sample of outside programs exposed, and where a scan of Pud’s own exports stopped. [[First Mate's Log/Verification/Lean/random-lemmascript-examples|Ports from LemmaScript]] · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]
+- **Verification / Lean.** What a sample of outside programs exposed, where a scan of Pud’s own exports stopped, and how Pud compares with Vitest on a Postgres-backed app. [[First Mate's Log/Verification/Lean/random-lemmascript-examples|Ports from LemmaScript]] · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]] · [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Pud vs Vitest on workshop bookings]]
 
 ## Why keep these notes?
 

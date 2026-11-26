@@ -4,10 +4,18 @@ A selection of opinionated skills used for development in any repository that ha
 
 Use all that you require below:
 
+## Agent etiquette
+
+| Skill | Location | Description |
+| --- | --- | --- |
+| Git operations | [gitops](./gitops/SKILL.md) | Offer scoped staging after repository work |
+| PudDex links | [puddex-links](./puddex-links/SKILL.md) | Share local PudDex pages through the Codex webview |
+
+## Project skills
+
 | Type    | Location                               | Description                                            |
 | :------ | :------------------------------------- | :----------------------------------------------------- |
 | Monorepo | [monorepo.md](./monorepo.md)           | Workspace standards, shared code, and maintenance      |
-| Git operations | [gitops](./gitops/SKILL.md) | Offer scoped staging after repository work |
 | PudDex notes | [puddex-notes](./puddex-notes/SKILL.md) | Write Handbook guides and topical First Mate’s Log entries |
 | PudDex reference | [puddex-reference](./puddex-reference/SKILL.md) | Find and cite relevant project context in PudDex |
 | Styling | [`./styling.md`](./styling.md)         | Directives and opinions on styling, including Tailwind |

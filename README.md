@@ -25,6 +25,8 @@ bun run pud --emit packages/pud/.examples/linear-search.proof.ts
 
 The search proof checks that the returned index is the first match, or `-1n` when the target is absent. The terminal shows live progress, then verdicts, timings, and diagnostics by file. `--emit` prints the generated Lean unit for inspection. [Lean examples](packages/pud/.examples/README.md) · [Search walkthrough](<apps/dex/content/Handbook/Engineering/Verification/Lean/checking-typescript-with-lean.md>)
 
+The availability tally shows a second workflow. Pud proves the same law after a split-and-merge refactor, then replays a version that drops one batch to show a concrete failing input. [Availability walkthrough](packages/pud/.examples/availability/README.md)
+
 ## Run your own checks
 
 Build the self-contained package with `bun run pack:cli`. In your Bun project, install the archive and select a driver.

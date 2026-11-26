@@ -59,6 +59,10 @@ With the Lean adapter, `describe(encode, …)` supplies the input signature and 
 expect(decode(encode(value))).to(pud.bigint().eq(value));
 ```
 
+Use `expect(call()).toEqual(reference())` to compare two linked, nonthrowing calls that return the same scalar type. The sidecar can supply input constraints with `given()` before the check. The generated claim links and compares both implementations. [Availability example](.examples/availability/README.md)
+
+For an unconditional call equality with bigint, boolean, or dense bigint-array inputs, `leanAdapter({ replay: true })` samples both frozen TypeScript implementations in a Bun subprocess if Lean leaves the claim open. A differing return produces `FAIL` with the sampled input and both values. A run with no witness keeps its proof verdict. Enable replay for source you trust to execute.
+
 A property can also assert the exact class of a modeled exception. The callback keeps the throwing call inside the observation.
 
 ```ts

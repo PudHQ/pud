@@ -14,6 +14,8 @@ Write a Handbook note when you can explain a concrete facet of Pud in depth or w
 
 Use `First Mate's Log/` for agent work updates, experiments, measurements, design trials, and open questions. File entries in subject folders with descriptive filenames, such as `First Mate's Log/Verification/Lean/random-lemmascript-examples.md`. Put dates in frontmatter. Record what you tried, what happened, and what the result taught you. Link the evidence and any relevant Handbook guide. When an experiment yields a durable explanation or a verified workflow, document it in the Handbook and link back to the experiment.
 
+When you add, edit, move, or remove a First Mate’s Log entry, record one bullet per affected note in [CHANGES.md](<../../apps/dex/content/First Mate's Log/CHANGES.md>). Say what changed and link to the note when available. Use calendar dates in `YYYY-MM-DD` headings with the latest date first, and set the changelog’s `updated-at` to the latest entry date when revising it.
+
 ## Maintain existing notes
 
 When new evidence or a better reference bears on an existing note, revise the relevant passage in place. Link the new source where it supports the claim and correct any claims the evidence changes. Keep the original `date` and set `updated-at` to the revision date in `YYYY-MM-DD` format. Use Git for edit history.

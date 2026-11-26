@@ -7,9 +7,11 @@ import { lowerFunction, type Subject } from "./subject.ts";
 
 interface Module {
   file: string;
+  source: string;
   program: Program;
   declarations: Program;
   imports: Map<string, { owner: Module; name: string }>;
+  resolvedImports: { start: number; end: number; file: string }[];
 }
 
 /** Link source functions only after validating module initialization and binding identities. */
@@ -27,7 +29,7 @@ export function lowerProgram(source: SubjectSource) {
     loading.add(file);
     try {
       const program = parseSourceModule(file, contents);
-      const module: Module = { file, program, declarations: { ...program, body: [] }, imports: new Map() };
+      const module: Module = { file, source: contents, program, declarations: { ...program, body: [] }, imports: new Map(), resolvedImports: [] };
       for (const node of program.body) {
         if (node.type !== "ImportDeclaration" || node.importKind === "type") {
           module.declarations.body.push(node);
@@ -40,6 +42,7 @@ export function lowerProgram(source: SubjectSource) {
         const resolveAgain = () => resolveTypeScriptImport(file, node.source, dirname(file));
         const dependency = source.readModule(resolveAgain(), resolveAgain);
         const owner = load(dependency.canonical, dependency.source);
+        module.resolvedImports.push({ start: node.source.start!, end: node.source.end!, file: owner.file });
         for (const spec of node.specifiers) {
           if (spec.type !== "ImportSpecifier" || spec.imported.type !== "Identifier") {
             invalid(file, spec, "Use a named function import.");
@@ -85,6 +88,7 @@ export function lowerProgram(source: SubjectSource) {
   const root = link(owner, source.name, true);
   return {
     root,
+    modules,
     resolve(file: string, name: string) {
       if (file === owner.file) return link(owner, name, true);
       if (!source.readModule) invalid(file, undefined, "Linking another export needs a source snapshot.");

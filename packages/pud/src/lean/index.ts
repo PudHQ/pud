@@ -8,8 +8,9 @@ import { native } from "../suite-authoring.ts";
 import { runProver } from "../prover-process.ts";
 import { leanCommand, type LeanOptions } from "./command.ts";
 import { definitions, lowerProgram } from "./program.ts";
+import { replayEquality } from "./replay.ts";
 import { iterationSemantics, scalarCall, scalarSemantics, scalarValue } from "./scalar.ts";
-import { asOutcome, errorKinds, invoke, leanTypes, ofSort, readProposition, readValue, type Sort, type Value } from "./syntax.ts";
+import { asOutcome, errorKinds, invoke, isScalar, leanTypes, ofSort, readProposition, readValue, type Sort, type Value } from "./syntax.ts";
 
 export type { LeanOptions } from "./command.ts";
 export const lean = native("lean");
@@ -133,12 +134,18 @@ ${indent(normalize(proved.map(subject => subject.code + "Lowering")))}`].join("\
 }
 
 function generate(program: Program, claim: ProofClaim, imports: readonly string[]) {
-  if (claim.expectedError ? !Object.hasOwn(errorKinds, claim.expectedError) || claim.assertions.length : !claim.assertions.length) {
-    throw new Unsupported("State either a return predicate or one modeled exception.");
+  const modes = [claim.expectedError, claim.reference, claim.assertions.length].filter(Boolean);
+  if (modes.length !== 1 || (claim.expectedError && !Object.hasOwn(errorKinds, claim.expectedError))) {
+    throw new Unsupported("State a return predicate, equality between calls, or one modeled exception.");
   }
   const { params, itemType } = program.root;
   const observed = observe(program, claim.observation);
-  const { value: execution, linked } = observed;
+  const execution = observed.value;
+  const reference = claim.reference && observe(program, claim.reference);
+  if (reference && (!isScalar(execution.sort) || reference.value.sort !== execution.sort || reference.value.fallible || execution.fallible)) {
+    throw new Unsupported("Use toEqual() with two nonthrowing calls returning the same scalar type.");
+  }
+  const linked = reference ? definitions([...observed.linked, ...reference.linked]) : observed.linked;
   const parameters = new Map(params.map(p => [p.name, p]));
   const result: Value = { sort: execution.sort, code: "result" };
   let nextBinder = 0;
@@ -197,7 +204,8 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   function proposition(outcome: Value) {
     const goal = claim.expectedError
       ? outcome.fallible ? `(${outcome.code}) = .error ErrorKind.${errorKinds[claim.expectedError]}` : "False"
-      : outcome.fallible
+      : reference ? `(${outcome.code}) = (${reference.value.code})`
+        : outcome.fallible
         ? `match (${outcome.code}) with\n| .ok result =>\n${indent(assertions)}\n| .error _ => False`
         : `let result := ${outcome.code}\n${assertions}`;
     return [binders && `∀ ${binders},`, ...premises, goal].filter(Boolean).join("\n");
@@ -208,8 +216,8 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   const fold = linked.some(subject => subject.fold);
   const loopConformance = linked.flatMap(subject => subject.loopConformance);
   if (countdown) recursive.push("countdownWhile");
-  const certificate = loweringProof(observed, binders);
-  const sourceClaim = observed.source && proposition({
+  const certificate = reference ? undefined : loweringProof(observed, binders);
+  const sourceClaim = certificate && observed.source && proposition({
     sort: observed.source.sort, code: `Scalar.evaluate ${observed.source.code}`, fallible: true,
   });
   let proof = claim.proof ? term(claim.proof, emptyScope) : autoProof(simplify, recursive);
@@ -335,6 +343,14 @@ async function verify(
       } catch (error) {
         const detail = (error as Error).message;
         outcome = { status: error instanceof RejectedProof ? "unproved" : "error", detail };
+        if (error instanceof RejectedProof && options.replay) {
+          try {
+            const counterexample = await replayEquality(program, claims[i]!, join(dir, `replay-${i}`));
+            if (counterexample) outcome = { status: "disproved", counterexample };
+          } catch (replayError) {
+            outcome = { status: "error", detail: `Bun replay failed. ${(replayError as Error).message}`, diagnostic: detail };
+          }
+        }
       }
       outcomes.push(outcome);
       onClaim?.(i, "finished", outcome.status);
@@ -355,6 +371,7 @@ export function leanAdapter(options: LeanOptions = {}): ProofAssistant<"lean"> {
         parameters: subject.params.map(p => ({ name: p.name, type: proofType(p.sort, subject.itemType) })),
         result: proofType(subject.result, subject.itemType),
         inspectCall(call) { return proofType(observe(program, call).value.sort, undefined); },
+        callEquality: true,
         errors: modeledErrors,
         emit(claim, modules) { return generate(program, claim, moduleNames(modules)).unit; },
         verify(claims, modules, onClaim) { return verify(program, source, options, claims, modules, onClaim); },

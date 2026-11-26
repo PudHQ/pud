@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-21
-updated-at: 2026-11-24
+updated-at: 2026-11-25
 summary: How to file, link, and revise a note in the PudDex vault.
 aliases: [Wiki handbook, Adding to the Index]
 tags: [wiki, writing]
@@ -11,7 +11,7 @@ tags: [wiki, writing]
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
-Open `apps/dex/content` in Obsidian or edit its Markdown files directly. Each file becomes a page on the next Dex build. Its folder sets its breadcrumb, and that folder’s page lists its notes and the notes below it.
+Open `apps/dex/content` in Obsidian or edit its Markdown files directly. Each file becomes a page on the next Dex build. Its folder sets its breadcrumb. Each directory lists its immediate subfolders first, followed by the notes in that folder and its descendants. The directory search includes both groups.
 
 ## Place a note
 

@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { check, checkFiles, emit, type CheckProgress, type ProofAssistant } from "../src/index.ts";
+import { check, checkFiles, emit, type CheckProgress, type CheckReport, type ProofAssistant } from "../src/index.ts";
 import { leanCommand } from "../src/lean/command.ts";
 import { leanAdapter } from "../src/lean/index.ts";
 
@@ -51,6 +51,50 @@ async function fixture(run: (directory: string) => Promise<void>) {
   try { await run(directory); }
   finally { await rm(directory, { recursive: true, force: true }); }
 }
+
+leanTest("the same availability law proves the refactor and replays a dropped batch in Bun", async () => {
+  await fixture(async directory => {
+    await cp(join(examples, "availability"), directory, { recursive: true });
+    const config = join(directory, "pud.config.ts");
+    const root = join(import.meta.dir, "../src");
+    // A temporary project resolves the source entry points directly.
+    await writeFile(config, [
+      `import { defineConfig } from ${JSON.stringify(join(root, "index.ts"))};`,
+      `import { leanAdapter } from ${JSON.stringify(join(root, "lean/index.ts"))};`,
+      "export default defineConfig({ adapter: leanAdapter({ replay: true }) });",
+    ].join("\n"));
+    function run(exit: number) {
+      const child = Bun.spawnSync([process.execPath, join(root, "cli.ts"), "check", "--json", "count-free.proof.ts"], {
+        cwd: directory, env: { ...command.env, PUD_LEAN: command.binary }, timeout: 20_000,
+      });
+      const stdout = child.stdout.toString(), stderr = child.stderr.toString();
+      if (child.exitCode !== exit || stderr) throw new Error(`Pud exited ${child.exitCode}\n${stdout}\n${stderr}`);
+      return (JSON.parse(stdout).files[0] as CheckReport).results[0];
+    }
+
+    expect(run(0)?.status).toBe("proved");
+    const implementation = join(directory, "count-free.ts");
+    const split = await readFile(join(directory, "split-count-free.ts"), "utf8");
+    await writeFile(implementation, split);
+    expect(run(0)?.status).toBe("proved");
+
+    const addition = "countBatch(right) + countBatch(left)";
+    expect(split).toContain(addition);
+    await writeFile(implementation, split.replace(addition, "countBatch(left)"));
+    expect(run(1)).toMatchObject({
+      status: "disproved",
+      counterexample: { input: { left: "[]", right: "[1n]" }, difference: { expected: "1n", received: "0n" } },
+    });
+
+    const proof = join(directory, "count-free.proof.ts");
+    const restricted = (await readFile(proof, "utf8")).replace("{ it, expect, use }", "{ it, expect, given, use }")
+      .replace("    expect(countFree", "    given(pud.length(right) > 1n);\n    expect(countFree");
+    await writeFile(proof, restricted);
+    const open = run(1);
+    expect(open?.status).toBe("unproved");
+    expect(open?.counterexample).toBeUndefined();
+  });
+}, 45_000);
 
 function sidecar(subject: string, functionImports: string, source: string, schemas: string, inputs: string, assertion: string) {
   return `import { describe, expect, it, pud } from "@pud.dev/lib";

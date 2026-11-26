@@ -75,3 +75,27 @@ Run `bun run --silent pud check packages/pud/.examples/zigzag-roundtrip.proof.ts
 Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
 
 For the supported scalar fragment, the generated unit also includes `loweringCertificate` and `sourceChecked`. The first equates the emitted observation to the modeled TypeScript source outcome. The second transfers the sidecar property to that source evaluation. [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Road to semantic preservation|Preservation proofs and the remaining trust boundary]]
+
+## Compare a refactor with a reference
+
+Use `toEqual()` when a nonthrowing bigint or boolean computation should agree with a simpler linked TypeScript call. The availability example compares the tally for a single scheduling slot against a reference that adds independent batch counts.
+
+```ts
+expect(countFree(left, right)).toEqual(countFreeReference(left, right));
+```
+
+Run `bun run --silent pud check packages/pud/.examples/availability/count-free.proof.ts`. Lean proves equality for the modeled dense bigint arrays. The same sidecar and lemmas also prove the split-and-merge implementation. [Availability example](https://github.com/rorz/pud/tree/main/packages/pud/.examples/availability)
+
+With `leanAdapter({ replay: true })`, Pud samples unconditional call equalities over supported inputs when Lean leaves a claim open. It runs both calls against frozen TypeScript sources with the resolved imports in Bun. Dropping the right batch yields `FAIL` for `left = []` and `right = [1n]`, with expected `1n` and received `0n`. A search with no witness leaves `UNPROVED`. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Availability tally refactor|How the example was checked]]
+
+## Prove a rule used in a transaction
+
+Put a pure rule in a module the adapter can lower, then use that same function in the app and its proof sidecar. The booking example proves the seat decision, member price, and cancellation credit. Both verification paths run the same integration tests against Postgres to check that transactions write the right values, handle retries, and roll back after a write fails. [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Workshop booking comparison and runnable app]]
+
+## Choose a proof or a test
+
+Use a proof when you can state a precise rule that should hold for every input in the adapter’s model. Good first candidates are integer rounding, a codec roundtrip, or equality to an independent reference during a refactor. Check the preconditions against the values callers actually pass. Review the assertion with an example of an implementation that should fail. A quote that always charges zero satisfies a nonnegative-price bound, so the booking proof specifies the exact charge.
+
+Use executable tests for concrete product examples and behavior you need to observe in the running system. A test can check the refund at a named policy boundary or read the persisted balance after cancellation. Tests also exercise the parts around a proved rule, such as converting inputs, the caller supplying the right arguments, and handling the return value. Keep those tests alongside the proof where the two checks answer different questions.
+
+Start with the fast tests when you need feedback on an edit. Run the proof to check the whole modeled domain, particularly when a refactor should preserve the existing law. Read `PASS` against the stated claim and its input domain. Use the diagnostic when Pud reports `UNPROVED` or `UNSUPPORTED`. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]] · [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking#Where Pud has the clearest advantage|Measured trade-offs and checked examples]]

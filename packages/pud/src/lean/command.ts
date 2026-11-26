@@ -6,6 +6,7 @@ import type { SubjectSource } from "../assistant.ts";
 export interface LeanOptions {
   executable?: string;
   toolchain?: string;
+  replay?: boolean;
 }
 
 function ancestors(file: string) {

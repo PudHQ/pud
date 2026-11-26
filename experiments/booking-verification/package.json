@@ -1,0 +1,23 @@
+{
+  "name": "@pud.dev/booking-verification",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "benchmark": "\"$npm_execpath\" benchmark.ts",
+    "demo": "\"$npm_execpath\" demo.ts",
+    "proof": "\"$npm_execpath\" ../../packages/pud/src/cli.ts check .proofs",
+    "test": "vitest run rules.test.ts booking.test.ts",
+    "test:examples": "vitest run rules.test.ts",
+    "test:bounded": "vitest run rules-bounded.test.ts",
+    "test:bounded:db": "vitest run rules-bounded.test.ts booking.test.ts",
+    "test:db": "vitest run booking.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.16"
+  },
+  "devDependencies": {
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}
