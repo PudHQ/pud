@@ -8,7 +8,7 @@ tags: [verification, typescript, lean, lemmascript, coverage]
 # Porting LemmaScript examples to Lean
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 ## Initial draw
 
@@ -26,7 +26,7 @@ The ports exposed three choices the model had to make. Parity needs the sign rul
 
 ## Ten follow-up ports
 
-The follow-up selected six array and loop examples and four scalar examples from the same revision. The loop properties cover exact sums, membership, sortedness, maxima, the number of ordered pairs, and the number of odd values. The scalar properties cover the greatest of three inputs, both directions of the ZigZag relation, two wide bit operations, and boolean and bigint conditions. [Runnable example index](https://github.com/rorz/pud/blob/main/packages/pud/.examples/README.md#run-the-examples)
+The follow-up selected six array and loop examples and four scalar examples from the same revision. The loop properties cover exact sums, membership, sortedness, maxima, the number of ordered pairs, and the number of odd values. The scalar properties cover the greatest of three inputs, both directions of the ZigZag relation, two wide bit operations, and boolean and bigint conditions. [Runnable example index](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/README.md#run-the-examples)
 
 The ports use exact bigint arithmetic and traverse dense read-only arrays with `for…of`. Sortedness accepts the empty array, maximum element returns zero for it, and the nested-loop port uses the array length as its iteration count.
 

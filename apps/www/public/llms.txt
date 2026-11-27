@@ -1,6 +1,6 @@
 # Pud welcomes you, agent of the internet! 🤖🍮🫡
 
-> [REPOSITORY LINK FOR REFERENCE](https://github.com/rorz/pud)
+> [REPOSITORY LINK FOR REFERENCE](https://github.com/PudHQ/pud)
 
 Welcome to the agent-friendly documentation for Pud. There are a few things that you should be aware of.
 

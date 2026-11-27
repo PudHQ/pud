@@ -8,7 +8,7 @@ tags: [verification, typescript, lean, quantifiers, call-graphs, exceptions]
 # Checking TypeScript with Lean
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 Pud reads a TypeScript function and its `*.proof.ts` sidecar. Its Lean adapter generates the implementation and claim, then asks Lean to certify that claim. In the search example, the claim requires the index of the target’s first occurrence.
 
@@ -25,7 +25,7 @@ const pud = defineConfig({ adapter: leanAdapter() });
 export default pud;
 ```
 
-Portable suites import `describe`, `it`, and `pud` from `@pud.dev/lib`. A matcher such as `pud.bigint().gte(0n)` states the same property regardless of which assistant is selected. When a suite supplies a Lean predicate or proof, import `pud` from `pud.config.ts` and call `pud.describe()`. The same import provides the schema builders, and TypeScript checks that native terms belong to the chosen assistant. [Authoring examples](https://github.com/rorz/pud/blob/main/packages/pud/README.md#configure-a-proof-assistant)
+Portable suites import `describe`, `it`, and `pud` from `@pud.dev/lib`. A matcher such as `pud.bigint().gte(0n)` states the same property regardless of which assistant is selected. When a suite supplies a Lean predicate or proof, import `pud` from `pud.config.ts` and call `pud.describe()`. The same import provides the schema builders, and TypeScript checks that native terms belong to the chosen assistant. [Authoring examples](https://github.com/PudHQ/pud/blob/main/packages/pud/README.md#configure-a-proof-assistant)
 
 ## Run the search proof
 
@@ -58,9 +58,9 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 ));
 ```
 
-Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/rorz/pud/blob/main/packages/pud/.examples/array-contains-lemmas.lean)
+Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/array-contains-lemmas.lean)
 
-Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/pud/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/rorz/pud/blob/main/packages/pud/.examples/README.md#sidecar-syntax)
+Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/pud/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/README.md#sidecar-syntax)
 
 ## Check ordinary numbers
 
@@ -78,7 +78,7 @@ Run the two Motion sidecars and the currency example from the repository root.
 bun run pud check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts
 ```
 
-The six Motion laws cover unit scale, sign and reversal. Each conversion has one exact result rule that also accounts for NaN and signed zero. The currency sidecar specifies how to select a whole cent when a scaled amount falls between integers. [Time conversions](https://github.com/rorz/pud/tree/main/packages/pud/.examples/motion) · [Currency sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/cents.proof.ts)
+The six Motion laws cover unit scale, sign and reversal. Each conversion has one exact result rule that also accounts for NaN and signed zero. The currency sidecar specifies how to select a whole cent when a scaled amount falls between integers. [Time conversions](https://github.com/PudHQ/pud/tree/main/packages/pud/.examples/motion) · [Currency sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/cents.proof.ts)
 
 ## Specify a single result
 
@@ -92,9 +92,9 @@ it("returns the nearest whole cent, with half cents rounded toward positive infi
 });
 ```
 
-The input schema admits every JavaScript number. The result rule selects between the two neighboring integers around the binary64 product `amount * 100`. It chooses 13 for 12.5 cents and −12 for −12.5 cents. It preserves NaN, infinities and the sign of a zero result. A guard such as `given(Number.isInteger(amount * 100))` would remove all fractional-cent decisions from the claim. Numeric `.eq()` uses JavaScript strict equality. Use `.sameValue()` when the sign of zero or NaN is part of the required result. [Cents sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/cents.proof.ts) · [ECMAScript Number](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-ecmascript-language-types-number-type)
+The input schema admits every JavaScript number. The result rule selects between the two neighboring integers around the binary64 product `amount * 100`. It chooses 13 for 12.5 cents and −12 for −12.5 cents. It preserves NaN, infinities and the sign of a zero result. A guard such as `given(Number.isInteger(amount * 100))` would remove all fractional-cent decisions from the claim. Numeric `.eq()` uses JavaScript strict equality. Use `.sameValue()` when the sign of zero or NaN is part of the required result. [Cents sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/cents.proof.ts) · [ECMAScript Number](https://tc39.es/ecma262/multipage/ecmascript-data-types-and-values.html#sec-ecmascript-language-types-number-type)
 
-With replay enabled, a failed exact rule can report two answers it permits for one input. A lower bound of `result >= x` for a bigint identity function permits both `0n` and `1n` at `x = 0n`. The same bound is a valid invariant. A result rule can also uniquely describe the wrong business policy. Pick a plausible mistake, such as reversing the tie direction, and check that the law rejects it. [Executable checks](https://github.com/rorz/pud/blob/main/packages/pud/test/number.test.ts)
+With replay enabled, a failed exact rule can report two answers it permits for one input. A lower bound of `result >= x` for a bigint identity function permits both `0n` and `1n` at `x = 0n`. The same bound is a valid invariant. A result rule can also uniquely describe the wrong business policy. Pick a plausible mistake, such as reversing the tie direction, and check that the law rejects it. [Executable checks](https://github.com/PudHQ/pud/blob/main/packages/pud/test/number.test.ts)
 
 Lean checks the claim against Pud’s binary64 model. Agreement with Bun is measured separately on boundary and seeded inputs. The model assumes primitive numbers and unmodified built-ins. Number arrays, coercion, exponentiation and remainder are outside this numeric fragment. [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Checked number examples|Proofs, runtime comparisons and mutations]]
 
@@ -108,7 +108,7 @@ expect(decode(encode(value))).to(pud.bigint().eq(value));
 
 Run `bun run --silent pud check packages/pud/.examples/zigzag-roundtrip.proof.ts`. The generated theorem includes both function bodies and quantifies over every signed bigint. Pud snapshots reachable module sources and rechecks their import resolutions.
 
-Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
+Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
 
 For the supported bigint and boolean fragment, the generated unit also includes `loweringCertificate` and `sourceChecked`. The first equates the emitted observation to the modeled TypeScript source outcome. The second transfers the sidecar property to that source evaluation. [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Road to semantic preservation|Preservation proofs and the remaining trust boundary]]
 
@@ -120,7 +120,7 @@ Use `toEqual()` when a nonthrowing number, bigint or boolean computation should 
 expect(countFree(left, right)).toEqual(countFreeReference(left, right));
 ```
 
-Run `bun run --silent pud check packages/pud/.examples/availability/count-free.proof.ts`. Lean proves equality for the modeled dense bigint arrays. The same sidecar and lemmas also prove the split-and-merge implementation. [Availability example](https://github.com/rorz/pud/tree/main/packages/pud/.examples/availability)
+Run `bun run --silent pud check packages/pud/.examples/availability/count-free.proof.ts`. Lean proves equality for the modeled dense bigint arrays. The same sidecar and lemmas also prove the split-and-merge implementation. [Availability example](https://github.com/PudHQ/pud/tree/main/packages/pud/.examples/availability)
 
 With `leanAdapter({ replay: true })`, Pud can replay an open call equality or scalar result assertion in Bun. It checks the supported preconditions before calling the frozen implementation. Dropping the right batch yields `FAIL` for `left = []` and `right = [1n]`, with expected `1n` and received `0n`. A search with no witness leaves `UNPROVED`. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Availability tally refactor|How the example was checked]]
 

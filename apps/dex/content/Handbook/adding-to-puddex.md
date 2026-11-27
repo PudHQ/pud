@@ -9,7 +9,7 @@ tags: [wiki, writing]
 # Adding to PudDex
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 Open `apps/dex/content` in Obsidian or edit its Markdown files directly. Each file becomes a page on the next Dex build. Its folder sets its breadcrumb. Each directory lists its immediate subfolders first, followed by the notes in that folder and its descendants. The directory search includes both groups.
 
@@ -27,4 +27,4 @@ Use a regular Markdown link for an external source. Dex’s link index collects 
 
 ## Revise a note
 
-When a source changes a conclusion, revise the relevant passage and cite the source there. Keep the original `date` and add the revision date as `updated-at`. Dex shows the revision date in the byline and orders entries newest first using `updated-at` or, when absent, `date`. Entries without dates appear last. Git records the edits. [PudDex vault guide](https://github.com/rorz/pud/tree/main/apps/dex#write)
+When a source changes a conclusion, revise the relevant passage and cite the source there. Keep the original `date` and add the revision date as `updated-at`. Dex shows the revision date in the byline and orders entries newest first using `updated-at` or, when absent, `date`. Entries without dates appear last. Git records the edits. [PudDex vault guide](https://github.com/PudHQ/pud/tree/main/apps/dex#write)

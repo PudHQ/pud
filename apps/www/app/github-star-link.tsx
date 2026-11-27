@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import { GitHubStarSpotlight } from "./github-star-spotlight";
 
-const repository = "rorz/pud";
+const repository = "PudHQ/pud";
 
 async function fetchMetadata(url: string): Promise<Record<string, unknown> | null> {
   try {

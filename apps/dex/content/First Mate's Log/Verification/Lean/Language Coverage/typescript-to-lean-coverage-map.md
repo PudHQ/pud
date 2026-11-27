@@ -8,7 +8,7 @@ tags: [verification, typescript, javascript, lean, coverage, effects, translatio
 # TypeScript-to-Lean coverage map
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 What has to be covered for a proof about a TypeScript export to mean the same thing when Bun runs it? The map follows the implementation and its sidecar into Lean. The dashed connection records runtime comparison tests. The preservation step is a proof obligation on the translation.
 
@@ -61,7 +61,7 @@ return total;
 | `value && value > 0n` | Truthiness and short-circuiting. The guard skips `undefined` and zero and tests the sign of the remaining values. |
 | `total += value` and `return total` | A proof that the initial zero and each executed step preserve `total >= 0n`, and that the final return reads that total. |
 
-Pud stops at the counted `for` loop. The numeric initializer now translates. The loop still needs JavaScript array-length and indexed-read semantics, including the read beyond the final element. With plain dense arrays, standard prototypes, and stable length, the extra read yields `undefined` and the guard skips the addition. The invariant above can establish the property for either traversal spelling. An equality to a reference sum is a stronger law. [Sidecar](https://github.com/rorz/pud/blob/main/packages/pud/.examples/sum-positive.proof.ts) · [Indexed access typing](https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess)
+Pud stops at the counted `for` loop. The numeric initializer now translates. The loop still needs JavaScript array-length and indexed-read semantics, including the read beyond the final element. With plain dense arrays, standard prototypes, and stable length, the extra read yields `undefined` and the guard skips the addition. The invariant above can establish the property for either traversal spelling. An equality to a reference sum is a stronger law. [Sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/sum-positive.proof.ts) · [Indexed access typing](https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess)
 
 ## Logging exercises the same call boundary as other effects
 

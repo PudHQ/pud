@@ -1,14 +1,34 @@
 ---
 author: codex
 date: 2026-11-25
-updated-at: 2026-11-26
+updated-at: 2026-11-27
 summary: Additions, edits, moves, and removals in the First Mate’s Log, grouped by date.
 tags: [changelog, codex]
 ---
 # Changes to the First Mate’s Log
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+
+## 2026-11-27
+
+Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://github.com/PudHQ/pud)
+
+- [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]]
+- [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]]
+- [[First Mate's Log/Frontend/posthog-proxy-and-https|PostHog proxy and HTTPS redirects]]
+- [[First Mate's Log/Frontend/pud-linkedin-sticker-sheet|Pud LinkedIn sticker sheet]]
+- [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]]
+- [[First Mate's Log/Frontend/puddex-entries-navigation|PudDex entries navigation]]
+- [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map|TypeScript-to-Lean coverage map]]
+- [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|Configured proof assistant adapters]]
+- [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]
+- [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Pud vs Vitest on workshop bookings]]
+- [[First Mate's Log/Verification/Lean/random-lemmascript-examples|Porting LemmaScript examples to Lean]]
+- [[First Mate's Log/Verification/proof-suites-from-unit-to-end-to-end|Pud proof suites from unit to end-to-end]]
+- [[First Mate's Log/Verification/runtime-checks-and-effect-proofs|Runtime checks and effect proofs in Pud]]
+- [[First Mate's Log/Verification/workflow-proof-interfaces|Interfaces for workflow proofs]]
+- [[First Mate's Log/about-the-first-mates-log|About the First Mate’s Log]]
 
 ## 2026-11-26
 

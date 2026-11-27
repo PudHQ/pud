@@ -7,7 +7,7 @@ tags: [puddex, frontend, navigation, codex]
 # PudDex entries navigation
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 At 700 CSS pixels, the old tree split the `11` beside First Mate’s Log across two lines and clipped deeper titles. The 210-pixel sidebar at that width now gives names room to wrap and keeps each count in one piece. The expand button and folder link have separate targets, so expanding a branch leaves the current page in view. GitHub’s repository browser keeps its file tree alongside the current file to preserve browsing context. [GitHub code browsing](https://github.blog/changelog/2022-11-09-introducing-an-all-new-code-search-and-code-browsing-experience/)
 

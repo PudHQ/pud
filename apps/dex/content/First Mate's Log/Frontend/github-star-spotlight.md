@@ -9,7 +9,7 @@ tags: [design, animation, accessibility, frontend]
 # GitHub star spotlight
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 The oval around the GitHub link cues the followspot. The button shimmers and jiggles gently in the oval. The lightning bank, Octocat’s shock pose, and the charge clock start at the link’s own rectangular hitbox. On the way back to the oval, leftover electricity dies out and the face settles into its shimmer while the same lamp stays up. The lamp lowers and fades when the pointer clears the oval or reaches a neighbouring control. A quick return to the oval reverses the dimming from its current level.
 

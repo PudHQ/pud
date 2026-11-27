@@ -8,7 +8,7 @@ tags: [compatibility, typescript, lean, verification, codex]
 # TypeScript compatibility
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 Pud’s bundled Lean adapter proves rules about ordinary `number` arithmetic, bigints, booleans and dense readonly bigint arrays. Motion’s two unchanged exports have six laws, including an exact unit rule for each conversion. The currency example determines the rounded result for every JavaScript number. The booking example proves six laws about seats, pricing and cancellation. A `number | bigint` signature, an indexed `for` loop, or executable work elsewhere in the module can still stop translation. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean#Check ordinary numbers|Run the number examples]] · [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Booking example]]
 

@@ -7,7 +7,7 @@ tags: [verification, proof-suites, integration, postgres, codex]
 # Pud proof suites from unit to end-to-end
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
 Keep one `pud check` command and one `describe` / `it` / `expect` API. Let the developer choose how much of the app to verify by choosing its entry point and, when needed, a fixture. Jest is a useful precedent for one command across suites with different environments. Pud’s job is to establish a law across the admitted inputs, states, and execution histories of each suite. [Jest projects and environments](https://jestjs.io/docs/configuration#projects-arraystring--projectconfig)
 
@@ -19,7 +19,7 @@ Keep one `pud check` command and one `describe` / `it` / `expect` API. Let the d
 | Integration | The actual `cancel` handler with a booking database fixture. | The returned refund, committed balance and inventory, stored refund, rollback, and retries. |
 | End-to-end | The actual `postDebit` export with a request and database fixture. | The request’s path through validation and the handler, its HTTP response, and committed state. |
 
-The unit law still pays for itself. It finds a rounding error in the policy in isolation. The integration law can find a missing write even when the credit is correct. The route law can catch an invalid amount being accepted before the transaction even sees it. Each law names the part of the application whose behavior it covers. [Current refund sidecar](https://github.com/rorz/pud/blob/main/experiments/booking-verification/.proofs/cancellation-credit.proof.ts) · [Booking transaction](https://github.com/rorz/pud/blob/main/experiments/booking-verification/booking.ts) · [Debit HTTP route](https://github.com/rorz/pud/blob/main/experiments/debit-endpoint/route.ts)
+The unit law still pays for itself. It finds a rounding error in the policy in isolation. The integration law can find a missing write even when the credit is correct. The route law can catch an invalid amount being accepted before the transaction even sees it. Each law names the part of the application whose behavior it covers. [Current refund sidecar](https://github.com/PudHQ/pud/blob/main/experiments/booking-verification/.proofs/cancellation-credit.proof.ts) · [Booking transaction](https://github.com/PudHQ/pud/blob/main/experiments/booking-verification/booking.ts) · [Debit HTTP route](https://github.com/PudHQ/pud/blob/main/experiments/debit-endpoint/route.ts)
 
 ## What the suites look like
 
@@ -80,7 +80,7 @@ describe(postDebit, { fixture: debitHttp }, ({ it, expect, run }) => {
 });
 ```
 
-The HTTP example covers the boundary from `Request` to `Response` and committed rows. The existing debit route receives authenticated tenant context from its caller. A suite that starts before authentication or at a real client connection would need to include those steps and their environment. A second route law could send the same valid request twice and check the `applied` and `duplicate` response bodies alongside a single debit. [Debit route and current HTTP tests](https://github.com/rorz/pud/tree/main/experiments/debit-endpoint)
+The HTTP example covers the boundary from `Request` to `Response` and committed rows. The existing debit route receives authenticated tenant context from its caller. A suite that starts before authentication or at a real client connection would need to include those steps and their environment. A second route law could send the same valid request twice and check the `applied` and `duplicate` response bodies alongside a single debit. [Debit route and current HTTP tests](https://github.com/PudHQ/pud/tree/main/experiments/debit-endpoint)
 
 ## What developers configure
 

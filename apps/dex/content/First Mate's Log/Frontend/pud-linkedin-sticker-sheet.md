@@ -9,23 +9,23 @@ tags: [design, mascot, imagegen]
 # Pud LinkedIn sticker sheet
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
-The banner sets eight versions of Pud into a single paper-backed sticker sheet on a walnut desk. Raking light makes the grooves around each sticker visible. A curl on the colored pixel sticker and another on the holographic sticker expose the release liner. The embroidery, rainbow foil, and Delftware are new treatments for the sheet. PudDex also renders a holographic treatment of its monochrome mascot. [PudDex foil component](https://github.com/rorz/pud/blob/main/apps/dex/src/components/pud-foil.astro)
+The banner sets eight versions of Pud into a single paper-backed sticker sheet on a walnut desk. Raking light makes the grooves around each sticker visible. A curl on the colored pixel sticker and another on the holographic sticker expose the release liner. The embroidery, rainbow foil, and Delftware are new treatments for the sheet. PudDex also renders a holographic treatment of its monochrome mascot. [PudDex foil component](https://github.com/PudHQ/pud/blob/main/apps/dex/src/components/pud-foil.astro)
 
 | Form | Source artwork |
 | --- | --- |
-| Silver robot | [PudDex callout mascot](https://github.com/rorz/pud/blob/main/apps/dex/public/pud-robot.png) |
-| Colored pixel sprite | [Proof factory loader](https://github.com/rorz/pud/blob/main/apps/www/public/puddex-loader.png) |
-| Monochrome pixel sprite | [PudDex foil sprite](https://github.com/rorz/pud/blob/main/apps/dex/public/pud-chrome.png) |
-| Anime | [Pud curtain portrait](https://github.com/rorz/pud/blob/main/apps/www/public/github-star-curtain-pud.webp) |
-| Newspaper engraving | [The Pud Log engraving](https://github.com/rorz/pud/blob/main/apps/www/public/pud-log-engraving.webp) |
+| Silver robot | [PudDex callout mascot](https://github.com/PudHQ/pud/blob/main/apps/dex/public/pud-robot.png) |
+| Colored pixel sprite | [Proof factory loader](https://github.com/PudHQ/pud/blob/main/apps/www/public/puddex-loader.png) |
+| Monochrome pixel sprite | [PudDex foil sprite](https://github.com/PudHQ/pud/blob/main/apps/dex/public/pud-chrome.png) |
+| Anime | [Pud curtain portrait](https://github.com/PudHQ/pud/blob/main/apps/www/public/github-star-curtain-pud.webp) |
+| Newspaper engraving | [The Pud Log engraving](https://github.com/PudHQ/pud/blob/main/apps/www/public/pud-log-engraving.webp) |
 
 The [[First Mate's Log/Frontend/github-star-spotlight#Curtain portraits|curtain portrait note]] records the original anime artwork prompt. The five original forms were placed in a rough layout, which the built-in ImageGen tool turned into a first sticker-sheet draft. The desk-scene edit used that draft to preserve the eight illustrations and their positions.
 
 In the glossy revision, a reflected window brings out the sheen on the cream backing. Both lifted edges carry their ivory sticker margins and cast a shadow on the exposed liner. The holographic curl folds inward to reveal a broader area of the cutout.
 
-The full-width ImageGen edits measured 2172 × 724. Cropping 2172 × 543 from 88 pixels below the top and resizing to 1584 × 396 kept all four sheet edges and both curls in view. The PNG has room at lower left for the profile photo. [Banner PNG](https://github.com/rorz/pud/blob/main/press/pud-linkedin-banner-v4.png) · [LinkedIn profile cover specifications](https://www.linkedin.com/help/linkedin/answer/a568217)
+The full-width ImageGen edits measured 2172 × 724. Cropping 2172 × 543 from 88 pixels below the top and resizing to 1584 × 396 kept all four sheet edges and both curls in view. The PNG has room at lower left for the profile photo. [Banner PNG](https://github.com/PudHQ/pud/blob/main/press/pud-linkedin-banner-v4.png) · [LinkedIn profile cover specifications](https://www.linkedin.com/help/linkedin/answer/a568217)
 
 ## Desk-scene prompt
 
@@ -128,7 +128,7 @@ Critical framing: make the image 3:1 in the same letterboxed framing as Image 1.
 
 The company cover shows a hand cutting the holographic Pud from the eight-sticker pack. The profile banner supplied the artwork and gloss reference. An overhead mock-up set the location of the blade tip, then a wider ImageGen edit left enough room around the sheet to show all eight designs in the company crop. The gridded mat makes the work surface readable against the cream liner.
 
-The cutting-scene renders measured 2172 × 724. A 2172 × 368 crop starting at row 175 retained the full sheet, hand grip, and blade contact. The revised sRGB PNG measures 1512 × 256. [Company cover PNG](https://github.com/rorz/pud/blob/main/press/pud-linkedin-company-cutting-banner-v3.png) · [LinkedIn Page image specifications](https://www.linkedin.com/help/recruiter/answer/a569383)
+The cutting-scene renders measured 2172 × 724. A 2172 × 368 crop starting at row 175 retained the full sheet, hand grip, and blade contact. The revised sRGB PNG measures 1512 × 256. [Company cover PNG](https://github.com/PudHQ/pud/blob/main/press/pud-linkedin-company-cutting-banner-v3.png) · [LinkedIn Page image specifications](https://www.linkedin.com/help/recruiter/answer/a569383)
 
 ```text
 Use case: compositing

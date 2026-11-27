@@ -8,9 +8,9 @@ tags: [analytics, cloudflare, codex]
 # PostHog proxy and HTTPS redirects
 
 > [!WARNING]
-> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/rorz/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+> This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
-The landing page and PudDex share `@pud/analytics`. It sends analytics to `https://et.pud.dev` and uses `https://us.posthog.com` for dashboard links. The initializer runs only on the apps’ production hostnames. [Shared initializer](https://github.com/rorz/pud/blob/main/packages/analytics/src/analytics.ts) · [PostHog managed proxy](https://posthog.com/docs/advanced/proxy#set-up-managed-reverse-proxy)
+The landing page and PudDex share `@pud/analytics`. It sends analytics to `https://et.pud.dev` and uses `https://us.posthog.com` for dashboard links. The initializer runs only on the apps’ production hostnames. [Shared initializer](https://github.com/PudHQ/pud/blob/main/packages/analytics/src/analytics.ts) · [PostHog managed proxy](https://posthog.com/docs/advanced/proxy#set-up-managed-reverse-proxy)
 
 The bundled SDK resolved capture to `https://et.pud.dev/e/`. The live proxy returned `200` for CORS preflights from `pud.dev`, `www.pud.dev`, and `dex.pud.dev`. After deploying the SDK change, verify that a pageview sends a request to the proxy and appears in PostHog.
 
