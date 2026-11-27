@@ -1,0 +1,53 @@
+name: Pull request checks
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  linked-issue:
+    name: Linked Pud issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the closing issue link
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { number } = context.issue;
+            const { repository } = await github.graphql(
+              `query ($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 10, excludeUserLinked: true) {
+                      nodes {
+                        number
+                        repository { nameWithOwner }
+                      }
+                    }
+                  }
+                }
+              }`,
+              { owner, repo, number },
+            );
+
+            const repositoryName = `${owner}/${repo}`.toLowerCase();
+            const closingIssues = repository.pullRequest.closingIssuesReferences?.nodes ?? [];
+            const issue = closingIssues.find(
+              (candidate) => candidate?.repository.nameWithOwner.toLowerCase() === repositoryName,
+            );
+            if (!issue) {
+              core.setFailed("Add Closes #ISSUE_NUMBER for an issue in this repository to the PR description.");
+              return;
+            }
+            core.info(`This PR closes issue #${issue.number}.`);

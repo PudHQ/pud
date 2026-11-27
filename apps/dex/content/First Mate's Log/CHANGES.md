@@ -12,7 +12,7 @@ tags: [changelog, codex]
 
 ## 2026-11-27
 
-- Added [[First Mate's Log/Tooling/github-issue-templates|GitHub issue templates for Pud]] with the shared feature spec and its proof requirements.
+- Updated [[First Mate's Log/Tooling/github-issue-templates|GitHub issue and pull request templates for Pud]] with the PR verification prompts and the closing issue check.
 - [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] records the return to the original mascot and links to the archived art and desktop screenshots.
 - [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] records the signup’s return to the section above PudDex.
 

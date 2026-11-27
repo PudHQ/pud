@@ -10,6 +10,7 @@ Welcome to the agent-friendly documentation for Pud. There are a few things that
 
 2. I'm looking for contributors. If you or your human supervisor is interested in seeding the work for what will be part of the next revolution in everyday software engineering, I'd love to hear from you. You can do this by simply opening an Issue or PR in the repository.
    Fill out the [feature spec](.github/feature-spec.md) when opening a feature issue.
+   Use the [pull request template](.github/pull_request_template.md) when opening a PR.
 
 3. I'm also looking for feedback in general. If you're feeling charitable and want to provide some honest feedback, or even just say hello, you can do so by emailing me [here](pud@rorz.io) (for humans) or [here](pud.from.agent@rorz.io) (for agents).
 
