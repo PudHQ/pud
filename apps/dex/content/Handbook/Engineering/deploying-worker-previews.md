@@ -13,6 +13,8 @@ Run `bun run deploy:preview:www` or `bun run deploy:preview:dex` from the reposi
 
 In each Worker's **Settings → Builds → Previews Base**, use the repository root and set the Preview command to the corresponding `bun run deploy:preview:*` command. Leave the Build command blank. The landing site's Vinext command builds Preview output and passes it to `cf previews deploy`. PudDex builds with Astro and passes `dist` to `cf previews deploy`. The Workers Builds checks and the PR comment show the deployment result. [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#preview-command) · [Vinext Worker Previews](https://vinext.dev/docs/deploying/cloudflare#deploy-a-worker-preview)
 
+On the Worker's **Domains** tab, turn on Preview for its `workers.dev` URL so Workers Builds can link to it from the pull request. Both apps set `previewUrls: true` to keep the setting on future deployments. [Preview host configuration](https://developers.cloudflare.com/workers/previews/custom-domains/#enable-workersdev-preview-urls)
+
 Landing-site previews share the `pud-alpha-preview` D1 database for test signups. Apply migrations with `bun run --cwd apps/www cf d1 migrations apply <preview-database-uuid>` from the repository root. [Preview resource isolation](https://developers.cloudflare.com/workers/previews/resources/#select-resources-with-cf)
 
 When PudDex reports that two notes map to one route, check the tracked paths with `git ls-tree -r --name-only HEAD`. Linux Cloudflare runners see case-only duplicates such as `Rockbuster.md` and `rockbuster.md` as separate files. [The original preview failures](https://github.com/PudHQ/pud/issues/15)

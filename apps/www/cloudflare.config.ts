@@ -12,6 +12,7 @@ export default defineConfig(({ isPreview, mode }) => ({
       notFoundHandling: "none",
       runWorkerFirst: ["/*", "!/_next/static/*", "!/*/_next/static/*"],
     },
+    previewUrls: true,
     domains: [
       "pud.dev",
       "www.pud.dev"
