@@ -5,6 +5,7 @@ export default defineConfig({
   worker: defineWorker({
     name: "pud-dex",
     compatibilityDate: "2026-11-21",
+    previewUrls: true,
     domains: ["dex.pud.dev"],
     assets: { notFoundHandling: "404-page" },
   }),

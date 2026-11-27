@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "\"$npm_execpath\" --bun astro dev",
     "build": "\"$npm_execpath\" --bun astro build",
-    "preview": "\"$npm_execpath\" --bun astro preview",
+    "preview": "\"$npm_execpath\" run build && cf previews deploy dist",
+    "preview:local": "\"$npm_execpath\" --bun astro preview",
     "typecheck": "\"$npm_execpath\" --bun astro check",
     "deploy": "\"$npm_execpath\" run build && cf deploy dist",
     "test": "\"$npm_execpath\" test"

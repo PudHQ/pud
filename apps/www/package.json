@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "\"$npm_execpath\" run alpha:migrate:local && vite dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "start": "\"$npm_execpath\" run preview",
+    "preview": "vinext-cloudflare previews deploy",
+    "preview:local": "vite preview",
+    "start": "\"$npm_execpath\" run preview:local",
     "typecheck": "cf workers types && tsc --noEmit",
     "deploy": "vinext-cloudflare deploy",
     "alpha:migrate:local": "cf d1 migrations apply 00000000-0000-4000-8000-000000004901 --local",
