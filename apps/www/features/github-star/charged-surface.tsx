@@ -2,7 +2,7 @@ import type { Ref } from "react";
 
 export function ChargedSurface({ meter }: { meter: Ref<HTMLCanvasElement> }) {
   return (
-    <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 rounded-full opacity-0 group-data-spotlight:opacity-100">
+    <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 rounded-full opacity-[var(--star-light,0)]">
       <span className="absolute -inset-1 rounded-full bg-fuchsia-400 opacity-[calc(var(--star-preview,0)*.24)] blur-md" />
       <span className="absolute -inset-1 rounded-full bg-blue-500 opacity-[var(--star-bloom,0)] blur-md" />
       <span className="absolute inset-0 overflow-hidden rounded-full bg-star-chrome">

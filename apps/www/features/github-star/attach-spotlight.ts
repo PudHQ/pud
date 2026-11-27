@@ -115,6 +115,7 @@ export function attachSpotlight(
     canvas.hidden = true;
     face.style.removeProperty("transform");
     chargeMeter.clear();
+    link.style.removeProperty("--star-light");
     link.style.removeProperty("--star-preview");
     link.style.removeProperty("--star-power");
     link.style.removeProperty("--star-bloom");
@@ -181,6 +182,7 @@ export function attachSpotlight(
     else if (wasEnergized) chargeMeter.clear();
 
     const pulse = reduced ? 0 : 0.5 + 0.5 * Math.sin(age / 185);
+    link.style.setProperty("--star-light", String(opacity));
     link.style.setProperty("--star-preview", String(shimmer));
     link.style.setProperty("--star-power", String(power));
     link.style.setProperty("--star-bloom", String(power * (0.54 + bank * (0.12 * pulse + 0.1 * impact))));
