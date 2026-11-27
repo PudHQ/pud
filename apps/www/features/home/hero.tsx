@@ -5,28 +5,25 @@ const proofGuide = `${dexOrigin}/notes/handbook/engineering/verification/lean/ch
 
 export function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="mx-gutter my-gutter overflow-hidden rounded-3xl bg-paper md:rounded-4xl">
-      <div className="mx-auto grid max-w-384 items-center sm:grid-cols-2">
-        <div className="@container min-w-0 px-6 pt-8 sm:py-12 sm:pe-0 sm:ps-9 lg:py-16 lg:ps-16 xl:py-20">
-          <p className="mb-4 flex items-center gap-2.5 font-mono text-xs font-semibold tracking-widest text-neutral-700 uppercase
-            before:h-0.5 before:w-6 before:bg-vermilion sm:mb-5">
-            TypeScript proof runner
-          </p>
-          <h1 id="hero-title" className={`${display.className} text-headline`}>
-            The proof is <span className="block">in the Pud<span className="text-vermilion">.</span></span>
+    <section aria-labelledby="hero-title" className="mx-gutter mt-gutter rounded-3xl bg-paper md:rounded-4xl">
+      <div className="mx-auto grid max-w-6xl items-center gap-y-6 px-6 py-9 sm:px-10 sm:py-12 md:grid-cols-12 md:gap-x-8 lg:py-16">
+        <img src="/pud.svg" alt="Pud, a caramel pudding with glasses and a bow tie"
+          width="1348" height="1372" fetchPriority="high"
+          className="w-24 justify-self-center sm:w-32 md:col-span-5 md:w-4/5 md:max-w-72 lg:max-w-80" />
+        <div className="@container min-w-0 md:col-span-7">
+          <h1 id="hero-title" className={`${display.className} text-headline tracking-tight`}>
+            Mathematicians have proofs.{" "}
+            <span className="block text-wordmark-domain">Why don’t devs?</span>
           </h1>
-          <p className="mt-5 max-w-intro text-base leading-relaxed text-neutral-700 lg:mt-6 lg:text-lg">
-            Write a property in TypeScript. Pud checks it with Lean for every input you specify.
+          <p className="mt-5 max-w-md text-base leading-relaxed text-neutral-700 lg:mt-6 lg:text-lg">
+            Tests tell you what happened on the inputs you tried. With Pud, you can state a rule in TypeScript and prove it for every input the rule covers.
           </p>
           <a href={proofGuide} target="_blank" rel="noopener"
-            className="group mt-4 inline-flex min-h-11 items-center gap-2 rounded-sm text-sm font-bold underline decoration-ink/40
-              decoration-1 underline-offset-5 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-3 lg:mt-6">
-            Read a working proof <span aria-hidden="true" className="motion-safe:transition-transform group-hover:translate-x-0.5">↗</span>
+            className="group mt-3 inline-flex min-h-11 items-center gap-2 rounded-sm text-sm font-bold underline decoration-ink/35
+              underline-offset-5 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-3">
+            Read the linear search proof <span aria-hidden="true" className="motion-safe:transition-transform group-hover:translate-x-0.5">↗</span>
           </a>
         </div>
-        <img src="/pud-proof-reader.webp" alt="Pud inspecting a ribbon of punched tape at a teal computer."
-          width="1200" height="800" fetchPriority="high"
-          className="mx-auto w-full max-w-2xl px-3 pb-4 mix-blend-multiply sm:p-4 lg:p-6" />
       </div>
     </section>
   );

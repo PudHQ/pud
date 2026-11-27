@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-26
-updated-at: 2026-11-26
+updated-at: 2026-11-27
 summary: How the landing page displays the latest Pud Log as a folded newspaper beside the alpha signup.
 tags: [frontend, design, webgl]
 ---
@@ -14,4 +14,6 @@ At a 1280-pixel viewport, the old card gave its folded paper a 311-pixel canvas.
 
 The cover uses the original Pud engraving and prints the current issue’s headline at four times the old texture resolution along each edge. Long headlines get four lines on the cover and their full title on the shelf. The copy behind it is HTML and CSS. The same artwork supplies the front sheet before JavaScript loads. Both the shelf and the cover link to the featured issue of [[Bookmarks/the-pud-log|The Pud Log]]. [Folded sheet](https://github.com/PudHQ/pud/blob/main/apps/www/features/newsstand/newspaper-scene.tsx) · [Printed artwork](https://github.com/PudHQ/pud/blob/main/apps/www/features/newsstand/newspaper.tsx)
 
-In the in-app browser at 1280 × 720 and device pixel ratio 1, forcing the warmed scene to redraw for four seconds gave a 95th-percentile frame interval of 8.9 ms. Each render used four draw calls and 7,488 triangles. The scene drew zero additional frames during the idle sample. The signup and newsstand now follow the PudDex terminal. At 320 CSS pixels, the signup fits above the stand and the shelf headline wraps inside the frame. [Waitlist layout](https://github.com/PudHQ/pud/blob/main/apps/www/features/home/updates-section.tsx)
+In the in-app browser at 1280 × 720 and device pixel ratio 1, forcing the warmed scene to redraw for four seconds gave a 95th-percentile frame interval of 8.9 ms. Each render used four draw calls and 7,488 triangles. The scene drew zero additional frames during the idle sample.
+
+The signup and newspaper now sit immediately below the hero. At 320 CSS pixels, the form sits above the stand and the header’s waitlist link focuses the email field. [Waitlist layout](https://github.com/PudHQ/pud/blob/main/apps/www/features/home/updates-section.tsx)

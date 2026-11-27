@@ -12,6 +12,9 @@ tags: [changelog, codex]
 
 ## 2026-11-27
 
+- [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] records the return to the original mascot and links to the archived art and desktop screenshots.
+- [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] records the signup’s return to the section above PudDex.
+
 Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://github.com/PudHQ/pud)
 
 - [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]] records single completions per property and verifies that project logs reach stderr in an installed CLI.
