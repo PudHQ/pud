@@ -45,8 +45,9 @@ async function StarCount() {
         small-phone:col-start-2 small-phone:row-start-2 small-phone:gap-0.5 small-phone:border-0 small-phone:ps-0"
     >
       <span aria-hidden="true">{count.short}</span>
-      <span aria-hidden="true" className="relative size-2.5 clip-star-crystal bg-neutral-200 group-data-spotlight:bg-star-facets
+      <span aria-hidden="true" className="relative size-2.5 clip-star-crystal bg-neutral-200
         motion-safe:group-data-energized:animate-star-crystal">
+        <span className="absolute inset-0 bg-star-facets opacity-[var(--star-light,0)]" />
         <span className="absolute inset-0 bg-linear-to-br from-white via-cyan-200 to-blue-400 opacity-[var(--star-power,0)]" />
       </span>
       <span className="sr-only">{label}</span>

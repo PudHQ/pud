@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-26
+updated-at: 2026-11-27
 summary: How the landing page cues its followspot, lightning charge, Octocat dialogue, and manga curtain.
 tags: [design, animation, accessibility, frontend]
 ---
@@ -18,6 +18,8 @@ Keyboard focus cues the light and charge. Escape clears the cue and keeps focus 
 ## Lighting trials
 
 The resting button is black with a monochrome Octocat and a star count. Moving into the oval reveals travelling chrome highlights and the proof factory’s screen-glass treatment. Branching blue lightning fills the glass in about 2.8 seconds and releases 48 sparks at full charge. The white label picks up a bevel and dark inset while the electricity runs. At 320 CSS pixels the count fits under “GitHub” beside the Octocat. [Button face](https://github.com/PudHQ/pud/blob/main/apps/www/features/github-star/spotlight-link.tsx) · [[Ideas/rockbuster|Rockbuster]]
+
+The purple face, star facets, and Octocat’s color follow the lamp’s eased opacity. The full fade takes about 124 ms on entry and 320 ms on exit. Reduced motion switches the colors immediately. [Issue #6](https://github.com/PudHQ/pud/issues/6)
 
 Jhey Tompkins’s sparkles informed the corner glints. Magic UI's traveling highlight informed the rim, Josh W. Comeau's layered button informed the press depth, and the Codrops particle demo informed the mix of glints and pixels. [Sparkle Button](https://codepen.io/jh3y/pen/LYJMPBL) · [Shimmer Button](https://magicui.design/docs/components/shimmer-button) · [3D button](https://www.joshwcomeau.com/animation/3d-button/) · [Particle Effects for Buttons](https://tympanus.net/codrops/2018/04/25/particle-effects-for-buttons/)
 
@@ -36,6 +38,8 @@ Five seconds after the last line, Pud’s upper panel, Octocat’s lower panel, 
 ## Browser checks
 
 Open the running landing page on port 4901. Hold in the oval beside the GitHub link to see the shimmer, then move onto the link to start the charge. Move off the link into the oval to let the electricity settle. Move outside the oval and back during the dimming to check that the scene continues. To see the curtain, hold on the link for about 19 seconds. Tab to the GitHub link and press Escape to dismiss its cue while keeping focus.
+
+In the 1280 × 720 color check, the purple layer faded through about 89%, 55%, and 15% opacity on exit after full charge. Re-entering at about 80% reversed the fade. The GitHub link measured about 88 × 44 CSS pixels at a 320-pixel viewport.
 
 The translucent header applies its blur to a background pseudo-element. Applying it to the header itself would give the fixed spotlight a header-sized containing block. With the new header at 1280 × 800, the overlay measured 1280 × 800 during a full charge. Keyboard Escape restored the black face and kept focus on the link. [Site header](https://github.com/PudHQ/pud/blob/main/apps/www/components/site-header.tsx)
 
