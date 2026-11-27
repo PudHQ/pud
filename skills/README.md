@@ -18,6 +18,11 @@ Read the guides for the app and any shared work the task touches.
 - Keep workspace conventions, shared code, and tooling consistent. [Monorepo](engineering/monorepo.md)
 - Offer scoped staging after repository changes. [Git operations](engineering/gitops/SKILL.md)
 
+### DevOps
+
+- Follow Pud’s conventions for GitHub issues, branches, commits, and pull requests. [Development workflow](engineering/devops/workflow-general.md)
+- Choose and reuse the assigned ports for local services. [Local ports](engineering/devops/ports.md)
+
 ## Design
 
 - Choose and check palettes and text contrast. [Color](design/color.md)
@@ -26,10 +31,6 @@ Read the guides for the app and any shared work the task touches.
 ## Documentation
 
 - Write and maintain Handbook guides and First Mate’s Log entries. [PudDex notes](documentation/puddex-notes/SKILL.md)
-
-## DevOps
-
-- Choose and reuse the assigned ports for local services. [Local ports](devops/ports.md)
 
 ## Maintain the index
 
