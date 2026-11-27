@@ -156,11 +156,11 @@ function drawHaze(ctx: Context, layout: SpotlightLayout, show: Spotlight, lamp: 
 
   const shaft = ctx.createConicGradient(-halfAngle, 0, 0);
   shaft.addColorStop(0, "transparent");
-  shaft.addColorStop(sector * 0.13, palette.hazeEdge);
-  shaft.addColorStop(sector * 0.32, palette.hazeShoulder);
+  shaft.addColorStop(sector * 0.10, palette.hazeEdge);
+  shaft.addColorStop(sector * 0.27, palette.hazeShoulder);
   shaft.addColorStop(sector * 0.49, palette.white);
-  shaft.addColorStop(sector * 0.65, palette.hazeShoulder);
-  shaft.addColorStop(sector * 0.87, palette.hazeEdge);
+  shaft.addColorStop(sector * 0.72, palette.hazeShoulder);
+  shaft.addColorStop(sector * 0.90, palette.hazeEdge);
   shaft.addColorStop(sector, "transparent");
   shaft.addColorStop(1, "transparent");
   ctx.fillStyle = shaft;
@@ -203,9 +203,9 @@ function drawPool(ctx: Context, layout: SpotlightLayout, aim: Point, radius: num
   ctx.rotate(Math.atan2(pan.y, pan.x));
   ctx.scale(1 + stretch, 1 - stretch * 0.44);
   const aperture = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-  aperture.addColorStop(0.78, "transparent");
-  aperture.addColorStop(0.86, palette.shadeEdge);
-  aperture.addColorStop(0.96, palette.shadeInner);
+  aperture.addColorStop(0.84, "transparent");
+  aperture.addColorStop(0.89, palette.shadeEdge);
+  aperture.addColorStop(0.95, palette.shadeInner);
   aperture.addColorStop(1, palette.black);
   ctx.globalCompositeOperation = "destination-over";
   ctx.globalAlpha = opacity * 0.91;

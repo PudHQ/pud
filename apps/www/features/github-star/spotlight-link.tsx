@@ -8,7 +8,8 @@ import { ChargedSurface } from "./charged-surface";
 
 function Octocat() {
   return (
-    <span aria-hidden="true" className="relative block size-6 grayscale-[calc(1_-_var(--star-light,0))] phone:size-5">
+    <span aria-hidden="true" className="relative block size-8 drop-shadow-sm drop-shadow-black
+      grayscale-[calc(1_-_var(--star-light,0))] phone:size-5">
       <span className="absolute inset-0 bg-octocat-relief bg-size-(--background-size-octocat-relief) bg-left bg-no-repeat
         opacity-[calc(1_-_var(--star-power,0))]" />
       <span className="absolute inset-0 opacity-[var(--star-power,0)] motion-safe:group-data-energized:animate-octocat-startle">
@@ -45,10 +46,14 @@ export function GitHubStarSpotlight({ href, children }: { href: string; children
       <NavAction ref={anchor} href={href} target="_blank" rel="noopener" tone="black"
         className="group data-spotlight:z-50 focus-visible:z-50">
         <span ref={panel} className="relative isolate inline-flex min-h-11 items-center gap-2 rounded-full px-4
-          group-active:translate-y-px phone:gap-1 phone:px-2.5 small-phone:has-data-star-count:grid
-          small-phone:grid-flow-col small-phone:content-center small-phone:justify-items-start small-phone:gap-x-1.5 small-phone:gap-y-0.5">
+          group-active:translate-y-px phone:gap-1 phone:px-2 small-phone:has-data-star-count:grid
+          small-phone:grid-flow-col small-phone:content-center small-phone:justify-items-start small-phone:gap-x-1.5
+          small-phone:gap-y-0.5 small-phone:px-2.5">
           <ChargedSurface meter={chargeFill} />
-          <span ref={medallion} aria-hidden="true" className="relative grid shrink-0 place-items-center rounded-full small-phone:row-span-2">
+          <span ref={medallion} aria-hidden="true" className="relative grid size-8.5 shrink-0 place-items-center rounded-full
+            border border-slate-500/65 bg-linear-to-br from-slate-800 via-slate-950 to-black inset-shadow-sm inset-shadow-black
+            group-data-charging:border-sky-200/80 group-data-charging:from-blue-950 motion-safe:transition-colors
+            motion-safe:duration-220 phone:size-6 small-phone:row-span-2">
             <Octocat />
             <span className="absolute inset-0 opacity-[var(--star-power,0)]">
               <span className="absolute -top-1 -right-0.5 size-2.5 clip-octocat-bolt bg-cyan-100 motion-safe:group-data-energized:animate-star-twinkle-hot" />
