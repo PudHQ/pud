@@ -1,6 +1,10 @@
 /** A construct for which the selected frontend or adapter has no semantics. */
 export class Unsupported extends Error {}
 
+export function failure(error: unknown): { status: "unsupported" | "error"; detail: string } {
+  return { status: error instanceof Unsupported ? "unsupported" : "error", detail: error instanceof Error ? error.message : String(error) };
+}
+
 export interface SubjectSource {
   name: string;
   file: string;
@@ -69,17 +73,22 @@ export type ProofConstraint =
   | { kind: "refinement"; target: ProofTarget; variable: string; predicate: ProofPredicate }
   | { kind: "native"; target: ProofTarget; term: NativeProofTerm };
 
-export interface ProofClaim {
+export type ProofClaim = {
   premises: readonly ProofConstraint[];
-  assertions: readonly ProofConstraint[];
-  /** The conjunction of assertions must characterize the observed result uniquely. */
-  exactResult?: true;
   proof?: NativeProofTerm;
   observation?: ProofCall;
-  /** For an equality claim, the call whose result must equal the observation. */
-  reference?: ProofCall;
-  expectedError?: ProofErrorKind;
-}
+} & (
+  | {
+    kind: "return";
+    assertions: readonly ProofConstraint[];
+    /** The assertions must characterize the observed result uniquely. */
+    exactResult?: true;
+    reference?: never;
+    expectedError?: never;
+  }
+  | { kind: "equal"; assertions: readonly []; reference: ProofCall; expectedError?: never; exactResult?: never }
+  | { kind: "throw"; assertions: readonly []; expectedError: ProofErrorKind; reference?: never; exactResult?: never }
+);
 
 export type ProofErrorKind = "Error" | "RangeError" | "TypeError";
 

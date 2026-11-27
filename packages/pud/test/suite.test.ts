@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { check, emit, type ProofAssistant, type ProofClaim, type ProofModule } from "../src/index.ts";
+import { check, checkFiles, emit, Unsupported, type CheckProgress, type ClaimProgress, type ProofAssistant, type ProofClaim, type ProofModule } from "../src/index.ts";
 import { leanAdapter } from "../src/lean/index.ts";
 
 const increment = "export function increment(value: bigint): bigint { return value + 1n; }";
@@ -16,7 +17,7 @@ describe(increment, () => {
   it.todo("a future property");
 });`;
 
-function adapter(verify: (claims: readonly ProofClaim[], modules: readonly ProofModule[]) => void | Promise<void>): ProofAssistant<"test"> {
+function adapter(verify: (claims: readonly ProofClaim[], modules: readonly ProofModule[], progress?: ClaimProgress) => void | Promise<void>): ProofAssistant<"test"> {
   return {
     id: "test",
     prepare(subject) {
@@ -26,8 +27,8 @@ function adapter(verify: (claims: readonly ProofClaim[], modules: readonly Proof
         parameters: [{ name: "value", type: { kind: "integer" } }],
         result: { kind: "integer" },
         emit: claim => JSON.stringify(claim.assertions.map(assertion => assertion.kind)),
-        async verify(claims, modules) {
-          await verify(claims, modules);
+        async verify(claims, modules, progress) {
+          await verify(claims, modules, progress);
           return claims.map(() => ({ status: "unproved", detail: "Test adapter received the claim." }));
         },
       };
@@ -52,6 +53,7 @@ test("an explicit adapter receives the portable claim and the frozen TypeScript 
     const selected = adapter((claims, modules) => {
       expect(modules).toEqual([]);
       expect(claims).toHaveLength(1);
+      expect(claims[0]?.kind).toBe("return");
       expect(claims[0]?.premises.map(p => p.kind)).toEqual(["comparison", "condition"]);
       expect(claims[0]?.assertions[0]).toMatchObject({ kind: "comparison", operator: "eq", value: { source: "input + 1n" } });
       const clause = claims[0]?.assertions[0];
@@ -92,6 +94,86 @@ test("the nearest project config selects the adapter and edited config is reload
     expect(await emit(file)).toBe("inner");
     await writeFile(local, config("changed"));
     expect((await check(file)).results[0]).toMatchObject({ assistant: "changed", status: "unproved" });
+  });
+});
+
+test("a batch shares a config instance and concurrent runs reload its transitive imports", async () => {
+  await fixture(async dir => {
+    const first = join(dir, "first.proof.ts"), second = join(dir, "second.proof.ts");
+    const settings = join(dir, "settings.ts");
+    await writeFile(first, portable);
+    await writeFile(second, portable);
+    await writeFile(settings, 'export const label = "old";');
+    await writeFile(join(dir, "options.ts"), 'export { label } from "./settings.ts";');
+    await writeFile(join(dir, "pud.config.ts"), `import { label } from "./options.ts";
+let checks = 0;
+export default { adapter: { id: "local", prepare() {
+  return { parameters: [{ name: "value", type: { kind: "integer" } }], result: { kind: "integer" },
+    emit() { return label; },
+    async verify() { return [{ status: "unproved", detail: label + ++checks }]; },
+  };
+} } };`);
+    expect(await emit(first)).toBe("old");
+    await writeFile(settings, 'export const label = "new";');
+    const [batch, single, unit] = await Promise.all([checkFiles([first, second]), check(first), emit(first)]);
+    expect(batch.map(report => report.results[0]?.detail)).toEqual(["new1", "new2"]);
+    expect(single.results[0]?.detail).toBe("new1");
+    expect(unit).toBe("new");
+
+    const report = await check(first, { onProgress(event) {
+      if (event.kind === "validating") writeFileSync(join(dir, "increment.ts"), increment.replace("+ 1n", "- 1n"));
+    } });
+    expect(report.results[0]).toMatchObject({ status: "error", detail: expect.stringContaining("changed during verification") });
+  });
+});
+
+test("each active property finishes once across binding errors, adapter updates and returned verdicts", async () => {
+  await fixture(async dir => {
+    const file = join(dir, "increment.proof.ts");
+    await writeFile(file, portable.replace('it.todo("a future property");', `
+      it.todo("a future property");
+      it("invalid", {}, ({}) => {});
+      it("positive step", { value: pud.bigint() }, ({ value }) => {
+        expect(increment(value)).to(pud.bigint().gt(value));
+      });`));
+    const selected = adapter((_claims, _modules, progress) => {
+      progress?.(0, "finished", "unproved");
+      progress?.(0, "finished", "unproved");
+      progress?.(0, "running");
+      progress?.(1, "finished");
+    });
+    const events: CheckProgress[] = [];
+    const { results } = await check(file, { adapter: selected, onProgress: event => events.push(event) });
+    expect(results.map(result => result.status)).toEqual(["unproved", "todo", "unsupported", "unproved"]);
+    expect(events.filter(event => event.kind === "finished").map(event => [event.indices, event.statuses]))
+      .toEqual([[[2], ["unsupported"]], [[0], ["unproved"]], [[3], ["unproved"]]]);
+    expect(events.filter(event => event.kind === "running").map(event => event.indices)).toEqual([[0, 3]]);
+    expect(events.at(-1)).toEqual({ kind: "validating" });
+  });
+});
+
+test("configured runs preserve emission errors and report a project that exits early", async () => {
+  await fixture(async dir => {
+    const file = join(dir, "increment.proof.ts"), config = join(dir, "pud.config.ts");
+    await expect(emit(file)).rejects.toMatchObject({ code: "ENOENT" });
+    await writeFile(file, "export default {};");
+    await expect(emit(file)).rejects.toBeInstanceOf(Unsupported);
+    await writeFile(file, portable);
+    await writeFile(config, 'throw new TypeError("Invalid project settings");');
+    await expect(emit(file)).rejects.toBeInstanceOf(TypeError);
+    await writeFile(config, "process.exit(7);");
+    expect((await check(file)).results).toMatchObject([{ status: "error", detail: expect.stringContaining("exited with 7") }]);
+  });
+});
+
+test("the Lean adapter accepts an untagged equality and rejects a contradictory claim", async () => {
+  await fixture(async dir => {
+    const subject = await leanAdapter().prepare({ file: join(dir, "increment.ts"), source: increment, name: "increment" });
+    const reference = { kind: "call", callee: "subject", args: [{ kind: "parameter", name: "value" }] } as const;
+    const legacy = JSON.parse(JSON.stringify({ premises: [], assertions: [], reference }));
+    expect(await subject.emit(legacy, [])).toBe(await subject.emit({ kind: "equal", premises: [], assertions: [], reference }, []));
+    const mixed = { ...legacy, kind: "throw", expectedError: "RangeError" };
+    expect(await subject.verify([mixed], [])).toMatchObject([{ status: "unsupported" }]);
   });
 });
 

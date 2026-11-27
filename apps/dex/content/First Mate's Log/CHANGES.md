@@ -20,15 +20,15 @@ tags: [changelog, codex]
 
 Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://github.com/PudHQ/pud)
 
-- [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]]
-- [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]]
+- [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]] records single completions per property and verifies that project logs reach stderr in an installed CLI.
+- [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]] records the black-to-purple fade and browser measurements.
 - [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]]
 - [[First Mate's Log/Frontend/posthog-proxy-and-https|PostHog proxy and HTTPS redirects]]
 - [[First Mate's Log/Frontend/pud-linkedin-sticker-sheet|Pud LinkedIn sticker sheet]]
 - [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]]
 - [[First Mate's Log/Frontend/puddex-entries-navigation|PudDex entries navigation]]
 - [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map|TypeScript-to-Lean coverage map]]
-- [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|Configured proof assistant adapters]]
+- [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|Configured proof assistant adapters]] records the replay witness after reloading an imported setting and checks how concurrent runs use config instances.
 - [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]
 - [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Pud vs Vitest on workshop bookings]]
 - [[First Mate's Log/Verification/Lean/random-lemmascript-examples|Porting LemmaScript examples to Lean]]

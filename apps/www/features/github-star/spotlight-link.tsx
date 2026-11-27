@@ -8,7 +8,7 @@ import { ChargedSurface } from "./charged-surface";
 
 function Octocat() {
   return (
-    <span aria-hidden="true" className="relative block size-6 grayscale group-data-spotlight:grayscale-0 phone:size-5">
+    <span aria-hidden="true" className="relative block size-6 grayscale-[calc(1_-_var(--star-light,0))] phone:size-5">
       <span className="absolute inset-0 bg-octocat-relief bg-size-(--background-size-octocat-relief) bg-left bg-no-repeat
         opacity-[calc(1_-_var(--star-power,0))]" />
       <span className="absolute inset-0 opacity-[var(--star-power,0)] motion-safe:group-data-energized:animate-octocat-startle">

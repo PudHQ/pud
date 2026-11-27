@@ -48,7 +48,7 @@ function literal(value: ReplayValue): string {
 
 /** Execute the observation against the same frozen files and resolved imports used by the proof. */
 export async function replayClaim(program: Program, claim: ProofClaim, directory: string): Promise<Counterexample | undefined> {
-  if (claim.expectedError || (!claim.reference && !claim.exactResult && !claim.assertions.length)) return;
+  if (claim.kind === "throw") return;
   const { params, name } = program.root;
   const observed: ProofCall = claim.observation ?? { kind: "call", callee: "subject",
     args: params.map(parameter => ({ kind: "parameter", name: parameter.name })),
@@ -65,7 +65,7 @@ export async function replayClaim(program: Program, claim: ProofClaim, directory
   const assertions = replayConstraints(claim.assertions, parameters);
   if (!premises || !assertions) return;
   const actual = call(observed);
-  const reference = claim.reference && call(claim.reference);
+  const reference = claim.kind === "equal" ? call(claim.reference) : undefined;
   const inputs = inputsFor(program);
   if (!inputs.length) return;
   const resultSort = (observed.callee === "subject" ? program.root : program.resolve(observed.callee.file, observed.callee.name)).result;

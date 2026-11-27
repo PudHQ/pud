@@ -2,9 +2,18 @@
 name: puddex-notes
 description: Write and maintain PudDex Handbook guides and topical First Mate’s Log entries when work yields useful findings or references.
 ---
+
 # Record findings in PudDex
 
 Before finishing, record useful findings and anything that took substantive work to establish in `apps/dex/content`. Search for the topic first and extend a note that already covers it. [PudDex writing guide](../../../apps/dex/README.md#write)
+
+## Public release
+
+**PudDex and its Git repository are public.** Treat everything you author for PudDex and Pud as public, including drafts, frontmatter, and code examples. Be cautious when making factual claims, especially as they pertain to ownership and permissions.
+
+When reproducing or adapting open-source material, check the licence at the revision used and follow its terms. Describe the reuse accurately and credit the upstream project within the repository. Keep required copyright and licence notices with the material in each distribution and meet any source distribution requirements. Flag substantive licence or attribution concerns to Rory before publishing.
+
+Treat audits as read-only reviews of agent-authored content. Report material findings and apply edits when asked.
 
 ## Handbook
 
