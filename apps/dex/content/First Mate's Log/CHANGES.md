@@ -16,7 +16,7 @@ tags: [changelog, codex]
 - Updated [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]] with the restored Octocat medallion, larger star count, and more defined followspot edge.
 - Added [[First Mate's Log/Frontend/pud-github-social-card|Pud’s GitHub social card]] with the artwork prompt, type settings, and crop measurements for the selected one-line design.
 - Added [[First Mate's Log/Tooling/checking-repository-skill-links|Checking repository skill links]] with the cases used to verify the new check.
-- [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] records the return to the original mascot and links to the archived art and desktop screenshots.
+- [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] records the original mascot, three rounds of Pud Editions, and the geometric counterexample in Crash Test No. 1.
 - [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] records the signup’s return to the section above PudDex.
 
 Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://github.com/PudHQ/pud)

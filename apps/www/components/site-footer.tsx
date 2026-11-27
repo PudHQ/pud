@@ -6,6 +6,7 @@ export function SiteFooter() {
   return (
     <footer className="mx-gutter flex flex-wrap items-center justify-between gap-x-6 border-t border-neutral-200 py-3 font-mono text-credit text-neutral-600">
       <nav aria-label="More from Pud" className="flex flex-wrap gap-x-5">
+        <a className={footerLink} href="/editions">Landing editions</a>
         <a target="_blank" rel="noopener" className={footerLink} href={pudDexUrl}>PudDex <span aria-hidden="true">↗</span></a>
         <a target="_blank" rel="noopener" className={footerLink} href={pudLog}>The Pud Log <span aria-hidden="true">↗</span></a>
         <a className={footerLink} href="mailto:pud@rorz.io">pud@rorz.io</a>
