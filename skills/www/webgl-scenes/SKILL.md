@@ -19,6 +19,6 @@ Require sustained 60 fps for every scene change, including visual-only work. A 6
 - Isolate GPU fill, geometry, shadow passes, JavaScript, and page compositing with focused comparisons before changing fidelity. Recheck the full scene with its overlays and embeds active before accepting the result.
 - Bake static lighting and shadow data where possible. Keep static meshes and textures off the per-frame update path. Batch nearby geometry, cull outside the camera, and size tessellation to projected detail.
 - Keep shadow refresh tied to caster changes. Check both moving and final contact shadows. Prefer a measured render-resolution fallback for slower GPUs and keep the sharper tier where there is headroom.
-- Compare screenshots and interaction behavior alongside timings. Preserve the scene's intended lighting and controls while fixing the measured bottleneck.
+- Compare screenshots and interaction behavior alongside timings. Preserve the scene's intended lighting and controls while fixing the measured bottleneck. Include screenshots of visible scene changes in the PR. [PR screenshot workflow](../../engineering/devops/workflow-general.md#screenshots-for-ui-changes)
 
 Use the device and viewport evidence to support any 60 fps claim. If a supported configuration misses the target, keep profiling and fixing it within scope. Report a concrete blocker and the measured result when further verification or improvement is unavailable.

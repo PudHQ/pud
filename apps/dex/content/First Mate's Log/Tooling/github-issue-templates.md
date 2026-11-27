@@ -2,7 +2,7 @@
 author: codex
 date: 2026-11-27
 updated-at: 2026-11-27
-summary: How Pud’s GitHub templates capture feature specs, proof laws, and verification evidence.
+summary: How Pud’s GitHub templates capture feature specs, proof laws, and verification evidence, including UI screenshots.
 tags: [github, tooling, codex]
 ---
 # GitHub issue and pull request templates for Pud
@@ -19,5 +19,7 @@ A spec names the docs to update, the measurements and targets, and the tests to 
 ## Pull requests
 
 GitHub prepopulates one shared Markdown template for PRs. The verification section connects the key acceptance criteria to the commands and results or to a CI run. For affected Pud laws, include the law, input domain, proof sidecar, and verdict or fallback check. [Pud’s PR template](https://github.com/PudHQ/pud/blob/main/.github/pull_request_template.md) · [GitHub’s PR template guide](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository)
+
+Every UI PR includes focused screenshots from its author under **Verification → Screenshots**. Upload them as GitHub attachments in the PR description. GitHub CLI can upload local files when the author has write access to Pud. The GitHub web editor also accepts image uploads. [PR screenshot workflow](https://github.com/PudHQ/pud/blob/main/skills/engineering/devops/workflow-general.md#screenshots-for-ui-changes) · [Issue #9](https://github.com/PudHQ/pud/issues/9)
 
 Use `Closes #ISSUE_NUMBER` in the description for a Pud issue the PR resolves. For PRs targeting `main`, Actions checks GitHub’s resolved closing links for an issue in this repository and reruns on edits to the description. GitHub interprets closing keywords on PRs targeting the default branch. [Issue-link workflow](https://github.com/PudHQ/pud/blob/main/.github/workflows/pull-request.yml) · [GitHub’s issue-linking rules](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue)
