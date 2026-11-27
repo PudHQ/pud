@@ -2,6 +2,7 @@
 name: workflow-general
 description: Follow Pud’s conventions for GitHub issues, branches, commits, and pull requests.
 ---
+
 # Development workflow
 
 This note describes how to work within the Pud monorepo.
@@ -33,6 +34,10 @@ Then ask the user to clarify what they want you to do with that issue URL.
 All new issue work should be done on a new branch per issue, in the following format:
 
 `<username | agent name>/issue-NN-slug`
+
+## During your work
+
+For the lifecycle of your work and change, you _must_ run the dev servers for the various apps you are using IF NEEDED (only if needed), and provide your human with handy links in your output messages to open these locally hosted apps themselves such that they can verify your ongoing and finished work.
 
 ## Committing your work
 
