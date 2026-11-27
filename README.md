@@ -95,3 +95,13 @@ Reuse the app already listening on its assigned port. Build before running a loc
 ## License
 
 Pud is licensed under the [MIT License](LICENSE). The bundled Google Sans Flex fonts use the [SIL Open Font License 1.1](apps/www/app/fonts/OFL.txt).
+
+## Supporters
+
+<!-- supporters:start -->
+
+<a href="https://github.com/PudHQ/pud/issues/17#issuecomment-7219194602"><img src="https://avatars.githubusercontent.com/u/1853310?s=96&amp;v=4" width="48" height="48" alt=""> <strong>@rorz</strong> <sub>#0001</sub></a>
+
+<!-- supporters:end -->
+
+[Add your GitHub profile here!](https://github.com/PudHQ/pud/issues/17) · [View the supporter roll](https://pud.dev/#supporters)
