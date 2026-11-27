@@ -38,6 +38,7 @@
     "apps/www": {
       "name": "@pud/www",
       "dependencies": {
+        "@fontsource-variable/pixelify-sans": "catalog:",
         "@pud/analytics": "workspace:*",
         "@pud/crt": "workspace:*",
         "@react-three/drei": "catalog:",

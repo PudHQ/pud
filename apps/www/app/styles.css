@@ -1,4 +1,9 @@
-@import "tailwindcss" source("./");
+@import "tailwindcss" source(none);
+@import "@fontsource-variable/pixelify-sans";
+
+@source "./";
+@source "../components";
+@source "../features";
 
 @font-face {
   font-family: Citrustime;
@@ -16,67 +21,36 @@
   --color-wordmark-ink: #340800;
   --color-wordmark-dot: #ff1641;
   --color-wordmark-domain: #881d00;
-  --color-error-border: #ff907f;
-  --color-error: #ffb4a5;
 
   --font-sans: system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --font-citrustime: Citrustime, system-ui, sans-serif;
+  --font-pixel: "Pixelify Sans Variable", monospace;
 
   --variation-wordmark: "opsz" 144, "slnt" 0, "wdth" 120, "GRAD" 66, "ROND" 65;
   --font-weight-wordmark: 758;
   --font-weight-interface: 650;
   --tracking-wordmark: 0.012em;
-  --text-wordmark: clamp(1.7rem, 1.1rem + 2.9vw, 3.625rem);
-  --text-wordmark-phone: clamp(1.3rem, 5.5vw, 1.7rem);
-  --text-nav: clamp(0.85rem, 1.1vw, 1.05rem);
-  --text-nav--line-height: 1.2;
-  --text-star-count: 0.9em;
-  --text-headline: min(12.1cqi, 8.25rem);
-  --text-headline--line-height: 0.98;
-  --text-intro: clamp(1.3rem, 1.48vw, 1.48rem);
+  --text-wordmark: clamp(1.25rem, 0.9rem + 1.85vw, 2.65rem);
+  --text-headline: min(18cqi, 7.5rem);
+  --text-headline--line-height: 0.95;
   --text-newsprint-masthead: 13.75cqi;
   --text-newsprint-headline: 4.5cqi;
   --text-signup-help: 0.98rem;
   --text-signup-help--line-height: 1.45;
   --text-signup-label: 0.84rem;
   --text-signup-status: clamp(1.2rem, 2vw, 1.75rem);
-  --text-signup-error: smaller;
   --leading-signup-feedback: 1.4;
   --text-credit: 0.78rem;
   --text-credit--line-height: 1.3;
 
-  --spacing-gutter: clamp(1.5rem, 4.5vw, 5rem);
+  --spacing-gutter: clamp(1rem, 3vw, 3.5rem);
   --spacing-column-gap: clamp(1.5rem, 3.5vw, 4rem);
-  --spacing-intro-gap: clamp(1.25rem, 2.35vw, 2.6rem);
-  --spacing-registration: clamp(3px, 0.5vw, 8px);
-  --spacing-nav-height: clamp(4rem, 6.8vw, 6rem);
-  --spacing-nav-gap: clamp(1rem, 3vw, 3rem);
-  --spacing-wordmark-end: clamp(1.6rem, 4.4vw, 5rem);
-  --spacing-poster-height: clamp(22rem, 54svh, 48rem);
-  --spacing-poster-copy: clamp(2rem, 4vw, 4.5rem);
-  --spacing-poster-copy-phone: clamp(1.5rem, 5.5svh, 3.5rem);
-  --spacing-poster-art-phone: clamp(12rem, 59vw, 23rem);
-  --spacing-poster-art-width: min(62%, 22rem);
-  --spacing-poster-art-x: 46%;
-  --spacing-poster-art-y-phone: 54%;
-  --spacing-band-top: 0.16em;
-  --spacing-band-bottom: 0.08em;
-  --spacing-band-padding-top: 0.04em;
-  --spacing-band-padding-bottom: 0.11em;
-  --spacing-band-left: 0.22em;
-  --spacing-band-right: 0.23em;
-  --spacing-signup-link-start: clamp(1.35rem, 2.5vw, 3rem);
-  --container-intro: 43ch;
+  --spacing-nav-height: clamp(3.75rem, 5.6vw, 5rem);
+  --container-intro: 39ch;
 
   --grid-template-columns-signup: minmax(0, 1fr) auto;
-  --grid-template-columns-poster: minmax(0, 5fr) minmax(0, 7fr);
-  --grid-template-columns-star-mobile: max-content max-content;
 
-  --clip-wordmark: polygon(0 0, 100% 0, calc(100% - 1.15rem) 100%, 0 100%);
-  --clip-signup: polygon(0.6rem 0, 100% 0, 100% 100%, 0 100%);
-  --clip-poster: polygon(0 0, 100% 0, 86% 100%, 0 100%);
-  --clip-poster-phone: polygon(0 12%, 100% 0, 100% 100%, 0 100%);
   --clip-star-crystal: polygon(50% 0, 64% 32%, 100% 38%, 74% 63%, 81% 100%, 50% 81%, 19% 100%, 26% 63%, 0 38%, 36% 32%);
   --clip-star-glint: polygon(50% 0, 59% 38%, 100% 50%, 59% 62%, 50% 100%, 41% 62%, 0 50%, 41% 38%);
   --clip-octocat-bolt: polygon(54% 0, 13% 55%, 46% 55%, 33% 100%, 95% 41%, 62% 41%, 81% 0);
@@ -115,8 +89,6 @@
     linear-gradient(140deg, var(--color-sky-100), var(--color-violet-200) 57%, var(--color-rose-100));
   --shadow-star-curtain-button: 0.2rem 0.2rem 0 var(--color-ink);
 
-  --shadow-registration: var(--spacing-registration) var(--spacing-registration) var(--color-cyan);
-  --drop-shadow-registration: var(--spacing-registration) var(--spacing-registration) 0 var(--color-cyan);
   --background-image-newsstand-back: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px),
     var(--color-teal-950) calc(10% - 2px) calc(10% - 1px), color-mix(in srgb, var(--color-paper) 9%, transparent) calc(10% - 1px) 10%),
     radial-gradient(ellipse at 42% 6%, var(--color-teal-800), var(--color-teal-950) 90%);
@@ -128,7 +100,6 @@
   --animate-crt-refresh: crt-refresh 8s linear infinite;
   --animate-star-rim: star-rim 5.4s linear infinite;
   --animate-star-rim-hot: star-rim 1.48s linear infinite;
-  --animate-star-sheen: star-sheen 6.1s ease-in-out infinite;
   --animate-star-sheen-preview: star-sheen 2.15s ease-in-out -0.96s infinite;
   --animate-star-sheen-hot: star-sheen 1.32s ease-in-out infinite;
   --animate-star-crystal: star-crystal 2.7s ease-in-out infinite;

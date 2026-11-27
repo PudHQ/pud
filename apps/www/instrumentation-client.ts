@@ -1,3 +1,3 @@
-import { analytics } from "./app/analytics";
+import { analytics } from "@/lib/analytics";
 
 analytics?.capture("$pageview");

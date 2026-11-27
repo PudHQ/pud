@@ -16,6 +16,7 @@
     "alpha:list": "cf d1 raw 00000000-0000-4000-8000-000000004901 --local --sql \"SELECT email, joined_at FROM alpha_signups ORDER BY joined_at DESC, email\""
   },
   "dependencies": {
+    "@fontsource-variable/pixelify-sans": "catalog:",
     "@pud/analytics": "workspace:*",
     "@pud/crt": "workspace:*",
     "@react-three/drei": "catalog:",

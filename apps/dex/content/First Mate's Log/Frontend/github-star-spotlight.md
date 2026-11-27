@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-24
+updated-at: 2026-11-26
 summary: How the landing page cues its followspot, lightning charge, Octocat dialogue, and manga curtain.
 tags: [design, animation, accessibility, frontend]
 ---
@@ -13,11 +13,11 @@ tags: [design, animation, accessibility, frontend]
 
 The oval around the GitHub link cues the followspot. The button shimmers and jiggles gently in the oval. The lightning bank, Octocat’s shock pose, and the charge clock start at the link’s own rectangular hitbox. On the way back to the oval, leftover electricity dies out and the face settles into its shimmer while the same lamp stays up. The lamp lowers and fades when the pointer clears the oval or reaches a neighbouring control. A quick return to the oval reverses the dimming from its current level.
 
-Keyboard focus cues the light and charge. Escape clears the cue and keeps focus on the link. Reduced motion uses still cues and preserves dialogue timing. A touch activation goes straight to the repository. The GitHub link opens in a new tab. The input handling lives in `apps/www/app/github-star-spotlight.tsx`.
+Keyboard focus cues the light and charge. Escape clears the cue and keeps focus on the link. Reduced motion uses still cues and preserves dialogue timing. A touch activation goes straight to the repository. The GitHub link opens in a new tab. [Input handling](https://github.com/PudHQ/pud/blob/main/apps/www/features/github-star/attach-spotlight.ts)
 
 ## Lighting trials
 
-The button uses a pressed base, travelling chrome highlights, and the proof factory’s screen-glass treatment. Branching blue lightning fills the glass in about 2.8 seconds and releases 48 sparks at full charge. The white label picks up a bevel and dark inset while the electricity runs. The star sits with the count on a small shared badge. On narrow screens the label sits above the Octocat and badge. [[Ideas/rockbuster|Rockbuster]]
+The resting button is black with a monochrome Octocat and a star count. Moving into the oval reveals travelling chrome highlights and the proof factory’s screen-glass treatment. Branching blue lightning fills the glass in about 2.8 seconds and releases 48 sparks at full charge. The white label picks up a bevel and dark inset while the electricity runs. At 320 CSS pixels the count fits under “GitHub” beside the Octocat. [Button face](https://github.com/PudHQ/pud/blob/main/apps/www/features/github-star/spotlight-link.tsx) · [[Ideas/rockbuster|Rockbuster]]
 
 Jhey Tompkins’s sparkles informed the corner glints. Magic UI's traveling highlight informed the rim, Josh W. Comeau's layered button informed the press depth, and the Codrops particle demo informed the mix of glints and pixels. [Sparkle Button](https://codepen.io/jh3y/pen/LYJMPBL) · [Shimmer Button](https://magicui.design/docs/components/shimmer-button) · [3D button](https://www.joshwcomeau.com/animation/3d-button/) · [Particle Effects for Buttons](https://tympanus.net/codrops/2018/04/25/particle-effects-for-buttons/)
 
@@ -37,7 +37,9 @@ Five seconds after the last line, Pud’s upper panel, Octocat’s lower panel, 
 
 Open the running landing page on port 4901. Hold in the oval beside the GitHub link to see the shimmer, then move onto the link to start the charge. Move off the link into the oval to let the electricity settle. Move outside the oval and back during the dimming to check that the scene continues. To see the curtain, hold on the link for about 19 seconds. Tab to the GitHub link and press Escape to dismiss its cue while keeping focus.
 
-In this run, the header fit on one row at 320, 390, 592, 593, 640, and 1280 CSS pixels with the live star count. The smallest link target measured 46 × 44 CSS pixels. At 1280 × 720, the pointer ellipse was about 366 × 166 CSS pixels around a 200 × 48 CSS-pixel link.
+The translucent header applies its blur to a background pseudo-element. Applying it to the header itself would give the fixed spotlight a header-sized containing block. With the new header at 1280 × 800, the overlay measured 1280 × 800 during a full charge. Keyboard Escape restored the black face and kept focus on the link. [Site header](https://github.com/PudHQ/pud/blob/main/apps/www/components/site-header.tsx)
+
+In the original lighting trial, the header fit on one row at 320, 390, 592, 593, 640, and 1280 CSS pixels with the live star count. The smallest link target measured 46 × 44 CSS pixels. At 1280 × 720, the pointer ellipse was about 366 × 166 CSS pixels around a 200 × 48 CSS-pixel link.
 
 At 1280 × 720, the in-app browser used a 1448 × 815 spotlight backing store. A three-second charge sample drew about 120 frames per second with a 9.2 ms 95th-percentile interval and zero intervals over 25 ms. The measured stage recovered from about 73% exposure on a quick return during dimming. A synthetic touch pointer left the canvas idle.
 

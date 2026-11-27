@@ -16,6 +16,7 @@ Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://gi
 
 - [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]]
 - [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]]
+- [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]]
 - [[First Mate's Log/Frontend/posthog-proxy-and-https|PostHog proxy and HTTPS redirects]]
 - [[First Mate's Log/Frontend/pud-linkedin-sticker-sheet|Pud LinkedIn sticker sheet]]
 - [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]]
@@ -32,7 +33,9 @@ Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://gi
 
 ## 2026-11-26
 
-- Added [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] with the cover dimensions, narrow-screen layout and render measurements.
+- Added [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] with the hero illustration prompt, measured gutters and Dex entrance.
+- Updated [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]] with the black button, compact count and viewport check in the translucent header.
+- Added [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] with the cover dimensions, render measurements and source locations for the stand and waitlist below the terminal.
 - Added [[First Mate's Log/Frontend/posthog-proxy-and-https|PostHog proxy and HTTPS redirects]] with the proxy checks and live Cloudflare redirects.
 - Recorded the 163-export scan, the versioned eight-law pilot and the [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage#Checked number examples|exact number laws, ambiguous result rules and native witnesses]].
 - Updated the [[First Mate's Log/Verification/Lean/Language Coverage/typescript-to-lean-coverage-map|coverage map]] with the measured counts and linked the new [[Handbook/Engineering/Verification/typescript-compatibility|compatibility tree]].
