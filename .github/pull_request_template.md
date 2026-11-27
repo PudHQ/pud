@@ -1,21 +1,34 @@
 ## Issue
 
-<!-- Required. Use `Closes #ISSUE_NUMBER` for a Pud issue this PR resolves. -->
+<!--
+
+You must link to the issue this PR resolves.
+(Do that with the `Closes #ISSUE_NUMBER` keyword)
+
+-->
 
 ## Change
 
-<!-- Describe what changed and why. Point reviewers to any file or decision that needs a closer look. -->
+<!--
+
+Describe what changed, how and why.
+
+Include, in plain English (that is easily understandable and not overly technical unless necessary), any interesting or notable facts or data that are relevant to this change.
+
+If certain files need a closer look from reviewers, point that out here.
+
+-->
 
 ## Verification
 
 <!--
-Connect the key acceptance criteria to the commands you ran and their results, or link the relevant
-CI run. Call out checks that are still pending.
 
-For each affected Pud law, state the law and its input domain. Link the `.proof.ts` file and give
-the `pud check` verdict. For a law outside Pud’s current model, explain the gap and give the fallback
-check and its result.
+Include references to test, proofs, metrics, and documentation here.
 
-Link updated docs, show before-and-after screenshots for visual changes, or give measurements when
-they support the outcome.
+If possible, re-list the acceptance criteria from the linked issue here and state that all requirements have been met.
+
+If you are changing Pud's internals, it is important to explain how and why that was done here, as well as describing the mitigations you've taken against regressions.
+
+-- You **do not** need to include references to these things if they do not apply to your PR, i.e. don't say "nothing needs a closer look from reviewers", or "I'm not changing Pud's internals", just omit anything which isn't directly relevant --
+
 -->

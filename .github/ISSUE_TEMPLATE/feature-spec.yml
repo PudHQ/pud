@@ -1,57 +1,28 @@
 name: Feature spec
-description: Propose new work and define how to verify it.
-labels: [enhancement]
+description: Propose new work.
+labels: [spec]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: Describe the current behavior, who it affects, and why it matters.
+      label: Problem or need
+      description: What currently doesn't exist or needs improvement?
     validations:
       required: true
   - type: textarea
     id: outcome
     attributes:
-      label: Outcome
-      description: Name the affected workflow or interface and describe the concrete behavior that will change.
+      label: Outcome, change, or solution
+      description: Describe, in as much detail as expected or necessary, how things should change in order to fulfill the need or solve the problem you outlined above.
     validations:
       required: true
   - type: textarea
     id: acceptance-criteria
     attributes:
-      label: Acceptance criteria
-      description: List observable pass conditions, including any relevant edge cases.
-    validations:
-      required: true
-  - type: textarea
-    id: supporting-documentation
-    attributes:
-      label: Supporting documentation
-      description: Link relevant docs, examples, or decisions. Name the pages to write or update.
-    validations:
-      required: true
-  - type: textarea
-    id: metrics
-    attributes:
-      label: Metrics
-      description: Name each metric, its target, and how to measure it. Link existing measurements when available.
-    validations:
-      required: true
-  - type: textarea
-    id: tests
-    attributes:
-      label: Tests
-      description: Name the tests to add or update and what they cover. Link existing tests or results when available.
-    validations:
-      required: true
-  - type: textarea
-    id: laws-and-properties
-    attributes:
-      label: Laws and properties
+      label: Criteria and metrics
       description: >-
-        State each law and its input domain, including preconditions. For behavior outside Pud’s
-        current model, explain the gap and name the check you’ll use. For example, given any dense
-        `bigint` array and any `bigint` target, linear search returns the first matching index or
-        `-1n` when the target is absent.
+        If relevant, make a checklist of acceptance criteria containing the things (attributes) that need to be true in order for this issue to be closed.
+
+        Include new or existing metrics that need updating, as well as any proofs or tests that need to be created or modified in order for this work to be complete.
     validations:
-      required: true
+      required: false
