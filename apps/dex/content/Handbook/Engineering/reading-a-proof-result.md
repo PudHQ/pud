@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-21
-updated-at: 2026-11-26
+updated-at: 2026-11-27
 summary: Read a Pud verdict, inspect a Lean diagnostic, and distinguish an open proof from an observed violation.
 aliases: [Replaying the maximum proof]
 tags: [verification, cli, lean]
@@ -17,7 +17,7 @@ A `pud check` verdict belongs to one property in a `*.proof.ts` file. The projec
 bun run --silent pud check packages/pud/.examples/linear-search.proof.ts
 ```
 
-The search example proves that the function returns the index of the first match, or `-1n` when the list contains no match. Use `--verbose` for full diagnostics or `--json` for a structured report. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]]
+The search example proves that the function returns the index of the first match, or `-1n` when the list contains no match. Use `--verbose` for full diagnostics or `--json` for a structured report. When you pipe `--json` or `--emit`, stdout carries the requested output and project config logs go to stderr. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]]
 
 | Verdict | Evidence | Exit |
 | --- | --- | --- |

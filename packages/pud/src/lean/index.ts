@@ -152,18 +152,32 @@ theorem loweringCertificate : loweringClaim := by
 ${indent(normalize(proved.map(subject => subject.code + "Lowering")))}`].join("\n\n");
 }
 
-function generate(program: Program, claim: ProofClaim, imports: readonly string[]) {
-  const modes = [claim.expectedError, claim.reference, claim.assertions.length || claim.exactResult].filter(Boolean);
-  if (modes.length !== 1 || (claim.expectedError && !Object.hasOwn(errorKinds, claim.expectedError))) {
-    throw new Unsupported("State a return predicate, equality between calls, or one modeled exception.");
+/** Direct adapter callers can also supply a claim created before the kind field was introduced. */
+function checkedClaim(input: Omit<ProofClaim, "kind"> & { kind?: ProofClaim["kind"] }): ProofClaim {
+  const { kind: tag, assertions, exactResult, expectedError, reference, ...common } = input;
+  const kind = tag ?? (expectedError !== undefined ? "throw" : reference !== undefined ? "equal" : "return");
+  const returns = Boolean(assertions.length || exactResult);
+  if (kind === "return" && returns && reference === undefined && expectedError === undefined) {
+    return { ...common, kind, assertions, exactResult };
   }
+  if (kind === "equal" && reference && !returns && expectedError === undefined) {
+    return { ...common, kind, reference, assertions: [] };
+  }
+  if (kind === "throw" && expectedError && Object.hasOwn(errorKinds, expectedError) && !returns && reference === undefined) {
+    return { ...common, kind, expectedError, assertions: [] };
+  }
+  throw new Unsupported("State a return predicate, equality between calls, or one modeled exception.");
+}
+
+function generate(program: Program, input: ProofClaim, imports: readonly string[]) {
+  const claim = checkedClaim(input);
   const { params, itemType } = program.root;
   const observed = observe(program, claim.observation);
   const execution = observed.value;
-  if (claim.exactResult && (!isScalar(execution.sort) || claim.reference || claim.expectedError)) {
+  if (claim.exactResult && !isScalar(execution.sort)) {
     throw new Unsupported("Use an exact result schema for a scalar return value.");
   }
-  const reference = claim.reference && observe(program, claim.reference);
+  const reference = claim.kind === "equal" ? observe(program, claim.reference) : undefined;
   if (reference && (!isScalar(execution.sort) || reference.value.sort !== execution.sort || reference.value.fallible || execution.fallible)) {
     throw new Unsupported("Use toEqual() with two nonthrowing calls returning the same scalar type.");
   }
@@ -236,15 +250,16 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
   const binding = claim.exactResult ? "actual" : "result";
   const postcondition = claim.exactResult
     ? `∀ (result : ${leanTypes[execution.sort]}), (${assertions}) ↔ result = actual` : assertions;
+  function goal(outcome: Value) {
+    if (claim.kind === "throw") return outcome.fallible ? `(${outcome.code}) = .error ErrorKind.${errorKinds[claim.expectedError]}` : "False";
+    if (reference) return outcome.sort === "number"
+      ? `JSNumber.eq (${outcome.code}) (${reference.value.code}) = true` : `(${outcome.code}) = (${reference.value.code})`;
+    return outcome.fallible
+      ? `match (${outcome.code}) with\n| .ok ${binding} =>\n${indent(postcondition)}\n| .error _ => False`
+      : `let ${binding} := ${outcome.code}\n${postcondition}`;
+  }
   function proposition(outcome: Value) {
-    const goal = claim.expectedError
-      ? outcome.fallible ? `(${outcome.code}) = .error ErrorKind.${errorKinds[claim.expectedError]}` : "False"
-      : reference ? outcome.sort === "number"
-        ? `JSNumber.eq (${outcome.code}) (${reference.value.code}) = true` : `(${outcome.code}) = (${reference.value.code})`
-        : outcome.fallible
-        ? `match (${outcome.code}) with\n| .ok ${binding} =>\n${indent(postcondition)}\n| .error _ => False`
-        : `let ${binding} := ${outcome.code}\n${postcondition}`;
-    return [binders && `∀ ${binders},`, ...premises, goal].filter(Boolean).join("\n");
+    return [binders && `∀ ${binders},`, ...premises, goal(outcome)].filter(Boolean).join("\n");
   }
   const simplify = [...linked.filter(subject => !subject.recursive).map(subject => subject.code), "Id.run"].join(", ");
   const recursive = linked.filter(subject => subject.recursive).map(subject => subject.code);
@@ -288,7 +303,7 @@ function generate(program: Program, claim: ProofClaim, imports: readonly string[
     ...(fold ? ["Pud.denseForOf_correct"] : []),
     ...loopConformance.map(({ name }) => `Pud.${name}`),
   ];
-  return { unit, certifiedLowering: !!certificate, iterationTheorems };
+  return { unit, claim, certifiedLowering: !!certificate, iterationTheorems };
 }
 
 class RejectedProof extends Error {}
@@ -380,12 +395,12 @@ async function verify(
         outcome = { status: "proved" };
       } catch (error) {
         const detail = (error as Error).message;
-        outcome = error instanceof RejectedProof && claims[i]!.exactResult
+        outcome = error instanceof RejectedProof && entry.claim.exactResult
           ? { status: "unproved", detail: "Lean could not prove that the rule accepts exactly the returned value for each admitted input.", diagnostic: detail }
           : { status: error instanceof RejectedProof ? "unproved" : "error", detail };
         if (error instanceof RejectedProof && options.replay) {
           try {
-            const counterexample = await replayClaim(program, claims[i]!, join(dir, `replay-${i}`));
+            const counterexample = await replayClaim(program, entry.claim, join(dir, `replay-${i}`));
             if (counterexample) outcome = { status: "disproved", counterexample };
           } catch (replayError) {
             outcome = { status: "error", detail: `Bun replay failed. ${(replayError as Error).message}`, diagnostic: detail };

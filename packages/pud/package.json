@@ -15,6 +15,9 @@
     "@babel/types": "catalog:",
     "chalk": "catalog:"
   },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  },
   "scripts": {
     "pack": "\"$npm_execpath\" ./scripts/pack.ts",
     "test": "\"$npm_execpath\" test",

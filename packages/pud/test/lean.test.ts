@@ -291,10 +291,12 @@ leanTest("a zero divisor cannot prove a success property or the wrong exception"
 
 leanTest("progress visits each Lean item before the shared snapshot check", async () => {
   const events: CheckProgress[] = [];
-  const files = ["bigint-division.proof.ts", "zigzag-roundtrip.proof.ts"].map(file => join(examples, file));
+  const files = [join(examples, "bigint-division.proof.ts"), join(examples, "zigzag-roundtrip.proof.ts")] as const;
   const reports = await checkFiles(files, { adapter, onProgress: event => events.push(event) });
   expect(reports.flatMap(report => report.results).map(result => result.status)).toEqual(["proved", "proved", "proved"]);
   expect(events.filter(event => event.kind === "suite").map(event => [event.index, event.totalItems])).toEqual([[0, 3], [1, 3]]);
+  expect(events.filter(event => event.kind === "finished").flatMap(event => event.indices.map(index => [event.file, index])))
+    .toEqual([[files[0], 0], [files[0], 1], [files[1], 0]]);
   const completedFirst = events.findIndex(event => event.kind === "finished" && event.file === files[0] &&
     event.indices.length === 1 && event.indices[0] === 0);
   const startedSecond = events.findIndex(event => event.kind === "running" && event.file === files[0] &&

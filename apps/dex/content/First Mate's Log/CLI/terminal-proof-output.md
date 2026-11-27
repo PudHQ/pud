@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-25
+updated-at: 2026-11-27
 summary: Keep live proof progress and final diagnostics readable in a terminal and in a captured log.
 tags: [cli, terminal, reporting, progress, verification, lean]
 ---
@@ -20,6 +20,8 @@ A simulated run of 12,001 checks fit at both 32 and 88 columns. Progress events 
 
 Lean reports outcomes per claim. A backend that submits a group together can highlight one item and show how many others are running. Live outcomes are provisional. Pud checks source snapshots and import resolutions before it clears the trail and prints permanent verdicts. Redirection and `--json` keep machine-readable output free of progress controls. [Progress events](https://github.com/PudHQ/pud/blob/main/packages/pud/src/check.ts) · [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]]
 
+In the installed-package test, a config import used both `console.log` and `process.stdout.write`. The CLI sent both lines to stderr. Stdout parsed as JSON for `--json` and matched the library’s verification unit for `--emit`. [Installed-package test](https://github.com/PudHQ/pud/blob/main/packages/pud/test/package.test.ts)
+
 Run these commands from the repository root to capture the plain report and inspect the generated code.
 
 ```sh
@@ -28,3 +30,7 @@ bun run --silent pud --emit packages/pud/.examples/linear-search.proof.ts
 ```
 
 CI checks the supported examples through the same command. The indexed `sumPositive` example exercises the `UNSUPPORTED` row and exit status 2 in the terminal regression test. [CLI reporter](https://github.com/PudHQ/pud/blob/main/packages/pud/src/reporter.ts) · [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]]
+
+## Counting completed properties
+
+On Bun 1.4.2 and Lean 4.19.0, the two properties in `bigint-division.proof.ts` originally finished individually and then appeared again in a batch event. After moving completion tracking into the suite runner, the trace contained `finished [0]`, `finished [1]`, then `validating`. A caller can add `event.indices.length` on each completion. The runner also supplies a status for a binding error or a verifier that returns its verdicts without sending progress. [Division regression](https://github.com/PudHQ/pud/blob/main/packages/pud/test/lean.test.ts) · [Adapter regression](https://github.com/PudHQ/pud/blob/main/packages/pud/test/suite.test.ts)

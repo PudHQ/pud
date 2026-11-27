@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-25
+updated-at: 2026-11-27
 summary: How Pud checks linked TypeScript properties and what its lowering certificates establish compared with LemmaScript and Lynx.
 tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, exceptions, termination, semantics, translation-validation, proof-reuse, lemmascript, lynx]
 ---
@@ -17,6 +17,12 @@ The `@pud.dev/lib` package now owns the command and suite API. Lean is its first
 Project config is selected relative to each sidecar. Native suites import the config as `pud` and use that binding for both `pud.describe()` and schema builders such as `pud.bigint()` and `pud.boolean()`. The primitive names follow TypeScript and Zod. The configured binding gives both the schemas and proof helpers the type of the chosen assistant. Pud reads the sidecar statically and checks the same assistant marker when a library call supplies an explicit adapter. The configured import and native tagged template follow Drizzle's driver and query patterns. [Zod schemas](https://zod.dev/api#primitives) · [Drizzle setup](https://orm.drizzle.team/docs/get-started/postgresql-new) · [Drizzle tagged templates](https://orm.drizzle.team/docs/sql)
 
 The Lean adapter checks the theorem type against the currently emitted claim and audits its dependencies. The migrated examples certified 23 active properties and reported one TODO. A temporary change from `+ 1n` to `+ 2n` caused the original increment proof to fail. A term using `sorry` failed the axiom audit. An independent test adapter received the portable claim from a suite, and Pud rejected that suite's Lean predicate and named certificate for the alternate adapter. The installed package typecheck caught the native type mismatch too.
+
+## Reloading an imported config option
+
+On Bun 1.4.2 and Lean 4.19.0, a fixture’s `pud.config.ts` imported `replay` from `./options.ts` and passed it to `leanAdapter({ replay })`. The function returned `n - 1n` and its property required `n`. The original loader cached the adapter using the text of `pud.config.ts`, so editing the imported option left a long-lived caller using the old setting. [Original loader](https://github.com/PudHQ/pud/blob/e375abdcc78bac05df85b15a0b6ba43686ed1f61/packages/pud/src/suite-check.ts#L21-L35)
+
+With a fresh Bun process per configured run, the first `check()` returned `unproved`. After enabling replay in `options.ts`, the second call from the same caller returned `disproved` with input `0n` and result `-1n`. The CLI found the same witness. Two suites in one `checkFiles` batch share the config instance. Concurrent calls get independent instances. [Config lifetime regression](https://github.com/PudHQ/pud/blob/main/packages/pud/test/suite.test.ts) · [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]]
 
 ## Refinements and quantifiers
 

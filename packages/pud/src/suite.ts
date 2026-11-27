@@ -402,12 +402,10 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
   }
   const results = new Map<string, ProofCall>();
   const assertions: ProofConstraint[] = [];
+  let claim: ProofClaim | undefined;
   let observation: ProofCall | undefined;
   let observationKey: string | undefined;
   let resultType = subject.result;
-  let exactResult = false;
-  let reference: ProofCall | undefined;
-  let expectedError: ProofErrorKind | undefined;
 
   function readCall(node: Node | null | undefined): ProofCall {
     const callee = node?.type === "CallExpression" && !node.typeArguments && node.callee.type === "Identifier"
@@ -453,7 +451,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
       const local = step.declarations[0]!;
       const name = identifier(file, local.id);
       if (reserved.has(name) || bindings.has(name) || results.has(name)) invalid(file, local.id, "Use a fresh binding for the subject result.");
-      if (expectedError) invalid(file, local, "Keep the throwing call inside expect's callback.");
+      if (claim?.kind === "throw") invalid(file, local, "Keep the throwing call inside expect's callback.");
       const call = readCall(local.init);
       observe(call, local);
       results.set(name, call);
@@ -462,7 +460,7 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
     if (step.type !== "ExpressionStatement") invalid(file, step, "Use given(), a subject call, or an expect() assertion.");
     const given = directCall(step.expression, helpers.get("given"));
     if (given) {
-      if (assertions.length || exactResult || reference || expectedError) invalid(file, step, "Put given() before the assertions.");
+      if (claim) invalid(file, step, "Put given() before the assertions.");
       const [condition] = arity(file, given, 1);
       const predicate = proofPredicate(suite, condition, bindings);
       premises.push(predicate.kind === "boolean"
@@ -476,40 +474,42 @@ export function bindClaim(suite: Suite, property: Extract<SuiteProperty, { kind:
     const [result] = arity(file, expect, 1);
     const [matcher] = arity(file, to.call, 1);
     if (to.name === "toThrow") {
-      if (assertions.length || exactResult || reference || expectedError || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
+      if (claim || results.size) invalid(file, step, "Use one throw assertion with its call inside expect.");
       if (result?.type !== "ArrowFunctionExpression" || result.async || result.typeParameters || result.params.length || result.body.type === "BlockStatement") {
         invalid(file, result, "Use a parameterless arrow expression for a throwing call.");
       }
       const error = staticString(file, matcher);
       if (!subject.errors?.some(kind => kind === error)) invalid(file, matcher, "Select an exception supported by the configured assistant.");
       observe(readCall(result.body), result);
-      expectedError = error as ProofErrorKind;
+      claim = { kind: "throw", premises, assertions: [], expectedError: error as ProofErrorKind };
       continue;
     }
-    if (expectedError || reference || exactResult) invalid(file, step, "Use one outcome per property.");
+    if (claim && (claim.kind !== "return" || claim.exactResult)) invalid(file, step, "Use one outcome per property.");
     const local = result?.type === "Identifier" && results.get(result.name);
     observe(local || readCall(result), result!);
     if (to.name === "toEqual") {
-      if (assertions.length) invalid(file, step, "Use toEqual() as the only assertion in its property.");
+      if (claim) invalid(file, step, "Use toEqual() as the only assertion in its property.");
       if (!subject.callEquality || !subject.inspectCall) invalid(file, step, "The selected assistant does not support equality between calls.");
-      reference = readCall(matcher);
+      const reference = readCall(matcher);
       const expected = subject.inspectCall(reference);
       if ((resultType.kind !== "integer" && resultType.kind !== "number" && resultType.kind !== "boolean") || resultType.kind !== expected.kind) {
         invalid(file, matcher, "Use toEqual() with calls returning the same scalar type.");
       }
+      claim = { kind: "equal", premises, assertions: [], reference };
       continue;
     }
-    if (to.name === "toExactly") {
-      if (assertions.length) invalid(file, step, "Combine the result conditions in one toExactly() schema.");
+    const exact = to.name === "toExactly";
+    if (exact) {
+      if (claim) invalid(file, step, "Combine the result conditions in one toExactly() schema.");
       if (!subject.exactResults) invalid(file, step, "The selected assistant does not support exact result schemas.");
       if (!["integer", "number", "boolean"].includes(resultType.kind)) invalid(file, matcher, "Use toExactly() with a scalar result.");
-      exactResult = true;
     }
     const clauses = schemaConstraints(suite, matcher, resultType, { kind: "result" }, bindings);
-    if (!clauses.length && !exactResult) invalid(file, matcher, "Add a constraint to the result schema.");
+    if (!clauses.length && !exact) invalid(file, matcher, "Add a constraint to the result schema.");
     assertions.push(...clauses);
+    claim ??= { kind: "return", premises, assertions, ...(exact && { exactResult: true }) };
   }
-  if (!assertions.length && !exactResult && !reference && !expectedError) invalid(file, property.call, "Add an assertion or use it.todo().");
+  if (!claim) invalid(file, property.call, "Add an assertion or use it.todo().");
   const proof = property.proof && nativeTerm(suite, property.proof, emptyBindings);
-  return { premises, assertions, proof, ...(exactResult && { exactResult: true }), ...(observation && { observation }), ...(reference && { reference }), ...(expectedError && { expectedError }) };
+  return { ...claim, proof, ...(observation && { observation }) };
 }

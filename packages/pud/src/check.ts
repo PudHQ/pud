@@ -1,6 +1,6 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { Unsupported, type Counterexample, type ProofAssistant, type ProofOutcome } from "./assistant.ts";
+import { failure, type Counterexample, type ProofAssistant, type ProofOutcome } from "./assistant.ts";
 import type { ConcreteScope } from "./input-scope.ts";
 import { parseSourceModule } from "./source.ts";
 import { checkSuite, emitSuite, findConfig } from "./suite-check.ts";
@@ -21,13 +21,17 @@ export interface CheckResult {
 
 export interface CheckReport { file: string; results: CheckResult[] }
 
-/** Finished statuses follow indices in order and are provisional until snapshot validation. */
+type ItemEvent =
+  | { kind: "running"; indices: readonly number[]; statuses?: never }
+  | { kind: "finished"; indices: readonly number[]; statuses: readonly CheckResult["status"][] };
+
+/** Each active index finishes once. Its status is provisional until the final report. */
 export type CheckProgress =
   | { kind: "suite"; file: string; index: number; total: number; totalItems: number; items: readonly { name: string; todo?: boolean }[] }
-  | { kind: "running" | "finished"; file: string; indices: readonly number[]; statuses?: readonly CheckResult["status"][] }
+  | (ItemEvent & { file: string })
   | { kind: "validating" };
 
-export type ItemProgress = (kind: "running" | "finished", indices: readonly number[], statuses?: readonly CheckResult["status"][]) => void;
+export type ItemProgress = (event: ItemEvent) => void;
 
 export interface CheckOptions {
   adapter?: ProofAssistant;
@@ -36,13 +40,6 @@ export interface CheckOptions {
 
 export interface EmitOptions extends Pick<CheckOptions, "adapter"> {
   property?: string;
-}
-
-function failure(error: unknown): CheckResult {
-  return {
-    status: error instanceof Unsupported ? "unsupported" : "error",
-    detail: error instanceof Error ? error.message : String(error),
-  };
 }
 
 type Snapshot = { canonical: string; source: string } | { error: unknown };
@@ -140,12 +137,11 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
       progress({ kind: "suite", file: plan.file, index, total: plans.length, totalItems, items });
     }
     if ("error" in plan) continue;
-    const report: ItemProgress | undefined = progress && ((kind, indices, statuses) =>
-      progress({ kind, file: plan.file, indices, ...(statuses && { statuses }) }));
+    const report: ItemProgress | undefined = progress && (event => progress({ ...event, file: plan.file }));
     plan.results = await checkSuite(plan.suite, plan.config, options, snapshotReader(snapshots, plan.dependencies), report);
   }
 
-  if (plans.length) progress?.({ kind: "validating" });
+  if (plans.length && progress) await progress({ kind: "validating" });
   const changed = snapshots.changes();
   return plans.map(plan => {
     const { file } = plan;
@@ -165,14 +161,7 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
   });
 }
 
-/** Check one sidecar from source. */
-export async function check(file: string, options?: CheckOptions): Promise<CheckReport> {
-  return (await checkFiles([file], options))[0]!;
-}
-
-/** Emit the same verification unit as pud --emit, without running a prover. */
-export async function emit(file: string, selector?: string | EmitOptions): Promise<string> {
-  const options = typeof selector === "string" ? { property: selector } : selector ?? {};
+export async function emit(file: string, options: EmitOptions): Promise<string> {
   const snapshots = new SourceSnapshots();
   const read = snapshotReader(snapshots);
   const { suite, config, origin } = parseSuite(file, read);

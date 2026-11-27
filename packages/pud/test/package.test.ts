@@ -17,6 +17,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     return { stdout: child.stdout.toString(), stderr: child.stderr.toString() };
   }
   const config = (options = "") => [
+    'import "./diagnostics.cjs";',
     'import { defineConfig } from "@pud.dev/lib";',
     'import { leanAdapter } from "@pud.dev/lib/lean";',
     `export default defineConfig({ adapter: leanAdapter(${options}) });`,
@@ -30,6 +31,7 @@ test("a Bun project can install the archive offline and use the command, API, an
     await cp(join(import.meta.dir, "../.examples/motion"), join(cwd, "motion"), { recursive: true });
     await writeFile(join(cwd, "quote.ts"), "export function quote(cents: bigint): bigint { return cents - 1n; }");
     const configFile = join(cwd, "pud.config.ts");
+    await writeFile(join(cwd, "diagnostics.cjs"), 'console.log("Loading project config"); process.stdout.write("Using Lean\\n");');
     await writeFile(configFile, config('{ executable: "./missing-lean" }'));
     await writeFile(join(cwd, "quote.proof.ts"), [
       'import { describe, expect, it, pud } from "@pud.dev/lib";',
@@ -51,12 +53,16 @@ test("a Bun project can install the archive offline and use the command, API, an
       '});',
     ].join("\n"));
     await writeFile(join(cwd, "types.ts"), [
-      'import { check, checkFiles, defineConfig, emit, expect, native, pud, type CheckReport } from "@pud.dev/lib";',
+      'import { check, checkFiles, defineConfig, emit, expect, native, pud, type CheckReport, type ProofCall, type ProofClaim } from "@pud.dev/lib";',
       'import { lean } from "@pud.dev/lib/lean";',
       'import { quote } from "./quote";',
       'const report: CheckReport = await check("quote.proof.ts");',
       'const reports: CheckReport[] = await checkFiles(["quote.proof.ts"]);',
       'const unit: string = await emit("quote.proof.ts", "subtracts one cent");',
+      'declare const reference: ProofCall;',
+      'const equality: ProofClaim = { kind: "equal", premises: [], assertions: [], reference };',
+      '// @ts-expect-error a call equality and an expected exception are separate claims',
+      'const contradictory: ProofClaim = { ...equality, expectedError: "RangeError" };',
       'pud.number().gte(0).eq(1.5);',
       'declare const amount: number, values: readonly bigint[];',
       'expect(amount).toExactly(pud.number().nearestIntegerTo(amount, { ties: "up" }));',
@@ -91,13 +97,16 @@ test("a Bun project can install the archive offline and use the command, API, an
     }));
     const tsc = resolve(import.meta.dir, "../../../node_modules/typescript/bin/tsc");
     run([tsc, "-p", "."]);
-    const { stdout: unit } = run(["run", "pud", "--emit", "native.proof.ts"]);
+    const { stdout: unit, stderr: emitLog } = run(["run", "pud", "--emit", "native.proof.ts"]);
+    expect(emitLog).toContain("Loading project config\nUsing Lean");
+    expect(unit).toStartWith("import Std\n");
     expect(unit).toContain("def impl (p0 : Int) : Int");
     expect(unit).toContain("result = (p0) - 1");
     expect(unit).toContain("theorem checked : claim");
     expect(run(["-e", 'import { emit } from "@pud.dev/lib"; process.stdout.write(await emit("native.proof.ts"))']).stdout).toBe(unit);
 
     const missing = run(["run", "pud", "check", "quote.proof.ts", "--json"], 2);
+    expect(missing.stderr).toContain("Loading project config\nUsing Lean");
     expect(JSON.parse(missing.stdout).files[0].results[0]).toMatchObject({ status: "error", assistant: "lean" });
     if (Bun.which(lean.binary)) {
       await writeFile(configFile, config());
