@@ -1,26 +1,36 @@
 # Rorz's skills
 
-A selection of opinionated skills used for development in any repository that has access to them.
+Read the guides for the app and any shared work the task touches.
 
-Use all that you require below:
+## Dex
 
-## Agent etiquette
+- Find and cite existing project context. [PudDex reference](dex/puddex-reference/SKILL.md)
+- Share local PudDex pages in Codex. [PudDex links](dex/puddex-links/SKILL.md)
 
-| Skill | Location | Description |
-| --- | --- | --- |
-| Git operations | [gitops](./gitops/SKILL.md) | Offer scoped staging after repository work |
-| PudDex links | [puddex-links](./puddex-links/SKILL.md) | Share local PudDex pages through the Codex webview |
+## WWW
 
-## Project skills
+- Compose landing-page headlines, measure gutters, and check overflow. [Poster layout](www/poster-layout.md)
+- Check splash controls, touch targets, and keyboard focus. [Splash navigation](www/splash-nav.md)
+- Build and profile scenes against the 60 fps target. [WebGL scenes](www/webgl-scenes/SKILL.md)
 
-| Type    | Location                               | Description                                            |
-| :------ | :------------------------------------- | :----------------------------------------------------- |
-| Monorepo | [monorepo.md](./monorepo.md)           | Workspace standards, shared code, and maintenance      |
-| PudDex notes | [puddex-notes](./puddex-notes/SKILL.md) | Write Handbook guides and topical First Mate’s Log entries |
-| PudDex reference | [puddex-reference](./puddex-reference/SKILL.md) | Find and cite relevant project context in PudDex |
-| Styling | [`./styling.md`](./styling.md)         | Directives and opinions on styling, including Tailwind |
-| Ports   | [`./ports.md`](./ports.md)             | Local service port assignments                         |
-| Color   | [color.md](./color.md)                 | Palette, color area, and text contrast                 |
-| WebGL   | [webgl-scenes](./webgl-scenes/SKILL.md) | Rendering and profiling against the 60 fps budget      |
-| Posters | [poster-layout.md](./landing-site/poster-layout.md) | Display type, composition, and measured spacing        |
-| Nav     | [splash-nav.md](./landing-site/splash-nav.md)       | Splash controls, touch targets, and keyboard focus     |
+## Engineering
+
+- Keep workspace conventions, shared code, and tooling consistent. [Monorepo](engineering/monorepo.md)
+- Offer scoped staging after repository changes. [Git operations](engineering/gitops/SKILL.md)
+
+## Design
+
+- Choose and check palettes and text contrast. [Color](design/color.md)
+- Use Tailwind classes, theme variables, and stylesheets. [Styling](design/styling.md)
+
+## Documentation
+
+- Write and maintain Handbook guides and First Mate’s Log entries. [PudDex notes](documentation/puddex-notes/SKILL.md)
+
+## DevOps
+
+- Choose and reuse the assigned ports for local services. [Local ports](devops/ports.md)
+
+## Maintain the index
+
+List each standalone guide and `SKILL.md` entry point under its category. Link supporting files from the skill that uses them. Run `bun run check:skills` to check index coverage, skill metadata, and local Markdown link paths.
