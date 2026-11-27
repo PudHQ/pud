@@ -107,11 +107,11 @@ const report = await check("clamp.proof.ts", { adapter });
 const unit = await emit("clamp.proof.ts", { adapter, property: "keeps the result within ordered bounds" });
 ```
 
-`checkFiles(files, { adapter })` applies the same override to a batch. The explicit option takes precedence over project config. Pud checks native term IDs against the selected adapter before handing it a claim.
+`checkFiles(files, { adapter })` applies the same override to a batch and runs the supplied adapter in the caller’s process. When Pud loads the project config, each `check`, `checkFiles`, or `emit` call starts a fresh Bun process. Suites in one batch share its loaded modules. The next call picks up edits to the config and its imports. Project logs go to stderr so the CLI can pipe a JSON report or an emitted unit through stdout.
 
-An adapter implements `ProofAssistant` from `@pud.dev/lib` and supplies a stable assistant ID. Its `prepare` method reads the named TypeScript export from the supplied snapshot and returns its signature, an emitter, and a verifier. Pud binds the sidecar's premises and assertions to that signature and supplies the verifier one claim per active property. For a custom native tag, import `native` from `@pud.dev/lib` and declare `const term = native("assistant-id")` at file scope before `pud.describe`. [Adapter contract](src/assistant.ts)
+An adapter implements `ProofAssistant` from `@pud.dev/lib` and supplies a stable assistant ID. Its `prepare` method reads the named TypeScript export from the supplied snapshot and returns its signature, an emitter, and a verifier. Pud binds one `ProofClaim` per active property and checks its native term IDs against the adapter. Switch on `claim.kind` to handle a return rule (`"return"`), equality with a reference call (`"equal"`), or an expected exception (`"throw"`). Exact return rules carry `exactResult: true`. For a custom native tag, import `native` from `@pud.dev/lib` and declare `const term = native("assistant-id")` at file scope before `pud.describe`. [Adapter contract](src/assistant.ts)
 
-Use `checkFiles(files, { onProgress })` for a live view. Suite events declare the queue and total item count. Running and finished events identify items by index in the current suite. Finished events can include provisional statuses in the same order as those indices. The validating event marks the start of the input snapshot check. The returned reports carry the final verdicts.
+Use `checkFiles(files, { onProgress })` for a live view. Suite events declare the queue and total item count. Each active property index appears in exactly one `finished` event during a completed run. Its status is at the same position in `statuses`. Pending properties stay out of the count. The `validating` event precedes the input snapshot check. The returned reports carry the final verdicts.
 
 ## Development
 

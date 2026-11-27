@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 import { readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { Unsupported } from "./assistant.ts";
-import { checkFiles, emit } from "./check.ts";
+import { failure } from "./assistant.ts";
+import { checkFiles, emit } from "./run.ts";
 import { display, proofReporter } from "./reporter.ts";
 
 const synopsis = `Usage: pud [check] [DIR | FILE.proof.ts ...] [--verbose | --json] [--deny-cases]
@@ -33,8 +33,7 @@ async function main(args: string[]): Promise<number> {
   if (args[0] === "--emit" && args.length >= 2 && args.length <= 3 && !args.includes("--json")) {
     try { process.stdout.write(await emit(args[1]!, args[2])); return 0; }
     catch (error) {
-      display(args[1]!, { status: error instanceof Unsupported ? "unsupported" : "error",
-        detail: error instanceof Error ? error.message : String(error) }, false, process.stderr);
+      display(args[1]!, failure(error), false, process.stderr);
       return 2;
     }
   }

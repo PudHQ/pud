@@ -1,6 +1,6 @@
 import type { ChalkInstance } from "chalk";
 import { basename } from "node:path";
-import type { CheckProgress, CheckResult } from "./check.ts";
+import type { CheckProgress } from "./check.ts";
 import { isInteractiveTerminal, terminalInk, verdictColor } from "./terminal.ts";
 
 const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -17,7 +17,7 @@ function safeText(text: string) {
   return text.replace(/\p{Cc}/gu, " ").trim();
 }
 
-type Completion = { status: CheckResult["status"] | undefined; proved: number; failed: number };
+type Completion = { proved: number; failed: number };
 
 function alignRight(label: string, detail: string, columns: number) {
   if (!detail) return clip(label, columns);
@@ -56,11 +56,10 @@ export function terminalProgress(out = process.stderr, runStarted = performance.
 
   const ink = terminalInk(out);
   let suite: Extract<CheckProgress, { kind: "suite" }> | undefined;
-  let written = 0, frame = 0, suiteItems = 0;
+  let written = 0, frame = 0, remaining = 0;
   let validating = false;
   const running = new Map<number, number>();
   const completed: Completion[] = [];
-  const finished = new Map<number, number>();
 
   function draw() {
     if (!suite) return;
@@ -75,7 +74,7 @@ export function terminalProgress(out = process.stderr, runStarted = performance.
     const active = validating ? undefined : running.entries().next().value;
     const item = active && suite.items[active[0]];
     const title = validating ? "Validating input snapshots" : item ? safeText(item.name)
-      : finished.size < suiteItems ? "Preparing proofs" : "Finishing suite";
+      : remaining ? "Preparing proofs" : "Finishing suite";
     const totalTime = ink.dim(`total ${seconds(now - runStarted)}`);
     const proofTime = active ? ink.dim(`proof ${seconds(now - active[1])}`) : "";
     const file = safeText(basename(suite.file));
@@ -113,8 +112,7 @@ export function terminalProgress(out = process.stderr, runStarted = performance.
     update(event: CheckProgress) {
       if (event.kind === "suite") {
         suite = event;
-        suiteItems = event.items.reduce((count, item) => count + Number(!item.todo), 0);
-        finished.clear();
+        remaining = event.items.reduce((count, item) => count + Number(!item.todo), 0);
         running.clear();
         validating = false;
       } else if (event.kind === "validating") {
@@ -125,31 +123,18 @@ export function terminalProgress(out = process.stderr, runStarted = performance.
           running.clear();
           const now = performance.now();
           for (const index of event.indices) {
-            if (!finished.has(index)) running.set(index, index === active?.[0] ? active[1] : now);
+            running.set(index, index === active?.[0] ? active[1] : now);
           }
         } else {
-          let firstChanged = completed.length;
+          remaining -= event.indices.length;
           for (const [offset, index] of event.indices.entries()) {
             running.delete(index);
-            const status = event.statuses?.[offset];
-            const position = finished.get(index);
-            if (position === undefined) {
-              finished.set(index, completed.length);
-              completed.push({ status, proved: 0, failed: 0 });
-            } else if (status !== undefined && status !== completed[position]!.status) {
-              completed[position]!.status = status;
-              firstChanged = Math.min(firstChanged, position);
-            }
-          }
-          // Prefix totals let each compressed dot classify its range in constant time.
-          let proved = completed[firstChanged - 1]?.proved ?? 0;
-          let failed = completed[firstChanged - 1]?.failed ?? 0;
-          for (let index = firstChanged; index < completed.length; index++) {
-            const result = completed[index]!;
-            if (result.status === "proved") proved++;
-            else if (result.status && result.status !== "todo") failed++;
-            result.proved = proved;
-            result.failed = failed;
+            const status = event.statuses[offset]!;
+            const previous = completed.at(-1);
+            completed.push({
+              proved: (previous?.proved ?? 0) + Number(status === "proved"),
+              failed: (previous?.failed ?? 0) + Number(status !== "proved" && status !== "todo"),
+            });
           }
         }
       }

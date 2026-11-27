@@ -32,7 +32,7 @@ export async function pack(destination = join(root, "dist")) {
   const stage = await mkdtemp(join(tmpdir(), "pud-pack-"));
   try {
     const build = await Bun.build({
-      entrypoints: [join(pud, "src/cli.ts"), join(pud, "src/index.ts"), join(pud, "src/lean/index.ts")],
+      entrypoints: ["cli.ts", "index.ts", "lean/index.ts", "project-runner.ts"].map(file => join(pud, "src", file)),
       root: join(pud, "src"),
       outdir: stage,
       target: "bun",

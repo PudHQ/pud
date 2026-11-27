@@ -88,6 +88,9 @@
         "@babel/types": "catalog:",
         "chalk": "catalog:",
       },
+      "devDependencies": {
+        "@types/node": "catalog:",
+      },
     },
   },
   "catalog": {
