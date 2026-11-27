@@ -12,6 +12,7 @@ tags: [changelog, codex]
 
 ## 2026-11-27
 
+- Updated [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]] with the restored Octocat medallion, larger star count, and more defined followspot edge.
 - Updated [[First Mate's Log/Tooling/github-issue-templates|GitHub issue and pull request templates for Pud]] with the PR verification prompts and the closing issue check.
 - Added [[First Mate's Log/Frontend/pud-github-social-card|Pud’s GitHub social card]] with the artwork prompt, type settings, and crop measurements for the selected one-line design.
 - Added [[First Mate's Log/Tooling/checking-repository-skill-links|Checking repository skill links]] with the cases used to verify the new check.
