@@ -11,7 +11,7 @@ Follow the [workspace setup](../../README.md#workspace) and run `bun run dev:www
 [The home route](app/page.tsx) sets the section order. [The root layout](app/layout.tsx) supplies the shared header, footer and stylesheet.
 
 - [Components](components) holds site navigation and the scene primitives shared by the terminal and newspaper.
-- [Features](features) holds the home sections, GitHub spotlight, PudDex terminal, newsstand and waitlist. The Dex scene groups the factory and office models separately.
+- [Features](features) holds the home sections, GitHub spotlight, PudDex terminal, newsstand, waitlist and [supporter roll](../dex/content/Handbook/Engineering/supporter-roll.md). The Dex scene groups the factory and office models separately.
 - [Library](lib) holds analytics and site addresses. The local terminal and proof walkthrough use PudDex on port 4902.
 
 ## Release
