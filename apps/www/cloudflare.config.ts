@@ -1,6 +1,6 @@
 import { bindings, defineConfig, defineWorker } from "cf/config";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ isPreview, mode }) => ({
   accountId: "8715fe32117162efcdfaf18fac4ce28d",
   worker: defineWorker({
     name: "pud-www",
@@ -18,11 +18,13 @@ export default defineConfig(({ mode }) => ({
     ],
     env: {
       ASSETS: bindings.assets(),
-      // cf addresses local D1 migrations by UUID. Production resolves the database by name.
+      // cf addresses local D1 migrations by UUID. Cloud deployments resolve databases by name.
       ALPHA_DB: bindings.d1(
-        mode === "development"
-          ? { id: "00000000-0000-4000-8000-000000004901" }
-          : { name: "pud-alpha" },
+        isPreview
+          ? { name: "pud-alpha-preview" }
+          : mode === "development"
+            ? { id: "00000000-0000-4000-8000-000000004901" }
+            : { name: "pud-alpha" },
       ),
     },
   }),

@@ -85,12 +85,12 @@ Lean checks the generated theorem against the actual claim and audits its axiom 
 
 The [PostgreSQL debit experiment](experiments/debit-endpoint/README.md) has its own test workflow and a [Lean port plan](experiments/debit-endpoint/lean-port.md). The [Rocq and Dafny comparison](experiments/prover-comparison/README.md) records what earlier systems taught us about proof reuse.
 
-| Site | Dev | Build | Preview | Deploy |
-| --- | --- | --- | --- | --- |
-| Landing site · 4901 | `bun run dev:www` | `bun run build:www` | `bun run preview:www` | `bun run deploy:www` |
-| PudDex · 4902 | `bun run dev:dex` | `bun run build:dex` | `bun run preview:dex` | `bun run deploy:dex` |
+| Site | Dev | Build | Local preview | Worker Preview | Deploy |
+| --- | --- | --- | --- | --- | --- |
+| Landing site · 4901 | `bun run dev:www` | `bun run build:www` | `bun run preview:www` | `bun run deploy:preview:www` | `bun run deploy:www` |
+| PudDex · 4902 | `bun run dev:dex` | `bun run build:dex` | `bun run preview:dex` | `bun run deploy:preview:dex` | `bun run deploy:dex` |
 
-Reuse the app already listening on its assigned port. Build before running preview and free the assigned port when switching between dev and preview. Both apps ship to Cloudflare Workers. [Landing site release notes](apps/www/README.md#release) · [PudDex release notes](apps/dex/README.md#release) · [Repository skills](skills/README.md)
+Reuse the app already listening on its assigned port. Build before running a local preview and free the assigned port when switching between dev and preview. Both apps ship to Cloudflare Workers. [Worker Previews](apps/dex/content/Handbook/Engineering/deploying-worker-previews.md) · [Landing site release notes](apps/www/README.md#release) · [PudDex release notes](apps/dex/README.md#release) · [Repository skills](skills/README.md)
 
 ## License
 
