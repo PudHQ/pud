@@ -29,6 +29,8 @@ If **any** of the following things are not true when a human passes you a Pud is
 
 Then ask the user to clarify what they want you to do with that issue URL.
 
+> If you're using Codex, make sure you set the name of your chat to something useful / relevant, and reasonably concise. Include the issue number inside the title too.
+
 ## Branches
 
 All new issue work should be done on a new branch per issue, in the following format:
