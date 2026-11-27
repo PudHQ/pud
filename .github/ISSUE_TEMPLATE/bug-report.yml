@@ -1,0 +1,37 @@
+name: Bug report
+description: Report unexpected behavior in Pud, PudDex, or the Pud website.
+labels: [bug]
+body:
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: >-
+        List the steps or share a minimal example. For proof issues, include the TypeScript
+        being checked, its `.proof.ts` file, and the `pud check` command if you can.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: >-
+        Include the Pud version or commit and relevant OS, runtime, proof adapter,
+        or browser versions.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or screenshots
+      description: >-
+        Paste relevant logs or attach a screenshot. For proof issues, include the output
+        from `pud check --verbose` if available.
