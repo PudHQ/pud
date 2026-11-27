@@ -1,6 +1,6 @@
 ---
 name: workflow-general
-description: Follow Pud’s conventions for GitHub issues, branches, commits, and pull requests.
+description: Follow Pud’s conventions for GitHub issues, branches, commits, and pull requests, including UI screenshots.
 ---
 
 # Development workflow
@@ -52,3 +52,21 @@ Once you're finished with your work, it's your responsibility to open a Pull Req
 PRs at Pud are fluid. You open one (a real one, not a draft) once you're reasonably happy you're done with the work. Then, as your human gives you feedback, you update that PR until you're ready to merge it.
 
 Merging is only ever done by a human Pud maintainer -- for now! (Open an issue about it if you think agents should be allowed to do this too! I'm open to it...)
+
+### Screenshots for UI changes
+
+For every user-visible UI change, the PR author must capture screenshots and embed them as GitHub attachments under `### Screenshots` in the PR’s Verification section. This applies to humans and agents. Frame the changed screen or component, use descriptive alt text, and capture the viewport or interaction states needed to show the change. Include before and after views when the comparison helps reviewers.
+
+With GitHub CLI 2.99 or later and write access to Pud, put the local image path in the PR body file and pass that same path to `--attach`. GitHub CLI uploads the image and replaces the local path in the published description. [GitHub CLI attachment guide](https://docs.github.com/en/github-cli/github-cli/attaching-files-with-github-cli)
+
+```markdown
+### Screenshots
+
+![Desktop view of the GitHub star button after it charges](/tmp/star-button.png)
+```
+
+```sh
+gh pr create --title "Update the GitHub star button" --body-file /tmp/pr.md --attach /tmp/star-button.png
+```
+
+For an existing PR, use `gh pr edit PR_NUMBER --body-file /tmp/pr.md --attach /tmp/star-button.png` with the full PR description. You can also drop the screenshot into the PR description in GitHub’s web editor. Check that each image renders in the published PR. [GitHub web attachment guide](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files)
