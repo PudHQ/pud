@@ -101,6 +101,7 @@ Pud is licensed under the [MIT License](LICENSE). The bundled Google Sans Flex f
 <!-- supporters:start -->
 
 <a href="https://github.com/PudHQ/pud/issues/17#issuecomment-7219194602"><img src="https://avatars.githubusercontent.com/u/1853310?s=96&amp;v=4" width="48" height="48" alt=""> <strong>@rorz</strong> <sub>#0001</sub></a>
+<a href="https://github.com/PudHQ/pud/issues/17#issuecomment-7219713607"><img src="https://avatars.githubusercontent.com/u/98127796?s=96&amp;v=4" width="48" height="48" alt=""> <strong>@VerdnBot</strong> <sub>#0002</sub></a>
 
 <!-- supporters:end -->
 
