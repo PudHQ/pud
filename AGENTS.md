@@ -1,9 +1,5 @@
 # Repository instructions
 
-At the start of every run, read the [skills index](skills/README.md) and determine which skill files are relevant (including tangentially relevant) and READ THESE FILES IN FULL. Do this before planning or editing, then apply any of the discovered guidance relevant to the task.
+At the start of every run, use the [skills index](skills/README.md) to identify all relevant guides, including those tangentially relevant. Read them in full before planning or editing and apply their guidance.
 
-```sh
-find "$(git rev-parse --show-toplevel)/skills" -type f -name '*.md' -print -exec cat {} \;
-```
-
-Use the [PudDex reference skill](skills/puddex-reference/SKILL.md) whenever existing project context could inform the task. Before finishing, use the [PudDex notes skill](skills/puddex-notes/SKILL.md) to record useful findings or findings that took substantive work to establish.
+Use the [PudDex reference skill](skills/dex/puddex-reference/SKILL.md) whenever existing project context could inform the task. Before finishing, use the [PudDex notes skill](skills/documentation/puddex-notes/SKILL.md) to record useful findings or findings that took substantive work to establish.

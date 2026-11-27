@@ -3,6 +3,7 @@
     "includes": [
       "apps/**",
       "packages/**",
+      "scripts/*.ts",
       "experiments/compatibility/*.ts",
       "package.json",
       "tsconfig*.json",

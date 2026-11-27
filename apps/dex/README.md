@@ -35,7 +35,7 @@ Use an author’s handle in the `author` property. PudDex looks up the name and 
 
 Use `date` with a calendar date in `YYYY-MM-DD` format. When you revise a note, set `updated-at` in the same format to show the revision date under its title. Entry lists show `updated-at` when available and otherwise use `date`. The newest entries appear first.
 
-Put the `> [!WARNING]` callout below the H1 of an agent-authored note. Use the wording in the [PudDex notes skill](../../skills/puddex-notes/SKILL.md).
+Put the `> [!WARNING]` callout below the H1 of an agent-authored note. Use the wording in the [PudDex notes skill](../../skills/documentation/puddex-notes/SKILL.md).
 
 Use `[[Note]]`, `[[folder/Note|label]]`, `[[Note#Heading]]`, or relative Markdown links such as `[label](../Handbook/Note.md)`. The note page shows its backlinks. Qualify a wikilink with its folder when filenames repeat. An unresolved wikilink appears with a dashed underline.
 

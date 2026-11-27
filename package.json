@@ -20,6 +20,7 @@
     "preview:dex": "\"$npm_execpath\" run --cwd apps/dex preview",
     "deploy:www": "\"$npm_execpath\" run --cwd apps/www deploy",
     "deploy:dex": "\"$npm_execpath\" run --cwd apps/dex deploy",
+    "check:skills": "\"$npm_execpath\" ./scripts/check-skills.ts",
     "lint": "biome lint",
     "test": "\"$npm_execpath\" test ./apps ./packages",
     "typecheck": "\"$npm_execpath\" run --workspaces typecheck",

@@ -1,0 +1,28 @@
+name: Feature spec
+description: Propose new work.
+labels: [spec]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or need
+      description: What currently doesn't exist or needs improvement?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome, change, or solution
+      description: Describe, in as much detail as expected or necessary, how things should change in order to fulfill the need or solve the problem you outlined above.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Criteria and metrics
+      description: >-
+        If relevant, make a checklist of acceptance criteria containing the things (attributes) that need to be true in order for this issue to be closed.
+
+        Include new or existing metrics that need updating, as well as any proofs or tests that need to be created or modified in order for this work to be complete.
+    validations:
+      required: false
