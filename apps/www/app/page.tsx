@@ -6,8 +6,8 @@ export default function HomePage() {
   return (
     <main>
       <Hero />
-      <DexSection />
       <UpdatesSection />
+      <DexSection />
     </main>
   );
 }

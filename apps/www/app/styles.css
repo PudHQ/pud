@@ -32,8 +32,8 @@
   --font-weight-interface: 650;
   --tracking-wordmark: 0.012em;
   --text-wordmark: clamp(1.25rem, 0.9rem + 1.85vw, 2.65rem);
-  --text-headline: min(18cqi, 7.5rem);
-  --text-headline--line-height: 0.95;
+  --text-headline: clamp(1.75rem, 12cqi, 4.75rem);
+  --text-headline--line-height: 1.02;
   --text-newsprint-masthead: 13.75cqi;
   --text-newsprint-headline: 4.5cqi;
   --text-signup-help: 0.98rem;
@@ -47,7 +47,6 @@
   --spacing-gutter: clamp(1rem, 3vw, 3.5rem);
   --spacing-column-gap: clamp(1.5rem, 3.5vw, 4rem);
   --spacing-nav-height: clamp(3.75rem, 5.6vw, 5rem);
-  --container-intro: 39ch;
 
   --grid-template-columns-signup: minmax(0, 1fr) auto;
 

@@ -6,7 +6,7 @@ import "./styles.css";
 
 export const metadata: Metadata = {
   title: "Pud.dev by Rory McMeekin",
-  description: "The proof-running toolchain for TypeScript",
+  description: "Mathematicians have proofs. Why don’t devs? State a rule about your TypeScript and use Pud to check it with Lean.",
   icons: { icon: "/pud.svg" },
 };
 
