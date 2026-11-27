@@ -17,7 +17,7 @@ Keyboard focus cues the light and charge. Escape clears the cue and keeps focus 
 
 ## Lighting trials
 
-The resting button is black with a monochrome Octocat and a star count. Moving into the oval reveals travelling chrome highlights and the proof factory’s screen-glass treatment. Branching blue lightning fills the glass in about 2.8 seconds and releases 48 sparks at full charge. The white label picks up a bevel and dark inset while the electricity runs. At 320 CSS pixels the count fits under “GitHub” beside the Octocat. [Button face](https://github.com/PudHQ/pud/blob/main/apps/www/features/github-star/spotlight-link.tsx) · [[Ideas/rockbuster|Rockbuster]]
+The resting button is black with a monochrome Octocat in a 34-pixel inset-shadowed medallion. The medallion scales to 24 pixels on phones. The count uses 14-pixel type beside a 12-pixel star. Moving into the oval reveals travelling chrome highlights and the proof factory’s screen-glass treatment. Branching blue lightning fills the glass in about 2.8 seconds and releases 48 sparks at full charge. The white label picks up a bevel and dark inset while the electricity runs. At 320 CSS pixels the count fits under “GitHub” beside the Octocat. [Button face](https://github.com/PudHQ/pud/blob/main/apps/www/features/github-star/spotlight-link.tsx) · [[Ideas/rockbuster|Rockbuster]]
 
 The purple face, star facets, and Octocat’s color follow the lamp’s eased opacity. The full fade takes about 124 ms on entry and 320 ms on exit. Reduced motion switches the colors immediately. [Issue #6](https://github.com/PudHQ/pud/issues/6)
 
@@ -26,6 +26,8 @@ Jhey Tompkins’s sparkles informed the corner glints. Magic UI's traveling high
 The first frame draws during the pointer event. The lamp reaches full exposure in about 124 ms. The iris overshoots from a random starting point and settles in about 290 ms. The lens anchors the shaft, while dust falls in screen space and glints where the light finds it. The fixture rotates with Pud’s grip. Its focus collar and lens draw on the Robert Juliat Arthur. [Arthur quick-start guide](https://www.robertjuliat.com/PDF/QS/DN41195900_qs_ARTHUR_v1_EN-FR.pdf)
 
 The defined pool takes its cue from Canto’s photograph of a seated performer. The pale shaft and softer falloff use Jack Weir’s lighting for *Dust* as a reference. [Canto followspot gallery](https://cantousa.com/canto_gallery/followspots-gallery/) and [*Dust* production photographs](https://www.weirdlighting.co.uk/dust/).
+
+The pool now falls off over the outer 16% of its radius, down from 22%. The haze reaches its bright shoulder closer to the edge of the shaft. [Lighting gradients](https://github.com/PudHQ/pud/blob/main/apps/www/features/github-star/lighting.ts)
 
 ## Octocat’s dialogue and the curtain
 
@@ -40,6 +42,8 @@ Five seconds after the last line, Pud’s upper panel, Octocat’s lower panel, 
 Open the running landing page on port 4901. Hold in the oval beside the GitHub link to see the shimmer, then move onto the link to start the charge. Move off the link into the oval to let the electricity settle. Move outside the oval and back during the dimming to check that the scene continues. To see the curtain, hold on the link for about 19 seconds. Tab to the GitHub link and press Escape to dismiss its cue while keeping focus.
 
 In the 1280 × 720 color check, the purple layer faded through about 89%, 55%, and 15% opacity on exit after full charge. Re-entering at about 80% reversed the fade. The GitHub link measured about 88 × 44 CSS pixels at a 320-pixel viewport.
+
+With the restored medallion and larger count, the header fit on one row at 320, 368, 369, 390, 592, 593, and 1280 CSS pixels. The link measured about 92 × 44 CSS pixels at 320 pixels. The 1280 × 800 spotlight canvas logged 120 paint updates per second in three-second samples before and after tightening the gradients, with a 9.3 ms 95th-percentile interval and no interval above 25 ms.
 
 The translucent header applies its blur to a background pseudo-element. Applying it to the header itself would give the fixed spotlight a header-sized containing block. With the new header at 1280 × 800, the overlay measured 1280 × 800 during a full charge. Keyboard Escape restored the black face and kept focus on the link. [Site header](https://github.com/PudHQ/pud/blob/main/apps/www/components/site-header.tsx)
 
