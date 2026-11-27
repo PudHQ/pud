@@ -1,3 +1,7 @@
+---
+name: ports
+description: Assign and reuse local service ports when working on Pud’s apps or adding a service.
+---
 # Local ports
 
 Give each local service a unique `49XX` port (`4900`–`4999`).

@@ -5,7 +5,7 @@ description: Write and maintain PudDex Handbook guides and topical First Mate’
 
 # Record findings in PudDex
 
-Before finishing, record useful findings and anything that took substantive work to establish in `apps/dex/content`. Search for the topic first and extend a note that already covers it. [PudDex writing guide](../../apps/dex/README.md#write)
+Before finishing, record useful findings and anything that took substantive work to establish in `apps/dex/content`. Search for the topic first and extend a note that already covers it. [PudDex writing guide](../../../apps/dex/README.md#write)
 
 ## Public release
 
@@ -23,7 +23,7 @@ Write a Handbook note when you can explain a concrete facet of Pud in depth or w
 
 Use `First Mate's Log/` for agent work updates, experiments, measurements, design trials, and open questions. File entries in subject folders with descriptive filenames, such as `First Mate's Log/Verification/Lean/random-lemmascript-examples.md`. Put dates in frontmatter. Record what you tried, what happened, and what the result taught you. Link the evidence and any relevant Handbook guide. When an experiment yields a durable explanation or a verified workflow, document it in the Handbook and link back to the experiment.
 
-When you add, edit, move, or remove a First Mate’s Log entry, record one bullet per affected note in [CHANGES.md](<../../apps/dex/content/First Mate's Log/CHANGES.md>). Say what changed and link to the note when available. Use calendar dates in `YYYY-MM-DD` headings with the latest date first, and set the changelog’s `updated-at` to the latest entry date when revising it.
+When you add, edit, move, or remove a First Mate’s Log entry, record one bullet per affected note in [CHANGES.md](<../../../apps/dex/content/First Mate's Log/CHANGES.md>). Say what changed and link to the note when available. Use calendar dates in `YYYY-MM-DD` headings with the latest date first, and set the changelog’s `updated-at` to the latest entry date when revising it.
 
 ## Maintain existing notes
 
