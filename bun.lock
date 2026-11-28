@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "pud",
+      "name": "@pud.dev/monorepo",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@types/bun": "catalog:",
@@ -79,9 +79,9 @@
     },
     "packages/pud": {
       "name": "pud.dev",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "bin": {
-        "pud": "./src/cli.ts",
+        "pud.dev": "./src/cli.ts",
       },
       "dependencies": {
         "@babel/parser": "catalog:",

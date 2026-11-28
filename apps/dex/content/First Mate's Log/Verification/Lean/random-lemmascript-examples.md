@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-25
+updated-at: 2026-11-28
 summary: Thirteen LemmaScript ports exercised union narrowing, loop control, and signed bigint operations in Pud’s Lean frontend.
 tags: [verification, typescript, lean, lemmascript, coverage]
 ---
@@ -34,4 +34,4 @@ The examples distinguish two kinds of remainder. Odd counting tests whether Java
 
 Lean 4.19.0 certified all 13 new properties. For each property, a behavioral change to a temporary copy of the TypeScript implementation caused a proof failure with the same sidecar and Lean lemmas. Separate Bun checks exercised the implementations with empty lists, duplicate values, negatives, and bigints wider than 64 bits.
 
-Run `bun run --silent pud check packages/pud/.examples` from the repository root to recheck the ports. The directory also includes the indexed `sumPositive` example, which reports `UNSUPPORTED` and makes the run exit with status 2. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]] · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]
+Run `bun run --silent pud.dev check packages/pud/.examples` from the repository root to recheck the ports. The directory also includes the indexed `sumPositive` example, which reports `UNSUPPORTED` and makes the run exit with status 2. [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]] · [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]]

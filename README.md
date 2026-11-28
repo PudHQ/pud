@@ -1,71 +1,35 @@
-<p align="center">
-  <a href="https://pud.dev"><img src="apps/www/public/pud.svg" width="144" alt="Pud, a caramel pudding with round glasses and a pink bow tie"></a>
-</p>
+[![Pud — Proofs for TypeScript](press/pud-github-social-card.png)](https://pud.dev)
 
-# Pud
+Write a rule for a TypeScript function and ask Lean to prove it for every input you describe. Keep the implementation, its `*.proof.ts` file, and the project’s `pud.config.ts` together.
 
-**The proof-running toolchain for TypeScript.** Write properties in TypeScript and select a proof assistant in `pud.config.ts`. Lean is the first bundled adapter. The same suite API and `pud check` command are designed to work with future adapters.
-
-Try the examples or [join the alpha at pud.dev](https://pud.dev/#alpha). [PudDex](https://dex.pud.dev) holds the handbook and project notes.
-
-> [!WARNING]
-> **Are you an AI agent?**
->
-> Read [LLMs.txt](./llms.txt) first
-
-## Try it locally
-
-Install Bun and Node using the versions in [package.json](package.json) and [.nvmrc](.nvmrc). Run these commands from the repository root.
-
-```sh
-bun run setup
-bun run pud check packages/pud/.examples/linear-search.proof.ts
-bun run pud --emit packages/pud/.examples/linear-search.proof.ts
-```
-
-The search proof checks that the returned index is the first match, or `-1n` when the target is absent. The terminal shows live progress, then verdicts, timings, and diagnostics by file. `--emit` prints the generated Lean unit for inspection. [Lean examples](packages/pud/.examples/README.md) · [Search walkthrough](<apps/dex/content/Handbook/Engineering/Verification/Lean/checking-typescript-with-lean.md>)
-
-The availability tally shows a second workflow. Pud proves the same law after a split-and-merge refactor, then replays a version that drops one batch to show a concrete failing input. [Availability walkthrough](packages/pud/.examples/availability/README.md)
-
-Run `bun run pud check --deny-cases packages/pud/.examples/motion` to prove six laws about Motion’s unchanged TypeScript `number` conversions. Each conversion has an exact unit rule across all JavaScript numbers and separate laws for sign and reversal. [Number sidecars](packages/pud/.examples/motion)
-
-Run `bun run compat:check` to measure the bundled adapter on unchanged open-source projects and pinned Test262 arithmetic assertions. [Compatibility benchmark](experiments/compatibility/README.md) · [PudDex compatibility tree](https://dex.pud.dev/notes/handbook/engineering/verification/typescript-compatibility/)
+[Get Pud on npm](https://www.npmjs.com/package/pud.dev) · [Write your first proof](packages/pud/README.md#try-it) · [PudDex handbook](https://dex.pud.dev) · [Join the alpha](https://pud.dev/#alpha)
 
 ## Run your own checks
 
-Install Pud in your Bun project, then select a driver in `pud.config.ts`.
-
 ```sh
 bun add -d pud.dev
+npx pud.dev --help
 ```
 
-```ts
-// pud.config.ts
-import { defineConfig } from "pud.dev";
-import { leanAdapter } from "pud.dev/lean";
+Pud runs on Bun. The bundled adapter checks proofs with Lean. Start with the half-cent rounding example to see a failing input, fix the implementation, and prove the corrected rule. Once a project has proof files, run `npx pud.dev check` to find them. [Rounding quickstart](packages/pud/README.md#try-it) · [CLI and authoring guide](packages/pud/guide.md)
 
-export default defineConfig({ adapter: leanAdapter() });
+## Try it locally
+
+From a clone, use the Bun and Node versions in [package.json](package.json) and [.nvmrc](.nvmrc). Setup installs the workspace dependencies and the pinned Lean toolchain.
+
+```sh
+bun run setup
+bun run pud.dev check packages/pud/.examples/linear-search.proof.ts
+bun run pud.dev --emit packages/pud/.examples/linear-search.proof.ts
 ```
 
-Install Lean on your path or through Elan. The adapter reads the nearest `lean-toolchain` pin. Copy the [cents implementation](packages/pud/.examples/cents.ts) beside this sidecar.
+| Example | What the proof checks |
+| --- | --- |
+| [Linear search](packages/pud/.examples/linear-search.proof.ts) | Returns the first match, or `-1n` when the value is absent. |
+| [Availability across batches](packages/pud/.examples/availability/README.md) | A refactor preserves the tally. Dropping a batch produces a concrete counterexample. |
+| [Motion time conversions](packages/pud/.examples/motion) | Six laws about JavaScript numbers, including the exact result of converting between seconds and milliseconds. |
 
-```ts
-// cents.proof.ts
-import { describe, expect, it, pud } from "pud.dev";
-import { toCents } from "./cents.ts";
-
-describe(toCents, () => {
-  it("returns the nearest whole cent, with half cents rounded toward positive infinity", {
-    amount: pud.number(),
-  }, ({ amount }) => {
-    expect(toCents(amount)).toExactly(pud.number().nearestIntegerTo(amount * 100, { ties: "up" }));
-  });
-});
-```
-
-For each possible input, `.toExactly()` checks that the function returns the only answer its rule allows. Here the input is an ordinary TypeScript `number`, and half-cent ties go to the higher integer. Use `.to()` for an invariant such as a lower bound.
-
-Run `bunx --no-install pud check` to discover nearby `*.proof.ts` files. Pass paths to select suites. Use `--verbose` for full diagnostics or `--json` for CI. `pud.dev` also exports `check`, `checkFiles`, and `emit`. [CLI and authoring guide](packages/pud/README.md)
+Run `bun run compat:check` to measure the adapter against upstream projects and pinned Test262 arithmetic assertions. [Compatibility benchmark](experiments/compatibility/README.md) · [TypeScript coverage](https://dex.pud.dev/notes/handbook/engineering/verification/typescript-compatibility/)
 
 ## How the proof pipeline works
 
@@ -74,6 +38,11 @@ Pud reads the sidecar and freezes the TypeScript and proof inputs. The configure
 Lean checks the generated theorem against the actual claim and audits its axiom dependencies. Pud rechecks input snapshots before publishing verdicts. A pass applies to the modeled TypeScript behavior and the declared input domain. [Lean coverage and guarantees](packages/pud/.examples/README.md#what-a-pass-establishes) · [Reading a result](<apps/dex/content/Handbook/Engineering/reading-a-proof-result.md>)
 
 ## Workspace
+
+> [!NOTE]
+> Agents working in this repository should start with [llms.txt](./llms.txt).
+
+The private root package, `@pud.dev/monorepo`, owns the workspace scripts. The published `pud.dev` package lives in `packages/pud`.
 
 `bun run setup` installs dependencies from the lockfile and provisions the pinned Lean toolchain in `.cache/elan`. Use `bun install --frozen-lockfile` for Bun dependencies alone or `bun run setup:lean` for the toolchain alone. Run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` from the root. [Verification CI](.github/workflows/proofs.yml)
 
@@ -94,17 +63,19 @@ Reuse the app already listening on its assigned port. Build before running a loc
 
 ## Publish to npm
 
-Before the first CI release, open the trusted publisher settings for `pud.dev` on npm. Select GitHub Actions, enter `PudHQ` for the organization, `pud` for the repository and `publish-npm.yml` for the workflow filename. Leave the environment blank and enable `npm publish`. The first successful publish must occur within two days of creating the connection. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
-
-For each stable release, bump the version in `packages/pud/package.json` and merge the change into `main`. Tag that commit and push the tag.
+Before the first CI release, register `PudHQ/pud` and `publish-npm.yml` as a GitHub Actions trusted publisher for `pud.dev`. Leave the environment blank and enable direct publishing. With npm 11.15 or newer, you can set this up from the CLI. Complete the first release within two days of creating the connection. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
 
 ```sh
-tag="v$(node -p "require('./packages/pud/package.json').version")"
-git tag -s "$tag" -m "Release $tag"
-git push origin "$tag"
+npm trust github pud.dev --repo PudHQ/pud --file publish-npm.yml --allow-publish
 ```
 
-The workflow checks the tag against the manifest, installs the built tarball offline, proves the clamp example and publishes that same tarball to npm with provenance. [Release workflow](.github/workflows/publish-npm.yml)
+After the code to release has merged, open **Actions → Publish Pud to npm → Run workflow**. Select `main` and enter the stable version, for example `0.0.3`. You can also start it with the GitHub CLI.
+
+```sh
+gh workflow run publish-npm.yml --ref main -f version=0.0.3
+```
+
+The workflow puts the requested version and source commit in the tarball, installs it offline and proves the clamp example. It creates the version tag and a draft GitHub release, publishes the same archive to npm with provenance, then opens the release to the public. If a step fails, rerun the failed jobs from the original run to keep the same source commit. The workflow checks any existing tag and archive before resuming. [Release workflow](.github/workflows/publish-npm.yml)
 
 ## License
 

@@ -32,8 +32,8 @@ Portable suites import `describe`, `it`, and `pud` from `pud.dev`. A matcher suc
 Run both commands from the repository root after `bun run setup`.
 
 ```sh
-bun run --silent pud check packages/pud/.examples/linear-search.proof.ts
-bun run --silent pud --emit packages/pud/.examples/linear-search.proof.ts
+bun run --silent pud.dev check packages/pud/.examples/linear-search.proof.ts
+bun run --silent pud.dev --emit packages/pud/.examples/linear-search.proof.ts
 ```
 
 The first command reports one `PASS`. The second prints the file that defines `impl` and `claim` and supplies the proof. The source, sidecar, and `linear-search-lemmas.lean` live together in `packages/pud/.examples/`.
@@ -60,7 +60,7 @@ expect(arrayContains(values, target)).to(pud.boolean().refine(found =>
 
 Pud emits a Lean `∃` over elements equal to the target and restricts its witness to members of `values`. The checker certifies both directions of the equivalence for every modeled input array and target. The induction lemma lives in the neighboring Lean file and is checked at that claim type. [Membership sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/array-contains.proof.ts) · [Membership lemma](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/array-contains-lemmas.lean)
 
-Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud --emit packages/pud/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/README.md#sidecar-syntax)
+Use `pud.forall` to require a predicate of every array element. Both quantifiers also take a scalar schema such as `pud.bigint().gte(0n)`. Its constraints guard the binder. Inspect a generated claim with `bun run --silent pud.dev --emit packages/pud/.examples/array-contains.proof.ts`. [Sidecar syntax](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/README.md#sidecar-syntax)
 
 ## Check ordinary numbers
 
@@ -75,7 +75,7 @@ it("keeps every nonnegative duration nonnegative", { seconds: pud.number().gte(0
 Run the two Motion sidecars and the currency example from the repository root.
 
 ```sh
-bun run pud check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts
+bun run pud.dev check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts
 ```
 
 The six Motion laws cover unit scale, sign and reversal. Each conversion has one exact result rule that also accounts for NaN and signed zero. The currency sidecar specifies how to select a whole cent when a scaled amount falls between integers. [Time conversions](https://github.com/PudHQ/pud/tree/main/packages/pud/.examples/motion) · [Currency sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/cents.proof.ts)
@@ -106,7 +106,7 @@ The ZigZag roundtrip sidecar uses `describe(encode, …)` for its input signatur
 expect(decode(encode(value))).to(pud.bigint().eq(value));
 ```
 
-Run `bun run --silent pud check packages/pud/.examples/zigzag-roundtrip.proof.ts`. The generated theorem includes both function bodies and quantifies over every signed bigint. Pud snapshots reachable module sources and rechecks their import resolutions.
+Run `bun run --silent pud.dev check packages/pud/.examples/zigzag-roundtrip.proof.ts`. The generated theorem includes both function bodies and quantifies over every signed bigint. Pud snapshots reachable module sources and rechecks their import resolutions.
 
 Use `.to()` for a successful return and `expect(() => divide(numerator, divisor)).toThrow("RangeError")` for the exact class of a modeled throw. The division sidecar checks both cases. [Roundtrip sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/zigzag-roundtrip.proof.ts) · [Division sidecar](https://github.com/PudHQ/pud/blob/main/packages/pud/.examples/bigint-division.proof.ts) · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#What Pud implements|Implementation and conformance checks]]
 
@@ -120,7 +120,7 @@ Use `toEqual()` when a nonthrowing number, bigint or boolean computation should 
 expect(countFree(left, right)).toEqual(countFreeReference(left, right));
 ```
 
-Run `bun run --silent pud check packages/pud/.examples/availability/count-free.proof.ts`. Lean proves equality for the modeled dense bigint arrays. The same sidecar and lemmas also prove the split-and-merge implementation. [Availability example](https://github.com/PudHQ/pud/tree/main/packages/pud/.examples/availability)
+Run `bun run --silent pud.dev check packages/pud/.examples/availability/count-free.proof.ts`. Lean proves equality for the modeled dense bigint arrays. The same sidecar and lemmas also prove the split-and-merge implementation. [Availability example](https://github.com/PudHQ/pud/tree/main/packages/pud/.examples/availability)
 
 With `leanAdapter({ replay: true })`, Pud can replay an open call equality or scalar result assertion in Bun. It checks the supported preconditions before calling the frozen implementation. Dropping the right batch yields `FAIL` for `left = []` and `right = [1n]`, with expected `1n` and received `0n`. A search with no witness leaves `UNPROVED`. [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]] · [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters#Availability tally refactor|How the example was checked]]
 

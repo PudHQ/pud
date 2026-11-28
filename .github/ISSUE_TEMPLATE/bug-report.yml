@@ -22,11 +22,11 @@ body:
       label: How can we reproduce it?
       description: >-
         List the steps or share a minimal example. For proof issues, include the TypeScript
-        being checked, its `.proof.ts` file, and the `pud check` command if you can.
+        being checked, its `.proof.ts` file, and the `pud.dev check` command if you can.
   - type: textarea
     id: evidence
     attributes:
       label: Logs or screenshots
       description: >-
         Paste relevant logs or attach a screenshot. For proof issues, include the output
-        from `pud check --verbose` if available.
+        from `pud.dev check --verbose` if available.

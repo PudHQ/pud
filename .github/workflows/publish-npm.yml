@@ -1,26 +1,37 @@
 name: Publish Pud to npm
+run-name: Release pud.dev@${{ inputs.version }}
 
 on:
-  push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable npm version (for example 0.0.3)
+        required: true
+        type: string
+
+concurrency:
+  group: pud-npm-stable-release
+  cancel-in-progress: false
 
 permissions:
   contents: read
+
+env:
+  RELEASE_VERSION: ${{ inputs.version }}
+  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
 
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
+      - name: Require the default branch
+        if: github.ref != format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          echo "::error::Run this workflow from the default branch ($DEFAULT_BRANCH)."
+          exit 1
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Check the release tag
-        run: |
-          version=$(jq -r .version packages/pud/package.json)
-          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match package version $version"
-            exit 1
-          fi
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -29,32 +40,54 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun run setup
-      - run: bun run pack:cli
+      - run: bun scripts/npm-release.mjs pack
       - name: Check a proof with the packed release
         env:
           ELAN_HOME: ${{ github.workspace }}/.cache/elan
           npm_config_cache: ${{ runner.temp }}/npm-offline
         run: |
-          archive="$GITHUB_WORKSPACE/dist/pud.dev-${GITHUB_REF_NAME#v}.tgz"
+          archive="$GITHUB_WORKSPACE/dist/pud.dev-$RELEASE_VERSION.tgz"
           consumer=$(mktemp -d)
           cp packages/pud/.examples/{pud.config.ts,lean-toolchain,clamp.ts,clamp.proof.ts} "$consumer/"
           cd "$consumer"
           npm install --offline --ignore-scripts --no-audit --no-fund "$archive"
           export PATH="$ELAN_HOME/bin:$PATH"
-          npx --offline pud check clamp.proof.ts
+          npx --offline pud.dev check clamp.proof.ts
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: npm-release
-          path: dist/pud.dev-*.tgz
+          path: dist/pud.dev-${{ inputs.version }}.tgz
           if-no-files-found: error
+          overwrite: true
+
+  prepare-release:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: npm-release
+          path: dist
+      - name: Tag the source and attach the archive to a draft release
+        run: node scripts/npm-release.mjs prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   publish:
-    needs: package
+    needs: prepare-release
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24.22.3' # Includes npm 11.19.1 for trusted publishing
@@ -62,5 +95,24 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: npm-release
-      - name: Publish the verified archive
-        run: npm publish "./pud.dev-${GITHUB_REF_NAME#v}.tgz" --access public
+          path: dist
+      - name: Publish the verified archive with npm trusted publishing
+        run: node scripts/npm-release.mjs publish
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: npm-release
+          path: dist
+      - name: Publish the GitHub release
+        run: node scripts/npm-release.mjs finish
+        env:
+          GH_TOKEN: ${{ github.token }}

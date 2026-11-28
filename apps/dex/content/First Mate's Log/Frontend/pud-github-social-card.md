@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-27
-updated-at: 2026-11-27
+updated-at: 2026-11-28
 summary: The GitHub social card artwork, typography, and crop measurements.
 tags: [frontend, design, imagegen, codex]
 ---
@@ -10,7 +10,7 @@ tags: [frontend, design, imagegen, codex]
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
-Pud sits on a cyan mechanical key with a checkmark that refers to `pud check`. The card pairs cream type with an ink field and a vermilion frame around the mascot. It uses the landing page’s Google Sans Flex wordmark at 244 px and sets “Proofs for TypeScript.” on one line in the 48 px display face. [Card](https://github.com/PudHQ/pud/blob/main/press/pud-github-social-card.png) · [Wordmark settings](https://github.com/PudHQ/pud/blob/main/apps/www/app/styles.css) · [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]]
+Pud sits on a cyan mechanical key with a checkmark that refers to `pud.dev check`. The card pairs cream type with an ink field and a vermilion frame around the mascot. It uses the landing page’s Google Sans Flex wordmark at 244 px and sets “Proofs for TypeScript.” on one line in the 48 px display face. [Card](https://github.com/PudHQ/pud/blob/main/press/pud-github-social-card.png) · [Wordmark settings](https://github.com/PudHQ/pud/blob/main/apps/www/app/styles.css) · [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]]
 
 The opaque PNG is 1280 × 640 and weighs 282,362 bytes. The supplied GitHub template marks an 80 px inset on each side. The type and mascot fit within that inset, and the caption and checkmark were legible at 320 × 160. [GitHub’s social preview specification](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/customizing-your-repositorys-social-media-preview)
 

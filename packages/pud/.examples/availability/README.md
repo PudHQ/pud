@@ -5,13 +5,13 @@ A group scheduler needs the same availability count whether it reads participant
 This example focuses on one time slot. Each element represents a participant's bigint availability mask. Its low bit records availability for the slot, so `1n` and `3n` contribute one and `0n` and `2n` contribute zero. The inputs are ordinary dense bigint arrays. The sidecar compares the tally to an independently defined TypeScript reference for every pair of modeled lists. [Sidecar](count-free.proof.ts) · [Reference](count-free-reference.ts)
 
 ```sh
-bun run --silent pud check packages/pud/.examples/availability/count-free.proof.ts
-bun run --silent pud --emit packages/pud/.examples/availability/count-free.proof.ts
+bun run --silent pud.dev check packages/pud/.examples/availability/count-free.proof.ts
+bun run --silent pud.dev --emit packages/pud/.examples/availability/count-free.proof.ts
 ```
 
 Lean uses `List.foldl_append` and proves that adding an initial total shifts the result by that total. The supporting lemma connects JavaScript's low-bit operation to the reference's explicit yes-or-no vote. [Lean lemmas](count-free-lemmas.lean)
 
-Run the regression from the repository root to exercise the same sidecar with three implementations. The test makes its edits in a temporary copy and invokes the `pud` command for each version.
+Run the regression from the repository root to exercise the same sidecar with three implementations. The test makes its edits in a temporary copy and invokes the `pud.dev` command for each version.
 
 ```sh
 bun test packages/pud/test/lean.test.ts -t 'the same availability law'

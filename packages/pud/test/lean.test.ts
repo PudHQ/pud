@@ -14,7 +14,7 @@ const adapter = leanAdapter({ toolchain });
 const command = leanCommand({ file: join(examples, "zigzag.ts"), name: "encode", source: "" }, { toolchain });
 const leanTest = test.skipIf(!Bun.which(command.binary));
 
-leanTest("pud check displays grouped Lean verdicts and diagnostics in a terminal", async () => {
+leanTest("pud.dev check displays grouped Lean verdicts and diagnostics in a terminal", async () => {
   const decoder = new TextDecoder();
   const drained = Promise.withResolvers<void>();
   let output = "";

@@ -1,7 +1,7 @@
 {
   "name": "pud.dev",
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Write proofs for TypeScript functions and check them with Lean.",
   "homepage": "https://pud.dev",
   "repository": {
@@ -17,7 +17,7 @@
     "./lean": "./src/lean/index.ts"
   },
   "bin": {
-    "pud": "./src/cli.ts"
+    "pud.dev": "./src/cli.ts"
   },
   "dependencies": {
     "@babel/parser": "catalog:",

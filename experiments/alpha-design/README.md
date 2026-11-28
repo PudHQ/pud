@@ -4,7 +4,7 @@ Start with [What could Pud be?](tool-directions.md) for the broad recommendation
 
 The [formal recommendation](recommendation.md#the-product-choices) compares what a team would adopt for the same quota change and explains the choice of a contract checker. This brief records the earlier design exploration.
 
-**A developer should be able to tell an agent what it may change, run `pud`, and see the first customer who would get the wrong result.** The team should also be able to keep that promise after the PR merges. That gives Pud a job on the day someone writes a feature and another job six months later.
+**A developer should be able to tell an agent what it may change, run `pud.dev`, and see the first customer who would get the wrong result.** The team should also be able to keep that promise after the PR merges. That gives Pud a job on the day someone writes a feature and another job six months later.
 
 The workbook scores **26 brainstorm pitches** and lists 109 mechanisms the authors could combine. The pitches include product ideas, features, interactions and scenarios. New pitches contains 86 proposals with worked examples and independent critiques. Thirty-seven share a mechanism already on the ballot. On **Alpha**, the shortlist shows the five highest-rated starters that fit the current budget. Change priorities on **Weights**, edit ingredients on **Recipes**, or use **Challenge the ballot** to ask what happens if one judgment is wrong. The change-permit starter costs 16 of 22 workshop points. Adding permanent rules brings the proposed alpha to 21. [Open the workbook](../../outputs/01a1e8bb-8ab5-7851-b8af-0102fd39202e/pud-alpha.xlsx)
 
@@ -32,7 +32,7 @@ always shipping_is_nonnegative on quote(cart)
 
 The developer writes or approves two lines that matter to the business. Every other returned field, including tax, has to keep its old value. A feature that nobody implemented fails on a qualifying cart. Free shipping for everybody fails on an ineligible one. On a new export, the team can start directly with an `always` rule.
 
-- **Run.** `pud` discovers rules, binds each export and compares the pinned base with the working tree where needed. `pud --watch` reruns affected rules on save. The first line on failure names the rule, input, expected result and actual result. `pud replay <id>` reruns the actual call locally.
+- **Run.** `pud.dev` discovers rules, binds each export and compares the pinned base with the working tree where needed. `pud.dev --watch` reruns affected rules on save. The first line on failure names the rule, input, expected result and actual result. `pud.dev replay <id>` reruns the actual call locally.
 - **Review.** Show a qualifying cart where the old quote charged shipping. If the eligible domain is empty, the promise needs attention. If every eligible cart already shipped free, tell the reviewer that the baseline already meets the requirement. Authored rules and imported assumptions get ordinary, reviewable diffs.
 - **Merge.** Retire the temporary comparison against its original base. If free shipping is now policy, keep `pro && netCents >= 10000 ⇒ shipping == 0` as a permanent rule. A later change that reinstates the $6 fee should fail that rule. The temporary requirement to preserve this PR’s exact tax behavior can expire.
 

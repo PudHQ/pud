@@ -1,6 +1,6 @@
 # Replaying one TypeScript property in Rocq and Dafny
 
-This is a historical trial. Its replay script and proofs live at the [recorded revision](https://github.com/PudHQ/pud/tree/17d78bc5172b5c95fefec3b4d59e911fd103eb24/experiments/prover-comparison). The [current CLI and API](../../packages/pud/README.md) select their proof assistant through project config.
+This is a historical trial. Its replay script and proofs live at the [recorded revision](https://github.com/PudHQ/pud/tree/17d78bc5172b5c95fefec3b4d59e911fd103eb24/experiments/prover-comparison). The [current CLI and API](../../packages/pud/guide.md) select their proof assistant through project config.
 
 For `bigint` arguments `a` and `b` and result `r`, the reviewed property is `r >= a && r >= b && (r === a || r === b)`.
 
@@ -10,7 +10,7 @@ At the recorded revision, install the Bun dependencies and run the comparison fr
 python3 experiments/prover-comparison/run.py
 ```
 
-You can also set `ROCQ` and `DAFNY` to absolute executable paths. Each trial uses a temporary copy of the demo TypeScript and its reviewed manifest. The script calls `pud --emit` and compiles the resulting Rocq claim directly. It generates the Dafny comparison and return branches from the same operands, with the reviewed predicate as the postcondition. It checks for changes to the fixture before using this one-function Dafny translation.
+You can also set `ROCQ` and `DAFNY` to absolute executable paths. Each trial uses a temporary copy of the demo TypeScript and its reviewed manifest. The script passes `--emit` to that revision of the CLI and compiles the resulting Rocq claim directly. It generates the Dafny comparison and return branches from the same operands, with the reviewed predicate as the postcondition. It checks for changes to the fixture before using this one-function Dafny translation.
 
 | Implementation | Rocq 9.3.0 | Dafny 4.11.0 |
 | --- | --- | --- |

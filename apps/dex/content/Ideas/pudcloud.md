@@ -17,7 +17,7 @@ PudCloud is Pud’s paid hosted offering. The first feature to try is the **Back
 
 1. **Draft a contract.** Read the export, relevant callers and tests, and any linked ticket or policy. Propose properties with explicit input assumptions. Cite the evidence for each property and flag rules inferred from the implementation alone.
 2. **Review the rule.** Replay a concrete input when the code and the draft disagree. When two plausible rules give different answers, show an input that distinguishes them. The maintainer approves or revises the rule and its input domain, or leaves the decision open.
-3. **Check it on every PR.** Commit the approved properties as a `*.proof.ts` sidecar. Run `pud check` on the proposed merge and require a pass for properties the team has made mandatory. Show proof status and model limits in the PR, and flag edits to approved rules or their input domains even when the new checks pass. [Pud’s contract-checker alpha](https://github.com/PudHQ/pud/blob/main/experiments/alpha-design/recommendation.md) · [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]]
+3. **Check it on every PR.** Commit the approved properties as a `*.proof.ts` sidecar. Run `pud.dev check` on the proposed merge and require a pass for properties the team has made mandatory. Show proof status and model limits in the PR, and flag edits to approved rules or their input domains even when the new checks pass. [Pud’s contract-checker alpha](https://github.com/PudHQ/pud/blob/main/experiments/alpha-design/recommendation.md) · [[Handbook/Engineering/reading-a-proof-result|Reading a proof result]]
 
 ## Example of an export quota
 

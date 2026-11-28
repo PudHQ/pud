@@ -12,7 +12,15 @@ tags: [changelog, codex]
 
 ## 2026-11-28
 
-- Recorded the choice of `pud.dev`, its npm listing metadata, and the offline proof check for the release tarball in [[First Mate's Log/CLI/npm-package-and-command-names|Choosing an npm name for the Pud command]].
+- Recorded the `pud.dev` package and executable name, the npm listing metadata, and the offline proof check for the release tarball in [[First Mate's Log/CLI/npm-package-and-command-names|Choosing an npm name for the Pud command]].
+- [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]] uses the current command for emitting Lean and capturing diagnostics.
+- [[First Mate's Log/Frontend/pud-github-social-card|Pud’s GitHub social card]] identifies the command represented by the checkmark.
+- [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|Configured proof assistant adapters]] identifies the published package for adapters and the suite API.
+- [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]] updates the commands for rerunning the coverage probes.
+- [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Pud vs Vitest on workshop bookings]] updates the command for checking the booking sidecars.
+- [[First Mate's Log/Verification/Lean/random-lemmascript-examples|Porting LemmaScript examples to Lean]] uses the current command for rechecking the examples.
+- [[First Mate's Log/Verification/proof-suites-from-unit-to-end-to-end|Pud proof suites from unit to end-to-end]] uses the current command in the proposed suite workflows.
+- [[First Mate's Log/Verification/runtime-checks-and-effect-proofs|Runtime checks and effect proofs in Pud]] uses the current command for the proposed cancellation check.
 
 ## 2026-11-27
 

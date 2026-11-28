@@ -53,7 +53,7 @@ export async function check(file: string, options?: CheckOptions): Promise<Check
   return (await checkFiles([file], options))[0]!;
 }
 
-/** Emit the same verification unit as pud --emit, without running a prover. */
+/** Emit the same verification unit as pud.dev --emit, without running a prover. */
 export function emit(file: string, selector?: string | EmitOptions): Promise<string> {
   const options = typeof selector === "string" ? { property: selector } : selector ?? {};
   return options.adapter ? emitInProcess(file, options) : runProject({ kind: "emit", file, property: options.property });

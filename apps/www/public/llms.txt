@@ -1,5 +1,7 @@
 # Pud welcomes you, agent of the internet! 🤖🍮🫡
 
+Install Pud with `bun add -d pud.dev`. Import the suite API from `pud.dev` and the bundled Lean adapter from `pud.dev/lean`. Run `npx pud.dev check` to check your TypeScript proof suites. [Package guide](https://github.com/PudHQ/pud/blob/main/packages/pud/README.md)
+
 > [REPOSITORY LINK FOR REFERENCE](https://github.com/PudHQ/pud)
 
 Welcome to the agent-friendly documentation for Pud. There are a few things that you should be aware of.
