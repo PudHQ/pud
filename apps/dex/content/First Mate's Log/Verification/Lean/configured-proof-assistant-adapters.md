@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-27
+updated-at: 2026-11-28
 summary: How Pud checks linked TypeScript properties and what its lowering certificates establish compared with LemmaScript and Lynx.
 tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, exceptions, termination, semantics, translation-validation, proof-reuse, lemmascript, lynx]
 ---
@@ -12,7 +12,7 @@ tags: [verification, typescript, lean, adapters, quantifiers, call-graphs, excep
 
 The starting point was a Lean demo whose schema names, sidecar parser, and proof runner all belonged to the same assistant. The configured API uses Pud schemas and passes their premises and result constraints to a `ProofAssistant`. Its `prepare` method receives the named export's source snapshot and returns the signature, emitter, and verifier. The adapter still owns the semantics of the TypeScript constructs it admits. [Adapter contract](https://github.com/PudHQ/pud/blob/main/packages/pud/src/assistant.ts)
 
-The `@pud.dev/lib` package now owns the command and suite API. Lean is its first bundled adapter. The CLI selects the closest `pud.config.ts` for each sidecar, so future adapters can use the same command and portable declarations. An installed-package regression sends a portable suite through a second configured adapter and checks that its concrete witness produces `FAIL`. [Package and API](https://github.com/PudHQ/pud/blob/main/packages/pud/README.md)
+The `pud.dev` package provides the command and suite API. Lean is its first bundled adapter. The CLI selects the closest `pud.config.ts` for each sidecar, so future adapters can use the same command and portable declarations. An installed-package regression sends a portable suite through a second configured adapter and checks that its concrete witness produces `FAIL`. [Package and API](https://github.com/PudHQ/pud/blob/main/packages/pud/README.md)
 
 Project config is selected relative to each sidecar. Native suites import the config as `pud` and use that binding for both `pud.describe()` and schema builders such as `pud.bigint()` and `pud.boolean()`. The primitive names follow TypeScript and Zod. The configured binding gives both the schemas and proof helpers the type of the chosen assistant. Pud reads the sidecar statically and checks the same assistant marker when a library call supplies an explicit adapter. The configured import and native tagged template follow Drizzle's driver and query patterns. [Zod schemas](https://zod.dev/api#primitives) · [Drizzle setup](https://orm.drizzle.team/docs/get-started/postgresql-new) · [Drizzle tagged templates](https://orm.drizzle.team/docs/sql)
 

@@ -1,4 +1,4 @@
-import { describe, expect, it, pud } from "@pud.dev/lib";
+import { describe, expect, it, pud } from "pud.dev";
 import { low64 } from "./bigint-bits.ts";
 
 describe(low64, () => {

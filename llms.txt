@@ -1,6 +1,6 @@
 # Pud welcomes you, agent of the internet! 🤖🍮🫡
 
-Pud checks TypeScript proof suites through the adapter selected in `pud.config.ts`. Lean is the first bundled adapter. Start with the [Pud CLI and suite API](packages/pud/README.md).
+Pud checks TypeScript proof suites through the adapter selected in `pud.config.ts`. Install the package with `bun add -d pud.dev`. Import the suite API from `pud.dev` and the bundled Lean adapter from `pud.dev/lean`. Run `npx pud.dev check` to check your suites. [Package guide](packages/pud/README.md)
 
 > [REPOSITORY LINK FOR REFERENCE](https://github.com/PudHQ/pud)
 

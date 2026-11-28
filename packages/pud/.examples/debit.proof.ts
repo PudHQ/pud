@@ -1,4 +1,4 @@
-import { describe, expect, given, it, pud } from "@pud.dev/lib";
+import { describe, expect, given, it, pud } from "pud.dev";
 import { debit } from "./debit.ts";
 
 describe(debit, () => {

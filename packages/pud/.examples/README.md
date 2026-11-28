@@ -7,8 +7,8 @@ A `*.proof.ts` suite describes an imported TypeScript export. Pud reads the suit
 Run `bun run setup` from the repository root. If the Bun dependencies are already installed, `bun run setup:lean` installs just Elan and Lean. Pud finds the checkout’s Elan shim in `.cache/elan` and uses the version in [lean-toolchain](lean-toolchain). `PUD_LEAN` can select a standalone Lean executable.
 
 ```sh
-bun run pud check packages/pud/.examples/linear-search.proof.ts
-bun run pud check packages/pud/.examples
+bun run pud.dev check packages/pud/.examples/linear-search.proof.ts
+bun run pud.dev check packages/pud/.examples
 ```
 
 The first command checks the search proof. The full directory includes the indexed `for` loop in `sum-positive.ts`, which currently reports `UNSUPPORTED` and makes the run exit with status 2.
@@ -53,13 +53,13 @@ Parity, linear search, and content dispatch were adapted from a random draw of L
 
 The ten follow-up ports use exact `bigint` arithmetic and `for…of` for array traversal. Sortedness accepts the empty list. Maximum element returns zero for the empty list. The nested-loop example uses the array length as its iteration count, and the scalar maximum uses bigint comparisons. The two ZigZag sidecars check their exports against the same signed-integer-to-code relation.
 
-Pass a sidecar path to check it individually. Use `--emit` to inspect the generated Lean, with a property title when the suite has several active properties. The hidden `.examples` directory makes this set opt-in during repository-wide discovery. The project config selects Lean for the examples when using `pud`. [Example configuration](pud.config.ts)
+Pass a sidecar path to check it individually. Use `--emit` to inspect the generated Lean, with a property title when the suite has several active properties. The hidden `.examples` directory makes this set opt-in during repository-wide discovery. The project config selects Lean for the examples when using `pud.dev`. [Example configuration](pud.config.ts)
 
 ```sh
-bun run pud --emit packages/pud/.examples/clamp.proof.ts
+bun run pud.dev --emit packages/pud/.examples/clamp.proof.ts
 ```
 
-Motion’s production file is byte-for-byte identical to upstream revision `1fa0e141`. Run `bun run pud check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts` for six time-conversion laws and one exact currency rule. The cents sidecar requires the nearest integer to the binary64 product `amount * 100`, with half ties toward positive infinity. It accepts ordinary numbers, including signed zeros, infinities and NaN. [Original source](https://github.com/motiondivision/motion/blob/1fa0e141f7b3f0a4eea258d5debc7dfbe5af6ffc/packages/motion-utils/src/time-conversion.ts) · [Motion license](motion/LICENSE.md)
+Motion’s production file is byte-for-byte identical to upstream revision `1fa0e141`. Run `bun run pud.dev check --deny-cases packages/pud/.examples/motion packages/pud/.examples/cents.proof.ts` for six time-conversion laws and one exact currency rule. The cents sidecar requires the nearest integer to the binary64 product `amount * 100`, with half ties toward positive infinity. It accepts ordinary numbers, including signed zeros, infinities and NaN. [Original source](https://github.com/motiondivision/motion/blob/1fa0e141f7b3f0a4eea258d5debc7dfbe5af6ffc/packages/motion-utils/src/time-conversion.ts) · [Motion license](motion/LICENSE.md)
 
 ## Sidecar syntax
 
@@ -89,7 +89,7 @@ Quantifier domains can be bound `readonly bigint[]` values or `pud.number()`, `p
 
 Specifications can use `pud.length(values)` for a bigint count of elements or `pud.sum(values)` for the sum of a bigint array. `pud.modulo(value, divisor)` expresses the nonnegative residue for a positive bigint literal divisor. `pud.quotient(n, d)` is a mathematical truncating quotient with value zero at `d = 0`. Use it under a nonzero precondition when specifying JavaScript division, and use `.toThrow()` for the zero case. [Array sum](array-sum.proof.ts) · [Parity](is-even.proof.ts) · [Division](bigint-division.proof.ts)
 
-Import `pud` from `pud.config.ts` to use native predicates or proofs in `pud.describe()`. Use `.satisfies(lean.ref("Namespace.predicate", ...args))` to apply a named Lean predicate to the explicit arguments followed by the value under assertion. A `lean` tagged template can build the same predicate and interpolate in-scope TypeScript expressions. [Native template example](../README.md#use-native-proof-code)
+Import `pud` from `pud.config.ts` to use native predicates or proofs in `pud.describe()`. Use `.satisfies(lean.ref("Namespace.predicate", ...args))` to apply a named Lean predicate to the explicit arguments followed by the value under assertion. A `lean` tagged template can build the same predicate and interpolate in-scope TypeScript expressions. [Native template example](../guide.md#use-native-proof-code)
 
 Register local Lean definitions and lemmas with `use(lean.module("./helper.lean"))`. A definition marked `@[simp]` is available to the automatic simplifier. Use `it(...).by(lean.ref("Namespace.theorem"))` or a tagged `by` term when supplying a certificate. Lean checks it against the exact generated claim. [Induction lemma example](array-sum-lemmas.lean)
 
@@ -112,7 +112,7 @@ A nonnegative literal shift count lowers to multiplication by a power of two. AN
 For the scalar fragment, Pud builds a source expression from the frozen TypeScript AST and verifies that its evaluator agrees with the emitted implementation on every modeled input. The fragment includes bigint and boolean expressions, local bindings and assignments, branches, direct acyclic calls, and modeled throws and catches. The artifact includes `loweringCertificate` for outcome equality and `sourceChecked` for the sidecar property transferred to source evaluation.
 
 ```sh
-bun run --silent pud --emit packages/pud/.examples/zigzag-roundtrip.proof.ts
+bun run --silent pud.dev --emit packages/pud/.examples/zigzag-roundtrip.proof.ts
 ```
 
 The countdown and dense-array fold helpers have their own proofs against execution relations. A property that uses a helper still relies on the translation of its loop body and state. A general guarantee also needs a correctness argument for reifying the TypeScript AST and for the model's relation to JavaScript execution. [Scalar semantics](../src/lean/scalar.lean) · [Iteration semantics](../src/lean/iteration.lean)

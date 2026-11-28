@@ -1,4 +1,4 @@
-import { lean } from "@pud.dev/lib/lean";
+import { lean } from "pud.dev/lean";
 import pud from "./pud.config.ts";
 import { maxElement } from "./max-element.ts";
 

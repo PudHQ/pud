@@ -27,7 +27,7 @@ async function writeNotices(files: string[], target: string) {
   await writeFile(target, notices.join("\n\n"));
 }
 
-export async function pack(destination = join(root, "dist")) {
+export async function pack(destination = join(root, "dist"), release?: { version: string; gitHead: string }) {
   destination = resolve(destination);
   const stage = await mkdtemp(join(tmpdir(), "pud-pack-"));
   try {
@@ -46,15 +46,25 @@ export async function pack(destination = join(root, "dist")) {
     ], { stdio: "inherit" });
     await writeNotices(Object.keys(build.metafile!.inputs), join(stage, "THIRD-PARTY-NOTICES"));
     await copyFile(join(root, "LICENSE"), join(stage, "LICENSE"));
+    await copyFile(join(pud, "README.md"), join(stage, "README.md"));
     await chmod(join(stage, "cli.js"), 0o755);
     const types = "./types/index.d.ts";
     await writeFile(join(stage, "package.json"), JSON.stringify({
-      name: manifest.name, version: manifest.version, type: "module", license: manifest.license,
+      name: manifest.name,
+      version: release?.version ?? manifest.version,
+      gitHead: release?.gitHead,
+      description: manifest.description,
+      homepage: manifest.homepage,
+      repository: manifest.repository,
+      bugs: manifest.bugs,
+      keywords: manifest.keywords,
+      license: manifest.license,
+      type: manifest.type,
       exports: {
         ".": { types, default: "./index.js" },
         "./lean": { types: "./types/lean/index.d.ts", default: "./lean/index.js" },
       }, types,
-      bin: { pud: "./cli.js" },
+      bin: { [manifest.name]: "./cli.js" },
     }, null, 2));
     await mkdir(destination, { recursive: true });
     const archive = execFileSync(process.execPath, ["pm", "pack", "--destination", destination, "--quiet"], { cwd: stage, encoding: "utf8" }).trim();

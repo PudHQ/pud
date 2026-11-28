@@ -1,6 +1,7 @@
 ---
 author: codex
 date: 2026-11-25
+updated-at: 2026-11-28
 summary: A proposal for one Pud suite API and CLI that can check laws about pure functions, database transactions, and HTTP routes.
 tags: [verification, proof-suites, integration, postgres, codex]
 ---
@@ -9,7 +10,7 @@ tags: [verification, proof-suites, integration, postgres, codex]
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
-Keep one `pud check` command and one `describe` / `it` / `expect` API. Let the developer choose how much of the app to verify by choosing its entry point and, when needed, a fixture. Jest is a useful precedent for one command across suites with different environments. Pud’s job is to establish a law across the admitted inputs, states, and execution histories of each suite. [Jest projects and environments](https://jestjs.io/docs/configuration#projects-arraystring--projectconfig)
+Keep one `pud.dev check` command and one `describe` / `it` / `expect` API. Let the developer choose how much of the app to verify by choosing its entry point and, when needed, a fixture. Jest is a useful precedent for one command across suites with different environments. Pud’s job is to establish a law across the admitted inputs, states, and execution histories of each suite. [Jest projects and environments](https://jestjs.io/docs/configuration#projects-arraystring--projectconfig)
 
 ## What this adds
 
@@ -84,10 +85,10 @@ The HTTP example covers the boundary from `Request` to `Response` and committed 
 
 ## What developers configure
 
-The nearest `pud.config.ts` still chooses the proof assistant. An effectful suite names a typed fixture. That fixture declares its starting state, how to call the entry point, the environment it needs, and what the suite can observe. Reusable adapter support supplies the semantics of the database operations under that environment. Projects can use directories to select a particular scope with the existing `pud check <dir>` command. [[First Mate's Log/Verification/workflow-proof-interfaces#Fixtures-and-environments|Fixture and environment interfaces]]
+The nearest `pud.config.ts` still chooses the proof assistant. An effectful suite names a typed fixture. That fixture declares its starting state, how to call the entry point, the environment it needs, and what the suite can observe. Reusable adapter support supplies the semantics of the database operations under that environment. Projects can use directories to select a particular scope with the existing `pud.dev check <dir>` command. [[First Mate's Log/Verification/workflow-proof-interfaces#Fixtures-and-environments|Fixture and environment interfaces]]
 
 An ordinary proof run reasons over the declared domain. An optional runtime run can use concrete examples from that domain to check the real implementation and compare it with an executable model. The distinction matters when the runtime exposes a mismatch or the adapter cannot model an operation. The report should name what ran and show the evidence for each result. [[Handbook/Engineering/reading-a-proof-result|Current verdicts]] · [[First Mate's Log/Verification/workflow-proof-interfaces#Results-and-compatibility|Proposed reporting]]
 
 ## What would make the first slice real
 
-Use the actual booking handler and migration in a cancellation suite. Lower the locked read, three writes, and transaction outcomes into Lean. A probe translated the writes from the TypeScript and checked the same law in Lean. The original and reordered writes passed. Deleting either the credit or the stored refund broke the proof and changed the runtime database state. The release milestone is to get those results through `pud check` with the same sidecar and a linked handler, migration, and transaction model. [[First Mate's Log/Verification/runtime-checks-and-effect-proofs#Deriving the writes from TypeScript|Source write probe]] · [[First Mate's Log/Verification/workflow-proof-interfaces#Implementation-order|Implementation order]]
+Use the actual booking handler and migration in a cancellation suite. Lower the locked read, three writes, and transaction outcomes into Lean. A probe translated the writes from the TypeScript and checked the same law in Lean. The original and reordered writes passed. Deleting either the credit or the stored refund broke the proof and changed the runtime database state. The release milestone is to get those results through `pud.dev check` with the same sidecar and a linked handler, migration, and transaction model. [[First Mate's Log/Verification/runtime-checks-and-effect-proofs#Deriving the writes from TypeScript|Source write probe]] · [[First Mate's Log/Verification/workflow-proof-interfaces#Implementation-order|Implementation order]]

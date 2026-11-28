@@ -2,7 +2,7 @@
 
 21 November 2026 · Design study for the alpha
 
-For the current implementation, see the [adapter-based CLI and suite API](../../packages/pud/README.md).
+For the current implementation, see the [adapter-based CLI and suite API](../../packages/pud/guide.md).
 
 Read [What could Pud be?](tool-directions.md) for the broader product decision and [What would I actually write?](technical-setups.md) for the inline, sidecar, builder and prover-bridge comparison.
 
@@ -52,7 +52,7 @@ Take a team raising the daily export quota for grandfathered customers from 12 t
 Proposed `exports.proof.ts`. The names are illustrative. The distinction between the two decisions is the API commitment.
 
 ```ts
-import { policy, cases, oneOf, int } from "pud"
+// Proposed API: policy, cases, oneOf, and int.
 import { authorizeExport } from "./exports"
 
 export default policy(authorizeExport, {
@@ -72,7 +72,7 @@ export default policy(authorizeExport, {
 
 **Use ordinary, typed sidecars.** A human or their agent can draft the file. Reuse the app's input schema where it defines a finite domain. Surface any tighter bounds the author chose. In the PR, show the changed rule, its domain and a distinguishing case. For ambiguous rounding, let the owner approve either outcome, both, or leave the question open. A choice settles that case. Generalizing it requires reviewing the rule. CI reruns the approved file without an LLM. A team writes down the business promise once. Pud follows the real export and its dependencies.
 
-**First install goes on an open PR.** Start from the ticket and an existing export. The agent drafts one lasting rule. Show the author one boundary input, the expected answer and the bounds to approve. Run `pud` for the local review. Build this around a library call so CI can enforce the identical result from an existing Vitest or Bun suite. Keep their test runner, configuration and other tests in place. Automatically restoring old code can reveal two behaviors that pass the same suite. That still leaves the reviewer to supply the business expectation. Defer automatic mutation until it beats asking for the rule directly.
+**First install goes on an open PR.** Start from the ticket and an existing export. The agent drafts one lasting rule. Show the author one boundary input, the expected answer and the bounds to approve. Run `pud.dev` for the local review. Build this around a library call so CI can enforce the identical result from an existing Vitest or Bun suite. Keep their test runner, configuration and other tests in place. Automatically restoring old code can reveal two behaviors that pass the same suite. That still leaves the reviewer to supply the business expectation. Defer automatic mutation until it beats asking for the rule directly.
 
 **Give the comparison the lifetime of the PR.** Locally, compare the working tree to its review base. At the merge gate, compare the target tip to the prospective merge result. Pin both revisions, their dependencies, the rule and the runtime. A move on either side invalidates the result. Activate `thisPR` when the PR introduces or explicitly revises it. Retire the comparison on merge. Later implementation edits run the lasting rule. Track that rule by stable ID. Show deleted rules, newly excluded inputs and changes to imported predicates even if every remaining check passes. Flag an empty qualifying group or a base that already delivers the change. An incompatible return schema requires a reviewed mapping.
 
@@ -86,7 +86,7 @@ export default policy(authorizeExport, {
 | Will an ordinary source edit survive today's CLI? | Hoisting a shipping threshold from a local constant to module scope produced identical results on all 40,002 carts. The current CLI went from proved to unsupported. A different rule covering integer cents strictly between 9,999 and 10,000 proved even when nobody got free shipping. | Support ordinary local helpers and constants before a pilot. Show cohort reachability alongside truth. |
 | Does the DB example generalize? | Changing only `RETURNING request_id` to `RETURNING 1` preserved the full observed HTTP and committed-state outcomes on all six Postgres scenarios. The caller reads only the row count. The public CLI moved from three proved to three unsupported. | Make replay independently available even when formal SQL support ends. The current example still requires a ledger-specific model. |
 
-The quota comparison is standalone TypeScript. Run `bun experiments/alpha-design/study-change-review.ts` from the repository root. The shipping and SQL probes above used the public `bun run pud check … --json` on temporary source copies, with independent native execution for comparison. The reference implementations and design studies use synthetic inputs. No customer team has chosen the workflow twice in these studies. [Quota comparison](study-change-review.ts) · [Shipping study](study.ts) · [Current TS frontend](../../packages/model/src/typescript.ts) · [SQL recognizer](../debit-endpoint/internal/sql.ts)
+The quota comparison is standalone TypeScript. Run `bun experiments/alpha-design/study-change-review.ts` from the repository root. The shipping and SQL probes above ran the proof checker with `--json` on temporary source copies, with independent native execution for comparison. The reference implementations and design studies use synthetic inputs. No customer team has chosen the workflow twice in these studies. [Quota comparison](study-change-review.ts) · [Shipping study](study.ts) · [Current TS frontend](../../packages/model/src/typescript.ts) · [SQL recognizer](../debit-endpoint/internal/sql.ts)
 
 ## What earns the word “proof”
 
@@ -98,7 +98,7 @@ The CLI and library share one report. A failure should be useful straight from t
 FAIL  A legacy batch is admitted exactly when it fits within 16   exports.proof.ts
       legacy · 9 used + batch of 4
       expected allowed=true   received allowed=false
-      pud replay <id>
+      pud.dev replay <id>
 ```
 
 Show the strongest evidence each obligation earned. **Exhaustive** gives the domain, count and revision. **Proved** gives the source-linked symbolic claim and assumptions. **Failed** carries a violation reproduced against the real export. **Sampled** identifies the cases run. **Unsupported**, **inconclusive** and **tool error** explain where work stopped. Require complete evidence for each enforced promise. A report can say “6 database replays passed · symbolic SQL unsupported.” A rule edit can require **review** even when the implementation passes. Replaying the $5 example should show the app returning $10 and separately evaluate whether $5 satisfies the edited rule. The CLI and `check()` consume the same evidence. Today's CLI has discovery, `--json` and `--emit`. Watch and receipt-based replay are proposed. [Current CLI](../../packages/cli/src/cli.ts) · [Current adapter interface](../../packages/model/src/adapter.ts)

@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-27
+updated-at: 2026-11-28
 summary: Keep live proof progress and final diagnostics readable in a terminal and in a captured log.
 tags: [cli, terminal, reporting, progress, verification, lean]
 ---
@@ -10,7 +10,7 @@ tags: [cli, terminal, reporting, progress, verification, lean]
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
 
-The Lean adapter writes generated files to a temporary directory. A rejected proof can therefore name a generated Lean file. The `pud check` reporter pairs that diagnostic with the source sidecar’s `path:line`.
+The Lean adapter writes generated files to a temporary directory. A rejected proof can therefore name a generated Lean file. The `pud.dev check` reporter pairs that diagnostic with the source sidecar’s `path:line`.
 
 The terminal layout groups properties by sidecar and gives each file a time. It wraps the diagnostic prose and writes its sidecar location as one string. In a capture, each status row carries the sidecar path. When a check exits with an error or an open proof, the text report goes to stderr. The verdict words remain visible with `NO_COLOR=1`.
 
@@ -25,8 +25,8 @@ In the installed-package test, a config import used both `console.log` and `proc
 Run these commands from the repository root to capture the plain report and inspect the generated code.
 
 ```sh
-bun run --silent pud check packages/pud/.examples/linear-search.proof.ts > lean-check.log 2>&1
-bun run --silent pud --emit packages/pud/.examples/linear-search.proof.ts
+bun run --silent pud.dev check packages/pud/.examples/linear-search.proof.ts > lean-check.log 2>&1
+bun run --silent pud.dev --emit packages/pud/.examples/linear-search.proof.ts
 ```
 
 CI checks the supported examples through the same command. The indexed `sumPositive` example exercises the `UNSUPPORTED` row and exit status 2 in the terminal regression test. [CLI reporter](https://github.com/PudHQ/pud/blob/main/packages/pud/src/reporter.ts) · [[Handbook/Engineering/Verification/Lean/checking-typescript-with-lean|Checking TypeScript with Lean]]

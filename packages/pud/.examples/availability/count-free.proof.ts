@@ -1,4 +1,4 @@
-import { lean } from "@pud.dev/lib/lean";
+import { lean } from "pud.dev/lean";
 import { countFree } from "./count-free.ts";
 import { countFreeReference } from "./count-free-reference.ts";
 import pud from "./pud.config.ts";

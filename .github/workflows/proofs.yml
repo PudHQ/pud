@@ -35,4 +35,4 @@ jobs:
           bun test experiments/compatibility/measure.test.ts
           bun run compat:check
       - name: Check supported Lean examples
-        run: find packages/pud/.examples experiments/booking-verification/.proofs -name '*.proof.ts' ! -name sum-positive.proof.ts -exec bun run pud check --deny-cases {} +
+        run: find packages/pud/.examples experiments/booking-verification/.proofs -name '*.proof.ts' ! -name sum-positive.proof.ts -exec bun run pud.dev check --deny-cases {} +

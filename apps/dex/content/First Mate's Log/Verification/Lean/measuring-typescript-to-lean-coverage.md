@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-24
-updated-at: 2026-11-26
+updated-at: 2026-11-28
 summary: What the Lean adapter admits, where it stops, and how to measure coverage of runtime behavior.
 tags: [verification, typescript, lean, conformance-testing, coverage, effects]
 ---
@@ -40,9 +40,9 @@ The differential tests compared **280 function/input pairs** between Bun and the
 Run these checks from the repository root. The example-directory command exits with status 2 because it includes the indexed loop. The JSON report has counts for every verdict. To inspect a single property, give `--emit` its sidecar and, if several properties are active, its title. Use `check` to attempt the proof.
 
 ```sh
-bun run --silent pud --emit packages/pud/.examples/array-sum.proof.ts
-bun run --silent pud check --json packages/pud/.examples
-bun run --silent pud check --json experiments/booking-verification/.proofs
+bun run --silent pud.dev --emit packages/pud/.examples/array-sum.proof.ts
+bun run --silent pud.dev check --json packages/pud/.examples
+bun run --silent pud.dev check --json experiments/booking-verification/.proofs
 bun test packages/pud/test/lean.test.ts
 ```
 

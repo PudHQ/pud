@@ -110,7 +110,7 @@ export interface PudConfig<Id extends string = string> extends SchemaBuilders<Id
 }
 
 function sourceOnly(): never {
-  throw new Error("Pud reads proof declarations from *.proof.ts source. Run pud check.");
+  throw new Error("Pud reads proof declarations from *.proof.ts source. Run pud.dev check.");
 }
 
 const schemaBuilders = {

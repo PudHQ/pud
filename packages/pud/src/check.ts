@@ -72,7 +72,7 @@ class SourceSnapshots {
       const after = current.read(path);
       if (("error" in before) !== ("error" in after) ||
           ("source" in before && "source" in after && (before.canonical !== after.canonical || before.source !== after.source))) {
-        changed.set(path, new Error(`${path} changed during verification. Rerun pud check.`));
+        changed.set(path, new Error(`${path} changed during verification. Rerun pud.dev check.`));
       }
     }
     return changed;
@@ -93,7 +93,7 @@ function remappedImports(imports: Suite["imports"]) {
   const changed = new Map<string, Error>();
   for (const { path, resolveAgain } of imports) {
     try { if (resolveAgain() === path) continue; } catch { /* the import may now be missing or unsupported */ }
-    changed.set(path, new Error(`The import of ${path} changed during verification. Rerun pud check.`));
+    changed.set(path, new Error(`The import of ${path} changed during verification. Rerun pud.dev check.`));
   }
   return changed;
 }
@@ -150,7 +150,7 @@ export async function checkFiles(files: readonly string[], options: CheckOptions
     const dependencyChange = [...plan.dependencies].map(path => changed.get(path)).find(Boolean);
     const hasActive = plan.results.some(result => result.status !== "todo");
     const configChange = hasActive && !options.adapter && findConfig(plan.origin) !== plan.config
-      ? new Error(`The project configuration for ${file} changed during verification. Rerun pud check.`) : undefined;
+      ? new Error(`The project configuration for ${file} changed during verification. Rerun pud.dev check.`) : undefined;
     const remapped = hasActive ? remappedImports(plan.suite.imports).values().next().value : undefined;
     const change = configChange ?? remapped ?? dependencyChange;
     return { file, results: plan.results.map(result => {
