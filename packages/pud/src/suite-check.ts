@@ -17,7 +17,7 @@ export function findConfig(file: string): string | undefined {
 }
 
 async function importConfig({ canonical, source }: ReturnType<Read>) {
-  if (readFileSync(canonical, "utf8") !== source) throw new Error(`${canonical} changed during verification. Rerun pud check.`);
+  if (readFileSync(canonical, "utf8") !== source) throw new Error(`${canonical} changed during verification. Rerun pud.dev check.`);
   return (await import(pathToFileURL(canonical).href)).default?.adapter as ProofAssistant | undefined;
 }
 

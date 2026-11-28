@@ -99,7 +99,7 @@ leanTest("the exact cents law rejects wrong fractional results, tie policies and
 leanTest("an exact scalar schema proves uniqueness and reports a second accepted answer", async () => {
   const dir = await fixture(), proof = join(dir, "id.proof.ts");
   await writeFile(join(dir, "id.ts"), "export const id = (x: bigint) => x; export const zero = (x: bigint) => x === 0n;");
-  await writeFile(proof, `import { describe, expect, it, pud } from "@pud.dev/lib";
+  await writeFile(proof, `import { describe, expect, it, pud } from "pud.dev";
 import { id, zero } from "./id.ts";
 describe(id, () => {
   it("keeps the lower bound", { x: pud.bigint() }, ({ x }) => {
@@ -130,7 +130,7 @@ describe(id, () => {
 leanTest("exact number rules distinguish signed zeros and make the half-tie policy explicit", async () => {
   const dir = await fixture(), proof = join(dir, "round.proof.ts");
   await writeFile(join(dir, "round.ts"), "export const rounded = (x: number) => -Math.round(-x);");
-  await writeFile(proof, `import { describe, expect, it, pud } from "@pud.dev/lib";
+  await writeFile(proof, `import { describe, expect, it, pud } from "pud.dev";
 import { rounded } from "./round.ts";
 describe(rounded, () => {
   it("takes the lower integer at a tie", { x: pud.number() }, ({ x }) => {
@@ -155,7 +155,7 @@ leanTest("an exact result requires the function to return on its declared domain
     if (x < 0n) throw new RangeError();
     return x;
   }`);
-  await writeFile(proof, `import { describe, expect, it, pud } from "@pud.dev/lib";
+  await writeFile(proof, `import { describe, expect, it, pud } from "pud.dev";
 import { partial } from "./partial.ts";
 describe(partial, () => {
   it("returns the nonnegative input", { x: pud.bigint().gte(0n) }, ({ x }) => {
@@ -258,7 +258,7 @@ def main (args : List String) : IO Unit := do
 leanTest("numeric proof matchers use JavaScript equality and truthiness", async () => {
   const dir = await fixture(), proof = join(dir, "value.proof.ts");
   await writeFile(join(dir, "value.ts"), "export const identity = (x: number) => x; export const nan = () => 0 / 0;");
-  const imports = `import { describe, expect, it, pud } from "@pud.dev/lib";
+  const imports = `import { describe, expect, it, pud } from "pud.dev";
 import { identity, nan } from "./value.ts";`;
   await writeFile(proof, imports + `
 describe(identity, () => {
@@ -292,7 +292,7 @@ leanTest("replay respects scalar guards and leaves an unsupported quantified pre
   await writeFile(join(dir, "id.ts"), "export const id = (x: number) => x;");
   await writeFile(proof, [
     'import pud from "./pud.config.ts";',
-    'import { lean } from "@pud.dev/lib/lean";',
+    'import { lean } from "pud.dev/lean";',
     'import { id } from "./id.ts";',
     'pud.describe(id, ({ it, expect, given }) => {',
     '  it("keeps a nonnegative integer", { x: pud.number() }, ({ x: amount }) => {',

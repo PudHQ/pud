@@ -5,8 +5,8 @@ import { failure } from "./assistant.ts";
 import { checkFiles, emit } from "./run.ts";
 import { display, proofReporter } from "./reporter.ts";
 
-const synopsis = `Usage: pud [check] [DIR | FILE.proof.ts ...] [--verbose | --json] [--deny-cases]
-       pud --emit FILE.proof.ts [PROPERTY | SUBJECT[.PROPERTY]]`;
+const synopsis = `Usage: pud.dev [check] [DIR | FILE.proof.ts ...] [--verbose | --json] [--deny-cases]
+       pud.dev --emit FILE.proof.ts [PROPERTY | SUBJECT[.PROPERTY]]`;
 const usage = `${synopsis}
 
 With no paths, Pud discovers *.proof.ts under the current directory.

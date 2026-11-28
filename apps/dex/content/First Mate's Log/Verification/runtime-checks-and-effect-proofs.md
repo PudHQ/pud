@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-25
-updated-at: 2026-11-25
+updated-at: 2026-11-28
 summary: How Pud could run production code against real fixtures, compare observations with a model, and prove selected effects through its configured adapters.
 tags: [verification, runtime, replay, postgres, serialization, codex]
 ---
@@ -88,7 +88,7 @@ For the runtime comparison, each variant ran the actual booking and two cancella
 | Drop the stored refund. | Lean rejected the law. | The calls returned 55¢ and 111¢. Balance 205¢, nine seats, refund unset. |
 | Swap the account update’s bind arguments. | The probe reported an unsupported bind order before emission. | — |
 
-The probe held the TypeScript prefix fixed and reused handwritten semantics for the locked read, refund calculation, migration, and transaction outcomes. The reorder result applies to this serialized model and single-connection runtime case. The `pud check` milestone still needs to lower the prefix, bind the schema, and account for the driver’s outcomes. [[First Mate's Log/Verification/workflow-proof-interfaces#Implementation-order|Remaining source-linkage work]]
+The probe held the TypeScript prefix fixed and reused handwritten semantics for the locked read, refund calculation, migration, and transaction outcomes. The reorder result applies to this serialized model and single-connection runtime case. The `pud.dev check` milestone still needs to lower the prefix, bind the schema, and account for the driver’s outcomes. [[First Mate's Log/Verification/workflow-proof-interfaces#Implementation-order|Remaining source-linkage work]]
 
 ## Serialization and SQL are different proof boundaries
 
@@ -100,4 +100,4 @@ PGlite gives the first runtime checks a real SQL engine with a single connection
 
 ## First milestone
 
-Make one real `pud check` suite prove cancellation for a seeded paid booking. Lower the actual handler’s locked read, account and inventory updates, refund write, and transaction outcomes. Require the same sidecar to lose its proof if the TypeScript balance update or refund write is removed. Compare the executable model with the existing Postgres replay on those cases, using its field-level differences to check the translation. The debit experiment’s SQL lowering and replay give this work a starting point. [Debit port plan](https://github.com/PudHQ/pud/blob/main/experiments/debit-endpoint/lean-port.md) · [[First Mate's Log/Verification/workflow-proof-interfaces#Implementation-order|Interface rollout and acceptance cases]]
+Make one real `pud.dev check` suite prove cancellation for a seeded paid booking. Lower the actual handler’s locked read, account and inventory updates, refund write, and transaction outcomes. Require the same sidecar to lose its proof if the TypeScript balance update or refund write is removed. Compare the executable model with the existing Postgres replay on those cases, using its field-level differences to check the translation. The debit experiment’s SQL lowering and replay give this work a starting point. [Debit port plan](https://github.com/PudHQ/pud/blob/main/experiments/debit-endpoint/lean-port.md) · [[First Mate's Log/Verification/workflow-proof-interfaces#Implementation-order|Interface rollout and acceptance cases]]

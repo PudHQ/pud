@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-25
-updated-at: 2026-11-25
+updated-at: 2026-11-28
 summary: A measured comparison of Pud proofs, Vitest examples, and a bounded Vitest sweep on the same Postgres-backed workshop booking app.
 tags: [verification, lean, vitest, benchmark, postgres, codex]
 ---
@@ -189,7 +189,7 @@ On this app, Vitest was cheaper to write, change, and run. Pud added a guarantee
 Check the codec, tally, and termination examples from the repository root after setup.
 
 ```sh
-bun run --silent pud check \
+bun run --silent pud.dev check \
   packages/pud/.examples/zigzag-roundtrip.proof.ts \
   packages/pud/.examples/availability/count-free.proof.ts \
   packages/pud/.examples/countdown-sum.proof.ts \

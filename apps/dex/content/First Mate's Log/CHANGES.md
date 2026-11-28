@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-25
-updated-at: 2026-11-27
+updated-at: 2026-11-28
 summary: Additions, edits, moves, and removals in the First Mate’s Log, grouped by date.
 tags: [changelog, codex]
 ---
@@ -9,6 +9,18 @@ tags: [changelog, codex]
 
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+
+## 2026-11-28
+
+- Recorded the `pud.dev` package and executable name, the npm listing metadata, and the offline proof check for the release tarball in [[First Mate's Log/CLI/npm-package-and-command-names|Choosing an npm name for the Pud command]].
+- [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]] uses the current command for emitting Lean and capturing diagnostics.
+- [[First Mate's Log/Frontend/pud-github-social-card|Pud’s GitHub social card]] identifies the command represented by the checkmark.
+- [[First Mate's Log/Verification/Lean/configured-proof-assistant-adapters|Configured proof assistant adapters]] identifies the published package for adapters and the suite API.
+- [[First Mate's Log/Verification/Lean/measuring-typescript-to-lean-coverage|Measuring TypeScript-to-Lean coverage]] updates the commands for rerunning the coverage probes.
+- [[First Mate's Log/Verification/Lean/pud-vs-vitest-workshop-booking|Pud vs Vitest on workshop bookings]] updates the command for checking the booking sidecars.
+- [[First Mate's Log/Verification/Lean/random-lemmascript-examples|Porting LemmaScript examples to Lean]] uses the current command for rechecking the examples.
+- [[First Mate's Log/Verification/proof-suites-from-unit-to-end-to-end|Pud proof suites from unit to end-to-end]] uses the current command in the proposed suite workflows.
+- [[First Mate's Log/Verification/runtime-checks-and-effect-proofs|Runtime checks and effect proofs in Pud]] uses the current command for the proposed cancellation check.
 
 ## 2026-11-27
 

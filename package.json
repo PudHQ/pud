@@ -1,5 +1,5 @@
 {
-  "name": "pud-mono",
+  "name": "@pud.dev/monorepo",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -27,13 +27,13 @@
     "test": "\"$npm_execpath\" test ./apps ./packages",
     "typecheck": "\"$npm_execpath\" run --workspaces typecheck",
     "pack:cli": "\"$npm_execpath\" ./packages/pud/scripts/pack.ts",
-    "pud": "\"$npm_execpath\" packages/pud/src/cli.ts",
+    "pud.dev": "\"$npm_execpath\" packages/pud/src/cli.ts",
     "compat:check": "\"$npm_execpath\" experiments/compatibility/measure.ts",
     "compat:update": "\"$npm_execpath\" experiments/compatibility/measure.ts --update",
     "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
   },
   "devDependencies": {
-    "@pud.dev/lib": "workspace:*",
+    "pud.dev": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
     "@biomejs/biome": "catalog:"

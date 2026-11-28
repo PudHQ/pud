@@ -1,6 +1,6 @@
 # What would I actually write in Pud?
 
-This study records earlier prototypes. See the [current suite API](../../packages/pud/README.md) for the adapter-based workflow.
+This study records earlier prototypes. See the [current suite API](../../packages/pud/guide.md) for the adapter-based workflow.
 
 Take one exported TypeScript function, `admit(used: bigint, batch: bigint): boolean`. A grandfathered account can export a positive batch exactly when its nonnegative usage plus the batch fits within 16 units. At 12 used, a batch of four succeeds. At 13 used, it fails. The implementation reads the quota from a module constant. The independently reviewable rule says **16**. Reusing the implementation's constant in the rule would let a mistaken edit to 15 change both at once.
 
@@ -26,7 +26,7 @@ This is the LemmaScript form we ran. A developer reading `admit` sees both the p
 
 ```ts
 // quota.proof.ts
-import { proof } from "@pud/cli"
+// Historical prototype: proof() was the sidecar constructor in this checkout.
 import { admit } from "./quota"
 
 export default proof(admit, "admit exactly the batches that fit", (used, batch, allowed) => {

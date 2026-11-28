@@ -14,7 +14,7 @@ const adapter = leanAdapter({ toolchain });
 const command = leanCommand({ file: join(examples, "zigzag.ts"), name: "encode", source: "" }, { toolchain });
 const leanTest = test.skipIf(!Bun.which(command.binary));
 
-leanTest("pud check displays grouped Lean verdicts and diagnostics in a terminal", async () => {
+leanTest("pud.dev check displays grouped Lean verdicts and diagnostics in a terminal", async () => {
   const decoder = new TextDecoder();
   const drained = Promise.withResolvers<void>();
   let output = "";
@@ -97,7 +97,7 @@ leanTest("the same availability law proves the refactor and replays a dropped ba
 }, 45_000);
 
 function sidecar(subject: string, functionImports: string, source: string, schemas: string, inputs: string, assertion: string) {
-  return `import { describe, expect, it, pud } from "@pud.dev/lib";
+  return `import { describe, expect, it, pud } from "pud.dev";
 import { ${functionImports} } from "${source}";
 describe(${subject}, () => {
   it("observes the linked implementation", { ${schemas} }, ({ ${inputs} }) => {

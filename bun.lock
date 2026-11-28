@@ -3,11 +3,11 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "pud",
+      "name": "@pud.dev/monorepo",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
-        "@pud.dev/lib": "workspace:*",
         "@types/bun": "catalog:",
+        "pud.dev": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -78,10 +78,10 @@
       "version": "0.0.1",
     },
     "packages/pud": {
-      "name": "@pud.dev/lib",
-      "version": "0.0.1",
+      "name": "pud.dev",
+      "version": "0.0.3",
       "bin": {
-        "pud": "./src/cli.ts",
+        "pud.dev": "./src/cli.ts",
       },
       "dependencies": {
         "@babel/parser": "catalog:",
@@ -387,8 +387,6 @@
     "@posthog/core": ["@posthog/core@1.69.2", "", { "dependencies": { "@posthog/types": "^1.427.0" } }, "sha512-toMfPKklwLW+a4ZY3/EzM3GNMVXmk2ylGb8NPJXRH4igXMoI8wgNL2jqXOiglWAXqFBLZGYFN1oQx6LVmUTxTg=="],
 
     "@posthog/types": ["@posthog/types@1.427.0", "", {}, "sha512-2RPVfuGIx0iys78mTOcfdzN7/w7AM1Ak3yu9++4/FonPf08mwGqDkJjThz2dA/34666ToNw5Q4fZoFdgvfNUHw=="],
-
-    "@pud.dev/lib": ["@pud.dev/lib@workspace:packages/pud"],
 
     "@pud/analytics": ["@pud/analytics@workspace:packages/analytics"],
 
@@ -1063,6 +1061,8 @@
     "promise-worker-transferable": ["promise-worker-transferable@1.0.4", "", { "dependencies": { "is-promise": "^2.1.0", "lie": "^3.0.2" } }, "sha512-bN+0ehEnrXfxV2ZQvU2PetO0n4gqBD4ulq3MI1WOPLgr7/Mg9yRQkX5+0v1vagr74ZTsl7XtzlaYDo2EuCeYJw=="],
 
     "property-information": ["property-information@7.2.0", "", {}, "sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg=="],
+
+    "pud.dev": ["pud.dev@workspace:packages/pud"],
 
     "punycode.js": ["punycode.js@2.3.1", "", {}, "sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA=="],
 

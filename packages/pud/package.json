@@ -1,14 +1,23 @@
 {
-  "name": "@pud.dev/lib",
+  "name": "pud.dev",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.3",
+  "description": "Write proofs for TypeScript functions and check them with Lean.",
+  "homepage": "https://pud.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PudHQ/pud.git",
+    "directory": "packages/pud"
+  },
+  "bugs": "https://github.com/PudHQ/pud/issues",
+  "keywords": ["typescript", "formal-verification", "proof-assistant", "lean4", "bun"],
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",
     "./lean": "./src/lean/index.ts"
   },
   "bin": {
-    "pud": "./src/cli.ts"
+    "pud.dev": "./src/cli.ts"
   },
   "dependencies": {
     "@babel/parser": "catalog:",
