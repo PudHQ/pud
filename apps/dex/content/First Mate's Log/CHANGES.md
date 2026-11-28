@@ -12,6 +12,8 @@ tags: [changelog, codex]
 
 ## 2026-11-28
 
+- Indexed all four rounds and the remix in [[First Mate's Log/Frontend/landing-page-proof-reader#Pud Editions|Pud Editions]] with links to the playable archive and its pull request.
+- Linked [[First Mate's Log/Frontend/round-four-landing-review|The fourth landing-page review]] to its gallery, the earlier rounds, and the preview reel.
 - Recorded the `pud.dev` package and executable name, the npm listing metadata, and the offline proof check for the release tarball in [[First Mate's Log/CLI/npm-package-and-command-names|Choosing an npm name for the Pud command]].
 - [[First Mate's Log/CLI/terminal-proof-output|Keeping proof diagnostics usable]] uses the current command for emitting Lean and capturing diagnostics.
 - [[First Mate's Log/Frontend/pud-github-social-card|Pud’s GitHub social card]] identifies the command represented by the checkmark.
@@ -24,11 +26,13 @@ tags: [changelog, codex]
 
 ## 2026-11-27
 
+- Added [[First Mate's Log/Frontend/round-four-landing-review|The fourth landing-page review]] with historical sources, two comparative panels, and the changes prompted by each.
+
 - Updated [[First Mate's Log/Tooling/github-issue-templates|GitHub issue and pull request templates for Pud]] with the PR verification prompts, the closing issue check, and the screenshot requirement for UI changes.
 - Updated [[First Mate's Log/Frontend/github-star-spotlight|GitHub star spotlight]] with the restored Octocat medallion, larger star count, and more defined followspot edge.
 - Added [[First Mate's Log/Frontend/pud-github-social-card|Pud’s GitHub social card]] with the artwork prompt, type settings, and crop measurements for the selected one-line design.
 - Added [[First Mate's Log/Tooling/checking-repository-skill-links|Checking repository skill links]] with the cases used to verify the new check.
-- [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] records the return to the original mascot and links to the archived art and desktop screenshots.
+- [[First Mate's Log/Frontend/landing-page-proof-reader|The landing page proof reader]] records the original mascot, four rounds of Pud Editions, and the geometric counterexample in Crash Test No. 1.
 - [[First Mate's Log/Frontend/pud-log-newsstand|The Pud Log newsstand]] records the signup’s return to the section above PudDex.
 
 Updated these notes to link to the new GitHub repository. [PudHQ/pud](https://github.com/PudHQ/pud)

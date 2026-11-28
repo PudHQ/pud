@@ -2,9 +2,10 @@ import { Instance, Instances } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
-  Color, DataTexture, DynamicDrawUsage, Float32BufferAttribute, Frustum, LatheGeometry,
+  DataTexture, DynamicDrawUsage, Frustum,
   LinearFilter, LinearSRGBColorSpace, Material, Matrix4, Mesh, Object3D, Sphere, Vector2, type Group, type InstancedMesh, type Texture,
 } from "three";
+import { moldFlan, pourCaramel } from "@/components/scenes/flan-geometry";
 import { Block } from "@/components/scenes/props";
 import { conveyor, conveyorDeck, conveyorSupports as supports, factoryFloor } from "./factory-layout";
 import { applyConveyorLighting } from "./factory-lighting";
@@ -17,44 +18,6 @@ const slatCount = 144;
 const puddingCount = 42;
 const plateHeight = conveyorDeck.position[1];
 const plateProfile = [[0, 0], [0.205, 0], [0.229, 0.012], [0.234, 0.029], [0.216, 0.035], [0.196, 0.018], [0, 0.018]].map(([r, y]) => new Vector2(r, y));
-const flanProfile = [[0.006, 0], [0.156, 0], [0.176, 0.013], [0.184, 0.037], [0.177, 0.078], [0.151, 0.152], [0.144, 0.181], [0.129, 0.193], [0.006, 0.193]].map(([r, y]) => new Vector2(r, y));
-const caramelProfile = [[0.150, 0.159], [0.152, 0.172], [0.148, 0.181], [0.141, 0.192], [0.126, 0.2], [0, 0.201]].map(([r, y]) => new Vector2(r, y));
-
-function moldFlan() {
-  const geometry = new LatheGeometry(flanProfile, 36);
-  const positions = geometry.attributes.position;
-  const caramelGold = new Color("#e88819");
-  const custard = new Color("#ffc654");
-  const shade = new Color();
-  const colors: number[] = [];
-  for (let index = 0; index < positions.count; index++) {
-    const x = positions.getX(index);
-    const y = positions.getY(index);
-    const z = positions.getZ(index);
-    const flute = 1 - (0.5 + 0.5 * Math.cos(Math.atan2(x, z) * 12)) * 0.062 * Math.sin(Math.PI * y / 0.193);
-    positions.setXYZ(index, x * flute, y, z * flute);
-    shade.copy(caramelGold).lerp(custard, (y / 0.193) ** 0.59);
-    colors.push(shade.r, shade.g, shade.b);
-  }
-  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-function pourCaramel() {
-  const geometry = new LatheGeometry(caramelProfile, 28);
-  const positions = geometry.attributes.position;
-  for (let index = 0; index < positions.count; index++) {
-    const x = positions.getX(index);
-    const y = positions.getY(index);
-    const z = positions.getZ(index);
-    const theta = Math.atan2(x, z);
-    const spill = Math.max(0, (0.181 - y) / 0.022) * (0.5 + 0.5 * Math.cos(theta * 5 - 0.7)) ** 6;
-    positions.setXYZ(index, x * (1 + spill * 0.106), y - spill * 0.032, z * (1 + spill * 0.106));
-  }
-  geometry.computeVertexNormals();
-  return geometry;
-}
 
 function bakeFinish(glossy: boolean) {
   const size = 64;
