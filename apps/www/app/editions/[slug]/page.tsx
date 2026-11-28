@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { roundEditions, thirdRound, type RoundEdition } from "@/features/editions/catalog";
+import { roundEditions, roundFor, type RoundEdition } from "@/features/editions/catalog";
 import { Wobble } from "@/features/editions/round-three/wobble";
 import { Flyposter, Lenticular, PinWall } from "@/features/editions/round-three/material";
 import { Feedback, JogWheel, Keybed } from "@/features/editions/round-three/sound";
@@ -22,7 +22,22 @@ import { SignShop } from "@/features/editions/remix/sign-shop";
 import { ColdStorage } from "@/features/editions/remix/cold-storage";
 import { PressCheck } from "@/features/editions/remix/press-check";
 
+import { DialAProof } from "@/features/editions/round-four/dial-a-proof";
+import { CaseFiles, ErrantPress, Overprint } from "@/features/editions/round-four/paper";
+import { AfterHours, PudCounty, PocketDebugger } from "@/features/editions/round-four/expedition";
+import { ExplodedView, NightWindow, HotMetal } from "@/features/editions/round-four/workshop";
+
 const pages = {
+  "dial-a-proof": DialAProof,
+  "hot-metal": HotMetal,
+  "pocket-debugger": PocketDebugger,
+  "errant-press": ErrantPress,
+  "case-files": CaseFiles,
+  overprint: Overprint,
+  "pud-county": PudCounty,
+  "after-hours": AfterHours,
+  "night-window": NightWindow,
+  "exploded-view": ExplodedView,
   wobble: Wobble,
   flyposter: Flyposter,
   lenticular: Lenticular,
@@ -84,6 +99,6 @@ export default async function EditionPage({ params }: Props) {
   const edition = roundEditions.find(item => item.slug === slug);
   if (!edition) notFound();
   const Page = pages[edition.slug];
-  const current = thirdRound.some(item => item.slug === edition.slug);
+  const current = roundFor(edition.slug) >= 3;
   return <div className={current ? "" : "[&>main]:min-h-svh [&>main]:pb-20"}><Page /><EditionSwitcher edition={edition} /></div>;
 }

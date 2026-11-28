@@ -4,7 +4,7 @@ The public landing page at `pud.dev` uses Vinext for server rendering and stores
 
 ## Development
 
-Follow the [workspace setup](../../README.md#workspace) and run `bun run dev:www` from the root. The [editions gallery](http://localhost:4901/editions) opens on ten playable heroes. The other rounds have their own collection links. Every edition has a direct URL. The arrows stay within the selected round, and all rounds share a local shortlist.
+Follow the [workspace setup](../../README.md#workspace) and run `bun run dev:www` from the root. The [editions gallery](http://localhost:4901/editions) opens on ten illustrated, interactive proof exhibits. [The previous collection](http://localhost:4901/editions?round=3) holds the ten tactile hero studies. The other rounds have their own collection links. Every edition has a direct URL. The arrows stay within the selected round, and all rounds share a local shortlist.
 
 The dev server applies local D1 migrations on startup. The form saves one entry per email address in the `alpha_signups` table. Run `bun run alpha:list` from the root to read the local list.
 

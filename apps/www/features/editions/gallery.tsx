@@ -5,9 +5,10 @@ import {
   editions,
   editionPath,
   featuredRemix,
-  firstRound,
-  secondRound,
-  thirdRound,
+  roundFor,
+  roundPath,
+  rounds,
+  type Round,
   type Edition,
 } from "./catalog";
 
@@ -148,7 +149,7 @@ function FeaturedRemix({ saved, onToggle }: { saved: boolean; onToggle: (edition
   );
 }
 
-export function EditionGallery({ round }: { round: 1 | 2 | 3 }) {
+export function EditionGallery({ round }: { round: Round }) {
   const [saved, setSaved] = useState<string[]>([]);
   const [shortlist, setShortlist] = useState(false);
 
@@ -179,11 +180,8 @@ export function EditionGallery({ round }: { round: 1 | 2 | 3 }) {
 
   const visible = shortlist
     ? editions.filter((item) => saved.includes(item.slug))
-    : round === 1
-      ? firstRound
-      : round === 2
-        ? secondRound
-        : thirdRound;
+    : rounds[round];
+  const leadingPair = round === 4 && !shortlist;
   const tab = `inline-flex min-h-11 items-center gap-2 rounded-full px-3 font-semibold hover:underline sm:px-4 ${focus}`;
   return (
     <main className="min-h-screen bg-stone-100 text-ink">
@@ -203,7 +201,7 @@ export function EditionGallery({ round }: { round: 1 | 2 | 3 }) {
         </header>
         <section
           aria-labelledby="gallery-title"
-          className="grid items-end gap-y-5 py-7 sm:py-10 lg:grid-cols-3 lg:py-12"
+          className="grid items-end gap-y-3 py-5 sm:py-7 lg:grid-cols-3 lg:py-8"
         >
           <h1
             id="gallery-title"
@@ -216,34 +214,20 @@ export function EditionGallery({ round }: { round: 1 | 2 | 3 }) {
               ? "Ten early studies for Pud’s landing page."
               : round === 2
                 ? "Twenty-five ways to get your hands on a TypeScript proof."
-                : "Ten playable front pages for Pud. Pick one up."}
+                : round === 3 ? "Ten playable front pages for Pud. Pick one up." : "Ten illustrated places to explore a TypeScript proof."}
           </p>
         </section>
         <nav
           aria-label="Edition collections"
           className="mb-5 flex flex-wrap items-center gap-1 border-y border-ink/35 py-2 font-mono text-xs sm:mb-7"
         >
-          <a
-            href="/editions"
-            aria-current={round === 3 && !shortlist ? "page" : undefined}
-            className={`${tab} aria-[current=page]:bg-ink aria-[current=page]:text-white`}
-          >
-            Round 03 <span>{thirdRound.length}</span>
-          </a>
-          <a
-            href="/editions?round=2"
-            aria-current={round === 2 && !shortlist ? "page" : undefined}
-            className={`${tab} aria-[current=page]:bg-ink aria-[current=page]:text-white`}
-          >
-            Round 02 <span>{secondRound.length}</span>
-          </a>
-          <a
-            href="/editions?round=1"
-            aria-current={round === 1 && !shortlist ? "page" : undefined}
-            className={`${tab} aria-[current=page]:bg-ink aria-[current=page]:text-white`}
-          >
-            Round 01 <span>{firstRound.length}</span>
-          </a>
+          {([4, 3, 2, 1] as const).map(number => (
+            <a key={number} href={roundPath(number)}
+              aria-current={round === number && !shortlist ? "page" : undefined}
+              className={`${tab} aria-[current=page]:bg-ink aria-[current=page]:text-white`}>
+              Round 0{number} <span>{rounds[number].length}</span>
+            </a>
+          ))}
           <button
             ref={shortlistFilter}
             type="button"
@@ -257,7 +241,7 @@ export function EditionGallery({ round }: { round: 1 | 2 | 3 }) {
         {!shortlist && round === 2 && (
           <FeaturedRemix saved={saved.includes(featuredRemix.slug)} onToggle={toggle} />
         )}
-        <div className="grid gap-x-5 gap-y-8 pb-12 sm:grid-cols-2 lg:gap-x-6 xl:grid-cols-3 xl:gap-y-10">
+        <div className={`grid gap-x-5 gap-y-8 pb-12 sm:grid-cols-2 lg:gap-x-6 xl:gap-y-10 ${leadingPair ? "xl:grid-cols-6" : "xl:grid-cols-3"}`}>
           {visible.map((edition, index) => {
             const label = (
               <>
@@ -270,9 +254,9 @@ export function EditionGallery({ round }: { round: 1 | 2 | 3 }) {
                 <p className="mt-2 pr-12 text-sm leading-snug text-stone-700">{edition.description}</p>
               </>
             );
-            const moving = thirdRound.some((item) => item.slug === edition.slug);
+            const moving = edition.slug === featuredRemix.slug || roundFor(edition.slug) >= 3;
             return (
-              <article key={edition.slug} className="relative min-w-0">
+              <article key={edition.slug} className={`relative min-w-0 ${leadingPair ? index < 2 ? "xl:col-span-3" : "xl:col-span-2" : ""}`}>
                 {moving ? (
                   <MotionPreview edition={edition} eager={index < 3}>
                     {label}

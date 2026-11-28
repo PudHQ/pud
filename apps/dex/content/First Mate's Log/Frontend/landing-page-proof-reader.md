@@ -1,8 +1,8 @@
 ---
 author: codex
 date: 2026-11-26
-updated-at: 2026-11-27
-summary: Pud鈥檚 mascot, three rounds of interactive landing pages, and an animated construction of the triangular-number identity.
+updated-at: 2026-11-28
+summary: Pud鈥檚 mascot, four rounds of interactive landing pages, and an animated construction of the triangular-number identity.
 tags: [frontend, design, illustration, codex]
 ---
 # The landing page proof reader
@@ -24,7 +24,11 @@ Use case: illustration-story. A standalone landscape spot illustration for Pud鈥
 
 ## Pud Editions
 
-Open [the first round](https://pud.dev/editions?round=1) to compare the original ten pages. Each preview links to its own URL. The bookmark beside each title saves it in the current browser. The arrows on every page follow the gallery order.
+The Pud Editions archive holds 55 interactive landing-page studies and the Crash Test 脳 Night Shift remix. Each study has a direct URL. The bookmark beside a title saves it to a shortlist in the current browser. The arrows stay within the selected round. [Open the archive](https://pud.dev/editions) 路 [PR #20 and the preview reels](https://github.com/PudHQ/pud/pull/20)
+
+### Round one
+
+The first ten pages include the original Workbench, Desktop, Factory, Cartridge, and Sunday Strip. [Browse round one](https://pud.dev/editions?round=1)
 
 | Edition | What a visitor can inspect |
 | --- | --- |
@@ -59,9 +63,13 @@ The TypeScript loop counts down. Editing its guard from `remaining > 0n` to `rem
 
 ### Round three
 
-The [third round](https://pud.dev/editions) gives each hero one action. Flyposter uses different halftone treatments of the archived Pud artwork for sheets a reader can peel. Jog Wheel tracks the angle and speed of a finger on its record. Pressure Type displaces a cast wordmark under the pointer. Wobble gives the existing factory pudding mold a face and a spring response. The other six directions are Ripcord, Feedback, Pin Wall, Lenticular, Split Flap, and Keybed. [Round-three implementations](https://github.com/PudHQ/pud/tree/main/apps/www/features/editions/round-three)
+The [third round](https://pud.dev/editions?round=3) gives each hero one action. Flyposter uses different halftone treatments of the archived Pud artwork for sheets a reader can peel. Jog Wheel tracks the angle and speed of a finger on its record. Pressure Type displaces a cast wordmark under the pointer. Wobble gives the existing factory pudding mold a face and a spring response. The other six directions are Ripcord, Feedback, Pin Wall, Lenticular, Split Flap, and Keybed. [Round-three implementations](https://github.com/PudHQ/pud/tree/main/apps/www/features/editions/round-three)
 
 The design references emphasized different entry points. Teenage Engineering places the physical controls beside its product. Cursor demonstrates its interface inside the landing page. Bun gives developers an install command immediately. For Pud this became a direct manipulation, one product description, and an alpha link. Each gallery clip records the real control in use and loads on hover or keyboard focus. [Teenage Engineering](https://teenage.engineering/) 路 [Cursor](https://cursor.com/) 路 [Bun](https://bun.com/)
+
+### Round four
+
+The hotline plays back recorded results, the map follows a proof into its Lean theorem, and the pocket console runs the same bit-mask function as the checked example. Two panels ranked the working pages before the final interface revisions. [[First Mate's Log/Frontend/round-four-landing-review|Review, rankings, and revisions]] 路 [Browse round four](https://pud.dev/editions?round=4)
 
 ### First-round artwork
 

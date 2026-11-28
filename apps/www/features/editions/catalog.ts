@@ -58,7 +58,32 @@ export const thirdRound = [
   { slug: "split-flap", title: "Split Flap", description: "Advance the mechanical letter board." },
 ] as const;
 
-export const roundEditions = [...thirdRound, ...secondRound, ...firstRound] as const;
+export const fourthRound = [
+  { slug: "dial-a-proof", title: "Dial-a-Proof", description: "Dial a proof, a counterexample, or the limits of the checker." },
+  { slug: "case-files", title: "Case Files", description: "One ballot went in. Zero came out. Change the votes and replay the count." },
+  { slug: "errant-press", title: "Errant Press", description: "Follow a half-cent error through three illustrated front pages." },
+  { slug: "pocket-debugger", title: "Pocket Debugger", description: "Flip eight physical keys and read the full 64-bit result." },
+  { slug: "night-window", title: "Night Window", description: "Take a claim to Pud’s night clerk and collect the punched receipt." },
+  { slug: "exploded-view", title: "Exploded View", description: "Pull a proof file apart into its inputs, assumption, and claim." },
+  { slug: "after-hours", title: "After Hours", description: "Tune from source to claim to a working replay on Pud TV." },
+  { slug: "overprint", title: "Overprint", description: "Register three ink plates to assemble the ZigZag property." },
+  { slug: "pud-county", title: "Pud County", description: "Follow linear search from the source mill to its Lean theorem." },
+  { slug: "hot-metal", title: "Hot Metal", description: "Roll an impression of the clamp contract and save its proof file." },
+] as const;
+
+export const rounds = { 1: firstRound, 2: secondRound, 3: thirdRound, 4: fourthRound } as const;
+export type Round = keyof typeof rounds;
+export function roundPath(round: Round) {
+  return round === 4 ? "/editions" : `/editions?round=${round}`;
+}
+export function roundFor(slug: RoundEdition["slug"]): Round {
+  if (fourthRound.some(item => item.slug === slug)) return 4;
+  if (thirdRound.some(item => item.slug === slug)) return 3;
+  if (secondRound.some(item => item.slug === slug)) return 2;
+  return 1;
+}
+
+export const roundEditions = [...fourthRound, ...thirdRound, ...secondRound, ...firstRound] as const;
 export const editions = [featuredRemix, ...roundEditions] as const;
 
 export type RoundEdition = (typeof roundEditions)[number];

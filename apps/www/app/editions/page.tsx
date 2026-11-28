@@ -10,5 +10,5 @@ type Props = { searchParams: Promise<{ round?: string }> };
 
 export default async function EditionsPage({ searchParams }: Props) {
   const { round } = await searchParams;
-  return <EditionGallery round={round === "1" ? 1 : round === "2" ? 2 : 3} />;
+  return <EditionGallery round={round === "1" ? 1 : round === "2" ? 2 : round === "3" ? 3 : 4} />;
 }
