@@ -46,10 +46,19 @@ export async function pack(destination = join(root, "dist")) {
     ], { stdio: "inherit" });
     await writeNotices(Object.keys(build.metafile!.inputs), join(stage, "THIRD-PARTY-NOTICES"));
     await copyFile(join(root, "LICENSE"), join(stage, "LICENSE"));
+    await copyFile(join(pud, "README.md"), join(stage, "README.md"));
     await chmod(join(stage, "cli.js"), 0o755);
     const types = "./types/index.d.ts";
     await writeFile(join(stage, "package.json"), JSON.stringify({
-      name: manifest.name, version: manifest.version, type: "module", license: manifest.license,
+      name: manifest.name,
+      version: manifest.version,
+      description: manifest.description,
+      homepage: manifest.homepage,
+      repository: manifest.repository,
+      bugs: manifest.bugs,
+      keywords: manifest.keywords,
+      license: manifest.license,
+      type: manifest.type,
       exports: {
         ".": { types, default: "./index.js" },
         "./lean": { types: "./types/lean/index.d.ts", default: "./lean/index.js" },

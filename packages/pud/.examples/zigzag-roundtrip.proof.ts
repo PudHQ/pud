@@ -1,4 +1,4 @@
-import { describe, expect, it, pud } from "@pud.dev/lib";
+import { describe, expect, it, pud } from "pud.dev";
 import { decode, encode } from "./zigzag.ts";
 
 describe(encode, () => {

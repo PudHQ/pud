@@ -1,5 +1,5 @@
 import pud from "./pud.config.ts";
-import { lean } from "@pud.dev/lib/lean";
+import { lean } from "pud.dev/lean";
 import { recursiveSum } from "./termination.ts";
 
 pud.describe(recursiveSum, ({ expect, it, use }) => {

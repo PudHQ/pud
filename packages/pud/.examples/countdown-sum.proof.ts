@@ -1,5 +1,5 @@
 import pud from "./pud.config.ts";
-import { lean } from "@pud.dev/lib/lean";
+import { lean } from "pud.dev/lean";
 import { countdownSum } from "./termination.ts";
 
 pud.describe(countdownSum, ({ expect, it, use }) => {

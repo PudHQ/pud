@@ -31,7 +31,7 @@ function sidecar(binding: string, title: string, inputs: Target["inputs"]) {
   const schemas = inputs.map(([name, domain]) => name + ": " + schemaFor(domains[domain])).join(", ");
   const parameters = inputs.map(([name]) => name).join(", ");
   return [
-    'import { describe, it, expect, pud } from "@pud.dev/lib";', binding,
+    'import { describe, it, expect, pud } from "pud.dev";', binding,
     "describe(observe, () => {", "  it(" + JSON.stringify(title) + ", { " + schemas + " }, ({ " + parameters + " }) => {",
     "    expect(observe(" + parameters + ")).to(pud.boolean().eq(true));", "  });", "});",
   ].join("\n");

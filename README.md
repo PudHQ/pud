@@ -33,16 +33,16 @@ Run `bun run compat:check` to measure the bundled adapter on unchanged open-sour
 
 ## Run your own checks
 
-Build the self-contained package with `bun run pack:cli`. In your Bun project, install the archive and select a driver.
+Install Pud in your Bun project, then select a driver in `pud.config.ts`.
 
 ```sh
-bun add --dev /path/to/pud.dev-lib-0.0.1.tgz
+bun add -d pud.dev
 ```
 
 ```ts
 // pud.config.ts
-import { defineConfig } from "@pud.dev/lib";
-import { leanAdapter } from "@pud.dev/lib/lean";
+import { defineConfig } from "pud.dev";
+import { leanAdapter } from "pud.dev/lean";
 
 export default defineConfig({ adapter: leanAdapter() });
 ```
@@ -51,7 +51,7 @@ Install Lean on your path or through Elan. The adapter reads the nearest `lean-t
 
 ```ts
 // cents.proof.ts
-import { describe, expect, it, pud } from "@pud.dev/lib";
+import { describe, expect, it, pud } from "pud.dev";
 import { toCents } from "./cents.ts";
 
 describe(toCents, () => {
@@ -65,7 +65,7 @@ describe(toCents, () => {
 
 For each possible input, `.toExactly()` checks that the function returns the only answer its rule allows. Here the input is an ordinary TypeScript `number`, and half-cent ties go to the higher integer. Use `.to()` for an invariant such as a lower bound.
 
-Run `bunx --no-install pud check` to discover nearby `*.proof.ts` files. Pass paths to select suites. Use `--verbose` for full diagnostics or `--json` for CI. `@pud.dev/lib` also exports `check`, `checkFiles`, and `emit`. [CLI and authoring guide](packages/pud/README.md)
+Run `bunx --no-install pud check` to discover nearby `*.proof.ts` files. Pass paths to select suites. Use `--verbose` for full diagnostics or `--json` for CI. `pud.dev` also exports `check`, `checkFiles`, and `emit`. [CLI and authoring guide](packages/pud/README.md)
 
 ## How the proof pipeline works
 
@@ -91,6 +91,20 @@ The [PostgreSQL debit experiment](experiments/debit-endpoint/README.md) has its 
 | PudDex · 4902 | `bun run dev:dex` | `bun run build:dex` | `bun run preview:dex` | `bun run deploy:preview:dex` | `bun run deploy:dex` |
 
 Reuse the app already listening on its assigned port. Build before running a local preview and free the assigned port when switching between dev and preview. Both apps ship to Cloudflare Workers. [Worker Previews](apps/dex/content/Handbook/Engineering/deploying-worker-previews.md) · [Landing site release notes](apps/www/README.md#release) · [PudDex release notes](apps/dex/README.md#release) · [Repository skills](skills/README.md)
+
+## Publish to npm
+
+Before the first CI release, open the trusted publisher settings for `pud.dev` on npm. Select GitHub Actions, enter `PudHQ` for the organization, `pud` for the repository and `publish-npm.yml` for the workflow filename. Leave the environment blank and enable `npm publish`. The first successful publish must occur within two days of creating the connection. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+
+For each stable release, bump the version in `packages/pud/package.json` and merge the change into `main`. Tag that commit and push the tag.
+
+```sh
+tag="v$(node -p "require('./packages/pud/package.json').version")"
+git tag -s "$tag" -m "Release $tag"
+git push origin "$tag"
+```
+
+The workflow checks the tag against the manifest, installs the built tarball offline, proves the clamp example and publishes that same tarball to npm with provenance. [Release workflow](.github/workflows/publish-npm.yml)
 
 ## License
 

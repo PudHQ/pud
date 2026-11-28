@@ -33,7 +33,7 @@
     "alpha:list": "\"$npm_execpath\" run --cwd apps/www alpha:list"
   },
   "devDependencies": {
-    "@pud.dev/lib": "workspace:*",
+    "pud.dev": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
     "@biomejs/biome": "catalog:"

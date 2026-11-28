@@ -7,7 +7,7 @@ import { check, checkFiles, emit, Unsupported, type CheckProgress, type ClaimPro
 import { leanAdapter } from "../src/lean/index.ts";
 
 const increment = "export function increment(value: bigint): bigint { return value + 1n; }";
-const portable = `import { describe, expect, given, it, pud } from "@pud.dev/lib";
+const portable = `import { describe, expect, given, it, pud } from "pud.dev";
 import { increment } from "./increment.ts";
 describe(increment, () => {
   it("increments the input", { value: pud.int().gte(0n) }, ({ value: input }) => {
@@ -210,7 +210,7 @@ test("a different adapter receives portable properties and excludes native Lean 
   await fixture(async dir => {
     await writeFile(join(dir, "pud.config.ts"), "throw new Error('The explicit adapter should bypass config evaluation.');");
     const file = join(dir, "increment.proof.ts");
-    await writeFile(file, `import { lean } from "@pud.dev/lib/lean";
+    await writeFile(file, `import { lean } from "pud.dev/lean";
 import pud from "./pud.config.ts";
 import { increment } from "./increment.ts";
 pud.describe(increment, ({ it, expect, use }) => {

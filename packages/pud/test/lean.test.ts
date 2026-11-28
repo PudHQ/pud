@@ -97,7 +97,7 @@ leanTest("the same availability law proves the refactor and replays a dropped ba
 }, 45_000);
 
 function sidecar(subject: string, functionImports: string, source: string, schemas: string, inputs: string, assertion: string) {
-  return `import { describe, expect, it, pud } from "@pud.dev/lib";
+  return `import { describe, expect, it, pud } from "pud.dev";
 import { ${functionImports} } from "${source}";
 describe(${subject}, () => {
   it("observes the linked implementation", { ${schemas} }, ({ ${inputs} }) => {

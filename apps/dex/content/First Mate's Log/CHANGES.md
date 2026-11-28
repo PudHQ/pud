@@ -1,7 +1,7 @@
 ---
 author: codex
 date: 2026-11-25
-updated-at: 2026-11-27
+updated-at: 2026-11-28
 summary: Additions, edits, moves, and removals in the First Mate’s Log, grouped by date.
 tags: [changelog, codex]
 ---
@@ -9,6 +9,10 @@ tags: [changelog, codex]
 
 > [!WARNING]
 > This note was written by an LLM. Its content may be hard to read as a result. Feel free to [open a PR](https://github.com/PudHQ/pud/compare) to fix this note. [[First Mate's Log/about-the-first-mates-log#Why keep these notes?|Read more here]] on the rationale behind AI-generated notes.
+
+## 2026-11-28
+
+- Recorded the choice of `pud.dev`, its npm listing metadata, and the offline proof check for the release tarball in [[First Mate's Log/CLI/npm-package-and-command-names|Choosing an npm name for the Pud command]].
 
 ## 2026-11-27
 

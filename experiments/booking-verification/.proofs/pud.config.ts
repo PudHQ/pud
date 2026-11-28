@@ -1,4 +1,4 @@
-import { defineConfig } from "@pud.dev/lib";
-import { leanAdapter } from "@pud.dev/lib/lean";
+import { defineConfig } from "pud.dev";
+import { leanAdapter } from "pud.dev/lean";
 
 export default defineConfig({ adapter: leanAdapter() });
